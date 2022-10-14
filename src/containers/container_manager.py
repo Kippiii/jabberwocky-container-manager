@@ -1,8 +1,11 @@
-class ContainerManager:
-    def __init__(self) -> None:
-        pass
+from typing import Dict
 
-    def interact(self, container_name: str):
+from src.containers.container import Container
+
+class ContainerManager:
+    containers: Dict[str, Container]
+
+    def __init__(self) -> None:
         pass
 
     def start(self, container_name: str):
