@@ -17,7 +17,7 @@ class Container:
     """
 
     booter: Optional[popen_spawn.PopenSpawn] = None
-    ex_port: int = 10024
+    ex_port: int = 10023
     qemu_file: Path
     arch: str
     conn: Optional[Connection] = None
@@ -41,7 +41,7 @@ class Container:
         self.booter.sendline("root")
         self.booter.expect("debian:~#")
 
-        self.conn = Connection("localhost", user="root", port=self.ex_port)
+        self.conn = Connection("localhost", user="root", port=self.ex_port, connect_kwargs={"password": "root"})
         self.conn.open()
 
     def run(self, cmd: str) -> None:
