@@ -1,20 +1,27 @@
+from typing import Optional
 from pathlib import Path
 import pexpect
 from pexpect import popen_spawn
 
 class Container:
-    def __init__(self) -> None:
-        pass
+    booter: Optional[popen_spawn.PopenSpawn] = None
+    ex_port: int = 10022
+    qemu_file: Path
+    arch: str
+
+    def __init__(self, arch: str, qemu_file_path: str) -> None:
+        self.qemu_file = Path(qemu_file_path)
+        if not self.qemu_file.is_file():
+            raise FileNotFoundError(qemu_file_path)
+        self.arch = arch
 
     def start(self) -> None:
-        arch: str = "sparc"
-        ex_port: int = 10029
-        qemu_file: Path = Path("hdd.qcow2")
-        booter = popen_spawn.PopenSpawn(f"qemu-system-{arch} -M SS-20 -drive file={qemu_file},format=qcow2 -net user,hostfwd=tcp::{ex_port}-:22 -net nic -m 1G -nographic")
-        booter.expect("debian login: ", timeout=360)
-        booter.sendline("root")
-        booter.expect("Password: ")
-        booter.sendline("root")
-        booter.expect("debian:~#")
-        print("Successfully booted!")
-        booter.kill(0)
+        self.booter = popen_spawn.PopenSpawn(f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 1G -nographic")
+        self.booter.expect("debian login: ", timeout=360)
+        self.booter.sendline("root")
+        self.booter.expect("Password: ")
+        self.booter.sendline("root")
+        self.booter.expect("debian:~#")
+
+    def stop(self) -> None:
+        self.booter.kill(0)
