@@ -4,6 +4,7 @@ import pexpect
 from pexpect import popen_spawn
 from pexpect import EOF as PexpectEOFException
 from fabric import Connection
+import logging
 
 from src.containers.port_allocation import allocate_port
 
@@ -19,6 +20,7 @@ class Container:
     :param conn: The ssh connection to the container
     """
 
+    logger: logging.Logger
     booter: Optional[popen_spawn.PopenSpawn] = None
     ex_port: int
     qemu_file: Path
@@ -29,10 +31,11 @@ class Container:
     timeout: int = 360
     max_retries: int = 25
 
-    def __init__(self, qemu_file_path: str) -> None:
+    def __init__(self, qemu_file_path: str, *, logger: logging.Logger) -> None:
         self.qemu_file = Path(qemu_file_path)
         if not self.qemu_file.is_file():
             raise FileNotFoundError(qemu_file_path)
+        self.logger = logger
 
     def start(self) -> None:
         """
@@ -46,7 +49,7 @@ class Container:
             try:
                 self.booter.expect("debian login: ", timeout=360)
             except PexpectEOFException:
-                pass
+                pass # TODO Determine if it is a port allocation issue
             else:
                 break
         else:

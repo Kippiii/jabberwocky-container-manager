@@ -1,7 +1,12 @@
+import logging
+
 from src.containers.container_manager import ContainerManager
 
 def main():
-    cm = ContainerManager()
+    logging.basicConfig()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    cm = ContainerManager(logger=logger)
     cm.start("hdd")
     try:
         cm.run_command("hdd", "rm -f echo.c")
@@ -14,7 +19,7 @@ def main():
         cm.stop("hdd")
         raise e
 
-    print("Success!")
+    logger.info("Success!")
 
 
 if __name__ == "__main__":
