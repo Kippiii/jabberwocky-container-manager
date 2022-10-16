@@ -2,7 +2,10 @@ from typing import Optional
 from pathlib import Path
 import pexpect
 from pexpect import popen_spawn
+from pexpect import EOF as PexpectEOFException
 from fabric import Connection
+
+from src.containers.port_allocation import allocate_port
 
 
 class Container:
@@ -17,31 +20,43 @@ class Container:
     """
 
     booter: Optional[popen_spawn.PopenSpawn] = None
-    ex_port: int = 10023
+    ex_port: int
     qemu_file: Path
-    arch: str
+    arch: str = "sparc"
     conn: Optional[Connection] = None
+    username: str = "root"
+    password: str = "root"
+    timeout: int = 360
+    max_retries: int = 25
 
-    def __init__(self, arch: str, qemu_file_path: str) -> None:
+    def __init__(self, qemu_file_path: str) -> None:
         self.qemu_file = Path(qemu_file_path)
         if not self.qemu_file.is_file():
             raise FileNotFoundError(qemu_file_path)
-        self.arch = arch
 
     def start(self) -> None:
         """
         Starts a container
         """
-        self.booter = popen_spawn.PopenSpawn(
-            f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 1G -nographic"
-        )
-        self.booter.expect("debian login: ", timeout=360)
-        self.booter.sendline("root")
+        for i in range(self.max_retries):
+            self.ex_port = allocate_port()
+            self.booter = popen_spawn.PopenSpawn(
+                f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 1G -nographic"
+            )
+            try:
+                self.booter.expect("debian login: ", timeout=360)
+            except PexpectEOFException:
+                pass
+            else:
+                break
+        else:
+            return # Raise exception
+        self.booter.sendline(self.username)
         self.booter.expect("Password: ")
-        self.booter.sendline("root")
+        self.booter.sendline(self.password)
         self.booter.expect("debian:~#")
 
-        self.conn = Connection("localhost", user="root", port=self.ex_port, connect_kwargs={"password": "root"})
+        self.conn = Connection("localhost", user=self.username, port=self.ex_port, connect_kwargs={"password": self.password})
         self.conn.open()
 
     def run(self, cmd: str) -> None:
@@ -50,9 +65,9 @@ class Container:
 
         :param cmd: The command run in the container
         """
-        print(self.conn.run(cmd).stdout)
+        self.conn.run(cmd)
 
-    def get_file(self, remote_file_path: str, local_file_path: str):
+    def get(self, remote_file_path: str, local_file_path: str):
         """
         Gets a file from the container
 
@@ -61,7 +76,7 @@ class Container:
         """
         self.conn.get(remote_file_path, local_file_path)
 
-    def send_file(self, local_file_path: str, remote_file_path: str):
+    def put(self, local_file_path: str, remote_file_path: str):
         """
         Sends a file to the container
 
