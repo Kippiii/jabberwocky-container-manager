@@ -39,7 +39,7 @@ class ContainerManager:
         self.containers[container_name].stop()
         del self.containers[container_name]
 
-    def run_command(self, container_name: str, cmd: str) -> None:
+    def run_command(self, container_name: str, cmd: str, *args, **kwargs) -> None:
         """
         Runs a command in a contianer
 
@@ -49,7 +49,7 @@ class ContainerManager:
         self.logger.debug("Running command '%s' in '%s'", cmd, container_name)
         if container_name not in self.containers:
             return # Raise exception
-        self.containers[container_name].run(cmd)
+        self.containers[container_name].run(cmd, *args, **kwargs)
     
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """

@@ -7,6 +7,7 @@ from fabric import Connection
 import logging
 
 from src.containers.port_allocation import allocate_port
+from src.containers.stream import MyStream
 
 
 class Container:
@@ -24,18 +25,20 @@ class Container:
     booter: Optional[popen_spawn.PopenSpawn] = None
     ex_port: int
     qemu_file: Path
-    arch: str = "sparc"
+    arch: str = "x86_64"
     conn: Optional[Connection] = None
     username: str = "root"
     password: str = "root"
     timeout: int = 360
     max_retries: int = 25
+    stream: MyStream
 
     def __init__(self, qemu_file_path: str, *, logger: logging.Logger) -> None:
         self.qemu_file = Path(qemu_file_path)
         if not self.qemu_file.is_file():
             raise FileNotFoundError(qemu_file_path)
         self.logger = logger
+        self.stream = MyStream()
 
     def start(self) -> None:
         """
@@ -43,8 +46,10 @@ class Container:
         """
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
+            f = open("pexpect.log", "wb")
             self.booter = popen_spawn.PopenSpawn(
-                f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 1G -nographic"
+                f"qemu-system-{self.arch} -m 1G -smp cores=4 -drive file={self.qemu_file},format=qcow2 -serial stdio -monitor null -nographic -net nic -net user,hostfwd=tcp::{self.ex_port}-:22",
+                logfile=f,
             )
             try:
                 self.booter.expect("debian login: ", timeout=360)
@@ -58,6 +63,7 @@ class Container:
         self.booter.expect("Password: ")
         self.booter.sendline(self.password)
         self.booter.expect("debian:~#")
+        f.close()
 
         self.conn = Connection("localhost", user=self.username, port=self.ex_port, connect_kwargs={"password": self.password})
         self.conn.open()
@@ -68,7 +74,7 @@ class Container:
 
         :param cmd: The command run in the container
         """
-        self.conn.run(cmd)
+        self.conn.run(cmd, in_stream=self.stream, out_stream=self.stream, echo_stdin=False)
 
     def get(self, remote_file_path: str, local_file_path: str):
         """
@@ -92,5 +98,5 @@ class Container:
         """
         Stops the container
         """
-        self.conn.close()
         self.booter.kill(0)
+        self.conn.close()
