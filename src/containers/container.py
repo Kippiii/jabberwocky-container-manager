@@ -1,13 +1,14 @@
 from typing import Optional
 from pathlib import Path
 import pexpect
-from pexpect import popen_spawn
-from pexpect import EOF as PexpectEOFException
+from pexpect import popen_spawn, ExceptionPexpect
 from fabric import Connection
 import logging
+from io import BytesIO
 
 from src.containers.port_allocation import allocate_port
 from src.containers.stream import MyStream
+from src.containers.exceptions import BootFailure, PortAllocationError, gen_boot_exception
 
 
 class Container:
@@ -25,13 +26,15 @@ class Container:
     booter: Optional[popen_spawn.PopenSpawn] = None
     ex_port: int
     qemu_file: Path
-    arch: str = "x86_64"
+    arch: str = "sparc"
     conn: Optional[Connection] = None
     username: str = "root"
     password: str = "root"
     timeout: int = 360
     max_retries: int = 25
     stream: MyStream
+    logging_file_path: str = "pexpect.log"
+    logging_file: BytesIO
 
     def __init__(self, qemu_file_path: str, *, logger: logging.Logger) -> None:
         self.qemu_file = Path(qemu_file_path)
@@ -44,26 +47,27 @@ class Container:
         """
         Starts a container
         """
+        self.logging_file = open(self.logging_file_path, "wb")
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
-            f = open("pexpect.log", "wb")
             self.booter = popen_spawn.PopenSpawn(
-                f"qemu-system-{self.arch} -m 1G -smp cores=4 -drive file={self.qemu_file},format=qcow2 -serial stdio -monitor null -nographic -net nic -net user,hostfwd=tcp::{self.ex_port}-:22",
-                logfile=f,
+                f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 100M -nographic",
+                logfile=self.logging_file,
             )
             try:
                 self.booter.expect("debian login: ", timeout=360)
-            except PexpectEOFException:
-                pass # TODO Determine if it is a port allocation issue
+            except ExceptionPexpect as exc:
+                my_exc = gen_boot_exception(exc, self.logging_file_path)
+                if not isinstance(my_exc, PortAllocationError):
+                    raise my_exc from exc
             else:
                 break
         else:
-            return # Raise exception
+            raise PortAllocationError
         self.booter.sendline(self.username)
         self.booter.expect("Password: ")
         self.booter.sendline(self.password)
         self.booter.expect("debian:~#")
-        f.close()
 
         self.conn = Connection("localhost", user=self.username, port=self.ex_port, connect_kwargs={"password": self.password})
         self.conn.open()
@@ -100,3 +104,4 @@ class Container:
         """
         self.booter.kill(0)
         self.conn.close()
+        self.logging_file.close()

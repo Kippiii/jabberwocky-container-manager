@@ -23,18 +23,17 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     cm = ContainerManager(logger=logger)
-    cm.start("base")
+    cm.start("test")
     try:
-        cm.run_command("base", "rm -f echo.c")
-        cm.run_command("base", "rm -f a.out")
-        cm.put_file("base", "echo.c", "echo.c")
-        cm.run_command("base", "apt install -y gcc")
-        cm.run_command("base", "gcc echo.c")
-        cm.run_command("base", "./a.out")
-        cm.get_file("base", "a.out", "a.out")
-        cm.stop("base")
+        cm.run_command("test", "rm -f echo.c")
+        cm.run_command("test", "rm -f a.out")
+        cm.put_file("test", "echo.c", "echo.c")
+        cm.run_command("test", "gcc echo.c")
+        cm.run_command("test", "./a.out")
+        cm.get_file("test", "a.out", "a.out")
+        cm.stop("test")
     except Exception as e:
-        cm.stop("base")
+        cm.stop("test")
         raise e
 
     logger.info("Success!")
