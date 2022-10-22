@@ -1,8 +1,10 @@
 import re
 from pexpect import ExceptionPexpect
 from pexpect import EOF as PexpectEOFException
+from pexpect import TIMEOUT as PexpectTimeoutException
 
-PORT_FAILURE_RE = r""".*Could not set up host forwarding rule.*"""
+PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
+LOGIN_FAILURE_RE = r"""Login incorrect"""
 
 class BootFailure(Exception):
     """
@@ -24,6 +26,14 @@ class PortAllocationError(BootFailure):
     def __str__(self) -> str:
         return "All ports are in use"
 
+class InvalidLoginError(BootFailure):
+    """
+    Raised when the provided login is invalid
+    """
+
+    def __str__(self) -> str:
+        return "The login provided for the container is invalid"
+
 def gen_boot_exception(exc: ExceptionPexpect, log_file_path: str) -> BootFailure:
     """
     Converts a Pexpect Exception to one for this program
@@ -35,6 +45,11 @@ def gen_boot_exception(exc: ExceptionPexpect, log_file_path: str) -> BootFailure
     with open(log_file_path, encoding="utf-8") as file:
         data = file.read()
         if isinstance(exc, PexpectEOFException):
-            if re.match(PORT_FAILURE_RE, data) is not None:
+            exp = re.compile(PORT_FAILURE_RE)
+            if re.search(exp, data) is not None:
                 return PortAllocationError(log_file_path)
+        elif isinstance(exc, PexpectTimeoutException):
+            exp = re.compile(LOGIN_FAILURE_RE)
+            if re.search(exp, data) is not None:
+                return InvalidLoginError(log_file_path)
     return BootFailure(log_file_path)

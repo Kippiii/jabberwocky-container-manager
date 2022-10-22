@@ -23,17 +23,17 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     cm = ContainerManager(logger=logger)
-    cm.start("test")
+    cm.start("planb")
     try:
-        cm.run_command("test", "rm -f echo.c")
-        cm.run_command("test", "rm -f a.out")
-        cm.put_file("test", "echo.c", "echo.c")
-        cm.run_command("test", "gcc echo.c")
-        cm.run_command("test", "./a.out")
-        cm.get_file("test", "a.out", "a.out")
-        cm.stop("test")
+        cm.run_command("planb", "rm -f echo.c")
+        cm.run_command("planb", "rm -f a.out")
+        cm.put_file("planb", "echo.c", "echo.c")
+        cm.run_command("planb", "gcc echo.c")
+        cm.run_command("planb", "./a.out")
+        cm.get_file("planb", "a.out", "a.out")
+        cm.stop("planb")
     except Exception as e:
-        cm.stop("test")
+        cm.stop("planb")
         raise e
 
     logger.info("Success!")

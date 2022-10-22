@@ -26,7 +26,7 @@ class Container:
     booter: Optional[popen_spawn.PopenSpawn] = None
     ex_port: int
     qemu_file: Path
-    arch: str = "sparc"
+    arch: str = "x86_64"
     conn: Optional[Connection] = None
     username: str = "root"
     password: str = "root"
@@ -51,7 +51,7 @@ class Container:
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
             self.booter = popen_spawn.PopenSpawn(
-                f"qemu-system-{self.arch} -M SS-20 -drive file={self.qemu_file},format=qcow2 -net user,hostfwd=tcp::{self.ex_port}-:22 -net nic -m 100M -nographic",
+                f"qemu-system-{self.arch} -m 250M -smp cores=1 -drive file={self.qemu_file},format=qcow2 -serial stdio -monitor null -nographic -net nic -net user,hostfwd=tcp::{self.ex_port}-:22",
                 logfile=self.logging_file,
             )
             try:
@@ -64,10 +64,14 @@ class Container:
                 break
         else:
             raise PortAllocationError
-        self.booter.sendline(self.username)
-        self.booter.expect("Password: ")
-        self.booter.sendline(self.password)
-        self.booter.expect("debian:~#")
+        try:
+            self.booter.sendline(self.username)
+            self.booter.expect("Password: ")
+            self.booter.sendline(self.password)
+            self.booter.expect("debian:~#")
+        except ExceptionPexpect as exc:
+            my_exc = gen_boot_exception(exc, self.logging_file_path)
+            raise my_exc from exc
 
         self.conn = Connection("localhost", user=self.username, port=self.ex_port, connect_kwargs={"password": self.password})
         self.conn.open()
