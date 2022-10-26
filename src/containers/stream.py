@@ -4,6 +4,8 @@ class MyStream():
     """
     A custom Stream for dealing with fabric
     """
+    unechoed_input: str = ""
+
     def __init__(self):
         pass
 
@@ -14,13 +16,19 @@ class MyStream():
         inp = stdin.read(*args, **kwargs)
         if len(inp) == 1 and ord(inp) == 4:
             return ""
+        self.unechoed_input += inp
         return inp
     
-    def write(self, *args, **kwargs):
+    def write(self, content, *args, **kwargs):
         """
         Writes to stdout
         """
-        return stdout.write(*args, **kwargs)
+        if content[0] == "\r":
+            content = content[1:]
+        if content.encode() == self.unechoed_input.encode():
+            self.unechoed_input = ""
+            return ""
+        return stdout.write(content, *args, **kwargs)
     
     def flush(self, *args, **kwargs):
         """

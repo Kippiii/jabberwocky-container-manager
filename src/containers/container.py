@@ -82,7 +82,7 @@ class Container:
 
         :param cmd: The command run in the container
         """
-        self.conn.run(cmd, in_stream=self.stream, out_stream=self.stream, echo_stdin=False)
+        self.conn.run(cmd, in_stream=self.stream, out_stream=self.stream, echo_stdin=False, pty=True)
 
     def get(self, remote_file_path: str, local_file_path: str):
         """
@@ -106,6 +106,6 @@ class Container:
         """
         Stops the container
         """
-        self.booter.kill(0)
+        self.booter.sendline("poweroff")
         self.conn.close()
         self.logging_file.close()

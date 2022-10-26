@@ -23,17 +23,18 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     cm = ContainerManager(logger=logger)
-    cm.start("planb")
     try:
-        cm.run_command("planb", "rm -f echo.c")
-        cm.run_command("planb", "rm -f a.out")
-        cm.put_file("planb", "echo.c", "echo.c")
-        cm.run_command("planb", "gcc echo.c")
-        cm.run_command("planb", "./a.out")
-        cm.get_file("planb", "a.out", "a.out")
-        cm.stop("planb")
+        cm.start("planc")
+        cm.run_command("planc", "rm -f echo.c")
+        cm.run_command("planc", "rm -f a.out")
+        cm.run_command("planc", "ls")
+        cm.put_file("planc", "echo.c", "echo.c")
+        cm.run_command("planc", "/sparc/bin/sparc-linux-gcc echo.c")
+        cm.run_command("planc", "./a.out")
+        cm.get_file("planc", "a.out", "a.out")
+        cm.stop("planc")
     except Exception as e:
-        cm.stop("planb")
+        cm.stop("planc")
         raise e
 
     logger.info("Success!")
