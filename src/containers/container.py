@@ -58,8 +58,10 @@ class Container:
         self.logging_file = open(self.logging_file_path, "wb")
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
+            cmd = self.__generate_start_cmd__()
+            self.logger.info(f'Executing {cmd}')
             self.booter = popen_spawn.PopenSpawn(
-                self.__generate_start_cmd__(),
+                cmd,
                 logfile=self.logging_file,
                 cwd=syspath.container_root(self.name)
             )
@@ -83,7 +85,7 @@ class Container:
             raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
-            'localhost', self.username, self.ex_port, self.password, self.name)
+            'localhost', self.username, self.ex_port, self.password, self.name, self.logger)
         self.sshi.open_all()
 
     def run(self, cmd: str) -> None:
@@ -142,5 +144,4 @@ class Container:
                 for v in val:
                     cl_args.append(f'-{flag} {val}')
 
-        print(cl_args)
         return f'"{qemu_system}" {" ".join(cl_args)}'
