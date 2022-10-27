@@ -6,6 +6,7 @@ from fabric import Connection
 import logging
 from io import BytesIO
 from sys import stdin
+from invoke.exceptions import ThreadException
 
 from src.containers.port_allocation import allocate_port
 from src.containers.stream import MyStream
@@ -83,7 +84,10 @@ class Container:
 
         :param cmd: The command run in the container
         """
-        self.conn.run(cmd, in_stream=self.stream, out_stream=self.stream, echo_stdin=False, pty=True)
+        try:
+            self.conn.run(cmd, in_stream=self.stream, out_stream=self.stream, echo_stdin=False, pty=True)
+        except ThreadException:
+            return
 
     def get(self, remote_file_path: str, local_file_path: str):
         """
