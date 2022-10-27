@@ -1,21 +1,7 @@
 import logging
-from sys import stdin, stdout
+from sys import stdin, stdout, setprofile
 
 from src.containers.container_manager import ContainerManager
-
-class MyInStream:
-    logger: logging.Logger
-
-    def __init__(self, logger: logging.Logger):
-        self.logger = logger
-
-    def read(self, *args, **kwargs):
-        inp = stdin.read(*args, **kwargs)
-        # inp = self.file.read(*args, **kwargs)
-        if len(inp) > 0 and ord(inp) == 4:
-            return ""
-        self.logger.info("Read %d", ord(inp) if len(inp) == 1 else -1)
-        return inp
 
 
 def main():

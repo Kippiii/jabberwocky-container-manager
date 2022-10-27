@@ -5,6 +5,7 @@ from pexpect import popen_spawn, ExceptionPexpect
 from fabric import Connection
 import logging
 from io import BytesIO
+from sys import stdin
 
 from src.containers.port_allocation import allocate_port
 from src.containers.stream import MyStream
@@ -51,7 +52,7 @@ class Container:
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
             self.booter = popen_spawn.PopenSpawn(
-                f"qemu-system-{self.arch} -m 250M -smp cores=1 -drive file={self.qemu_file},format=qcow2 -serial stdio -monitor null -nographic -net nic -net user,hostfwd=tcp::{self.ex_port}-:22",
+                f"qemu-system-{self.arch} -m 500M -smp cores=1 -drive file={self.qemu_file},format=qcow2 -serial stdio -monitor null -nographic -net nic -net user,hostfwd=tcp::{self.ex_port}-:22",
                 logfile=self.logging_file,
             )
             try:
@@ -63,7 +64,7 @@ class Container:
             else:
                 break
         else:
-            raise PortAllocationError
+            raise PortAllocationError(self.logging_file_path)
         try:
             self.booter.sendline(self.username)
             self.booter.expect("Password: ")

@@ -13,10 +13,10 @@ class MyStream():
         """
         Reads from stdin
         """
-        inp = stdin.read(*args, **kwargs)
-        if len(inp) == 1 and ord(inp) == 4:
+        if len(stdin.buffer) == 0:
             return ""
-        self.unechoed_input += inp
+        inp = stdin.read(*args, **kwargs)
+        self.unechoed_input = inp
         return inp
     
     def write(self, content, *args, **kwargs):
