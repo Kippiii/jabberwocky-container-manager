@@ -1,6 +1,21 @@
+import os
+from time import sleep
 import paramiko
 import subprocess
 from typing import Optional
+from src.system import syspath
+
+
+class PoweroffBadExitError(RuntimeError):
+    pass
+
+
+class SSHBadExitError(RuntimeError):
+    pass
+
+
+class FailedToAuthorizeKeyError(RuntimeError):
+    pass
 
 
 class SSHInterface:
@@ -10,12 +25,14 @@ class SSHInterface:
     passwd: str
     ssh_client: Optional[paramiko.SSHClient] = None
     ftp_client: Optional[paramiko.SFTPClient] = None
+    container_name: str
 
-    def __init__(self, host: str, user: str, port: int, passwd: str):
+    def __init__(self, host: str, user: str, port: int, passwd: str, container_name: str):
         self.host = host
         self.user = user
         self.port = port
         self.passwd = passwd
+        self.container_name = container_name
 
     def open_all(self):
         self.ssh_client = paramiko.SSHClient()
@@ -37,6 +54,8 @@ class SSHInterface:
             '-oStrictHostKeyChecking=no',
             '-oLogLevel=ERROR',
             '-oPasswordAuthentication=no',
+            '-i',
+            str(syspath.container_id_rsa(self.container_name)),
             '-p',
             str(self.port),
             f'{self.user}@{self.host}',
@@ -48,12 +67,16 @@ class SSHInterface:
         completed_process = subprocess.run(_CMD)
 
         if completed_process.returncode:
-            raise RuntimeError(
-                f'{_CMD[0]} exited with non-zero exit code {completed_process.returncode}. '
-                'You may need to run [__update_hostkey__].')
+            raise SSHBadExitError(
+                f'{completed_process.returncode}. You may need to run __update_hostkey__.')
 
     def exec_ssh_shell(self):
         self.exec_ssh_command([])
+
+    def send_poweroff(self):
+        _, stdout, _ = self.ssh_client.exec_command('poweroff')
+        if stdout.channel.recv_exit_status():
+            raise PoweroffBadExitError(stdout.channel.exit_status)
 
     def close_all(self):
         self.ftp_client.close()
@@ -62,4 +85,22 @@ class SSHInterface:
         self.ftp_client = None
 
     def __update_hostkey__(self):
-        raise NotImplementedError('__update_hostkey__')
+        if (not self.ssh_client):
+            raise OSError('ssh client not opened')
+
+        if syspath.container_id_rsa(self.container_name).is_file():
+            os.remove(syspath.container_id_rsa(self.container_name))
+        if syspath.container_id_rsa_pub(self.container_name).is_file():
+            os.remove(syspath.container_id_rsa_pub(self.container_name))
+
+        key = paramiko.RSAKey.generate(1024)
+        key.write_private_key_file(
+            syspath.container_id_rsa(self.container_name))
+        with open(syspath.container_id_rsa_pub(self.container_name), 'w') as pub:
+            pub.write(f'ssh-rsa {key.get_base64()}\n')
+
+        _, stdout, _ = self.ssh_client.exec_command(
+            f'echo "ssh-rsa {key.get_base64()}" > $HOME/.ssh/authorized_keys')
+
+        if stdout.channel.recv_exit_status():
+            raise FailedToAuthorizeKeyError(stdout.channel.exit_status)

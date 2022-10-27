@@ -5,6 +5,7 @@ from pexpect import popen_spawn, ExceptionPexpect
 import logging
 from io import BytesIO
 import json
+from time import sleep
 
 from src.containers.port_allocation import allocate_port
 from src.containers.stream import MyStream
@@ -82,7 +83,7 @@ class Container:
             raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
-            'localhost', self.username, self.ex_port, self.password)
+            'localhost', self.username, self.ex_port, self.password, self.name)
         self.sshi.open_all()
 
     def run(self, cmd: str) -> None:
@@ -115,7 +116,7 @@ class Container:
         """
         Stops the container
         """
-        self.sshi.exec_ssh_command(['poweroff'])
+        self.sshi.send_poweroff()
         self.sshi.close_all()
         self.logging_file.close()
 

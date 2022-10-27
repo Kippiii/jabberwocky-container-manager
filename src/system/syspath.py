@@ -30,3 +30,11 @@ def container_root(container_name: str) -> Path:
 
 def container_config(container_name: str) -> Path:
     return Path.joinpath(container_root(container_name), 'config.json')
+
+
+def container_id_rsa_pub(container_name: str) -> Path:
+    return Path.joinpath(container_root(container_name), 'id_rsa.pub')
+
+
+def container_id_rsa(container_name: str) -> Path:
+    return Path.joinpath(container_root(container_name), 'id_rsa')
