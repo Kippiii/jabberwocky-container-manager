@@ -1,7 +1,7 @@
 import os
-from time import sleep
 import paramiko
 import subprocess
+import logging
 from typing import Optional
 from src.system import syspath
 
@@ -23,16 +23,18 @@ class SSHInterface:
     user: str
     port: int
     passwd: str
+    container_name: str
+    logger: Optional[logging.Logger]
     ssh_client: Optional[paramiko.SSHClient] = None
     ftp_client: Optional[paramiko.SFTPClient] = None
-    container_name: str
 
-    def __init__(self, host: str, user: str, port: int, passwd: str, container_name: str):
+    def __init__(self, host: str, user: str, port: int, passwd: str, container_name: str, logger: Optional[logging.Logger] = None):
         self.host = host
         self.user = user
         self.port = port
         self.passwd = passwd
         self.container_name = container_name
+        self.logger = logger
 
     def open_all(self):
         self.ssh_client = paramiko.SSHClient()
@@ -43,9 +45,17 @@ class SSHInterface:
         self.ftp_client = self.ssh_client.open_sftp()
 
     def put(self, local_file_path: str, remote_file_path: str):
+        if self.logger:
+            self.logger.info(
+                f'Attempting put({local_file_path}, {remote_file_path})')
+
         self.ftp_client.put(local_file_path, remote_file_path)
 
     def get(self, remote_file_path: str, local_file_path: str):
+        if self.logger:
+            self.logger.info(
+                f'Attempting get({local_file_path}, {remote_file_path})')
+
         self.ftp_client.get(remote_file_path, local_file_path)
 
     def exec_ssh_command(self, cli: list):
@@ -62,7 +72,8 @@ class SSHInterface:
             *cli
         ]
 
-        print(f'Executing {" ".join(_CMD)}')
+        if self.logger:
+            self.logger.info(f'Executing {" ".join(_CMD)}')
 
         completed_process = subprocess.run(_CMD)
 
@@ -74,6 +85,9 @@ class SSHInterface:
         self.exec_ssh_command([])
 
     def send_poweroff(self):
+        if self.logger:
+            self.logger.info('Attempting to poweroff')
+
         _, stdout, _ = self.ssh_client.exec_command('poweroff')
         if stdout.channel.recv_exit_status():
             raise PoweroffBadExitError(stdout.channel.exit_status)
