@@ -75,7 +75,7 @@ class SSHInterface:
         if self.logger:
             self.logger.info(f'Executing {" ".join(_CMD)}')
 
-        completed_process = subprocess.run(_CMD)
+        completed_process = subprocess.run(_CMD, shell=True)
 
         if completed_process.returncode:
             raise SSHBadExitError(
