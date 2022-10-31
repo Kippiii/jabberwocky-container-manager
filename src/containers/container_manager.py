@@ -1,7 +1,8 @@
-from typing import Dict
 import logging
+from typing import Dict
 
 from src.containers.container import Container
+
 
 class ContainerManager:
     """
@@ -9,6 +10,7 @@ class ContainerManager:
 
     :param containers: A dictionary for all of the containers
     """
+
     containers: Dict[str, Container] = {}
     logger: logging.Logger
 
@@ -23,8 +25,10 @@ class ContainerManager:
         """
         self.logger.debug("Starting container '%s'", container_name)
         if container_name in self.containers:
-            return # Raise exception
-        self.containers[container_name] = Container(f"{container_name}.qcow2", logger = self.logger)
+            return  # Raise exception
+        self.containers[container_name] = Container(
+            f"{container_name}.qcow2", logger=self.logger
+        )
         self.containers[container_name].start()
 
     def stop(self, container_name: str):
@@ -35,7 +39,7 @@ class ContainerManager:
         """
         self.logger.debug("Stopping container '%s'", container_name)
         if container_name not in self.containers:
-            return # Raise exception
+            return  # Raise exception
         self.containers[container_name].stop()
         del self.containers[container_name]
 
@@ -48,9 +52,9 @@ class ContainerManager:
         """
         self.logger.debug("Running command '%s' in '%s'", cmd, container_name)
         if container_name not in self.containers:
-            return # Raise exception
+            return  # Raise exception
         self.containers[container_name].run(cmd, *args, **kwargs)
-    
+
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """
         Gets a file from a container
@@ -59,9 +63,11 @@ class ContainerManager:
         :param remote_file: The file obtained from the container
         :param local_file: Where the file obtained from the container is placed
         """
-        self.logger.debug("Getting file '%s' to '%s' in '%s'", remote_file, local_file, container_name)
+        self.logger.debug(
+            "Getting file '%s' to '%s' in '%s'", remote_file, local_file, container_name
+        )
         if container_name not in self.containers:
-            return # Raise exception
+            return  # Raise exception
         self.containers[container_name].get(remote_file, local_file)
 
     def put_file(self, container_name: str, local_file: str, remote_file: str) -> None:
@@ -72,7 +78,9 @@ class ContainerManager:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
-        self.logger.debug("Putting file '%s' to '%s' in '%s'", local_file, remote_file, container_name)
+        self.logger.debug(
+            "Putting file '%s' to '%s' in '%s'", local_file, remote_file, container_name
+        )
         if container_name not in self.containers:
-            return # Raise exception
+            return  # Raise exception
         self.containers[container_name].put(local_file, remote_file)

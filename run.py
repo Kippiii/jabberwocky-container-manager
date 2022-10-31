@@ -45,7 +45,7 @@ def main():
         ct.sshi.__update_hostkey__()
         ct.run('ls')
         ct.run('rm -f echo.c')
-        ct.run('rm -f a.out')
+        #ct.run('rm -f a.out')
         ct.put('echo.c', 'echo.c')
         ct.run('sparc-linux-gcc echo.c')
         ct.run('./a.out')

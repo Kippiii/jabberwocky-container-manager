@@ -1,16 +1,16 @@
-from typing import Optional
-from pathlib import Path
-import pexpect
-from pexpect import popen_spawn, ExceptionPexpect
+import json
 import logging
 from io import BytesIO
-import json
+from pathlib import Path
 from time import sleep
+from typing import Optional
 
+import pexpect
+from pexpect import ExceptionPexpect, popen_spawn
+
+from src.containers.exceptions import (BootFailure, PortAllocationError,
+                                       gen_boot_exception)
 from src.containers.port_allocation import allocate_port
-from src.containers.stream import MyStream
-from src.containers.exceptions import BootFailure, PortAllocationError, gen_boot_exception
-
 from src.system import ssh, syspath
 
 
@@ -34,7 +34,6 @@ class Container:
     password: str = "root"
     timeout: int = 360
     max_retries: int = 25
-    stream: MyStream
     logging_file_path: str = "pexpect.log"
     logging_file: BytesIO
 
@@ -44,12 +43,11 @@ class Container:
         if not syspath.container_config(name).is_file():
             raise FileNotFoundError(syspath.container_config(name))
 
-        with open(syspath.container_config(name), 'r') as config_file:
+        with open(syspath.container_config(name), "r") as config_file:
             self.name = name
             self.config = json.load(config_file)
-            self.arch = self.config['arch']
+            self.arch = self.config["arch"]
             self.logger = logger
-            self.stream = MyStream()
 
     def start(self) -> None:
         """
@@ -59,11 +57,9 @@ class Container:
         for i in range(self.max_retries):
             self.ex_port = allocate_port()
             cmd = self.__generate_start_cmd__()
-            self.logger.info(f'Executing {cmd}')
+            self.logger.info(f"Executing {cmd}")
             self.booter = popen_spawn.PopenSpawn(
-                cmd,
-                logfile=self.logging_file,
-                cwd=syspath.container_root(self.name)
+                cmd, logfile=self.logging_file, cwd=syspath.container_root(self.name)
             )
             try:
                 self.booter.expect("debian login: ", timeout=360)
@@ -85,7 +81,13 @@ class Container:
             raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
-            'localhost', self.username, self.ex_port, self.password, self.name, self.logger)
+            "localhost",
+            self.username,
+            self.ex_port,
+            self.password,
+            self.name,
+            self.logger,
+        )
         self.sshi.open_all()
 
     def run(self, cmd: str) -> None:
@@ -124,24 +126,29 @@ class Container:
 
     def __generate_start_cmd__(self) -> str:
         qemu_system = Path.joinpath(
-            syspath.qemu_bin(), f'qemu-system-{self.config["arch"]}')
+            syspath.qemu_bin(), f'qemu-system-{self.config["arch"]}'
+        )
 
         """
         Build command-line from JSON config file for QEMU system
         """
-        cl_args = ['-monitor null',
-                   '-net nic',
-                   f'-net user,hostfwd=tcp::{self.ex_port}-:22']
+        cl_args = [
+            "-monitor null",
+            "-net nic",
+            f"-net user,hostfwd=tcp::{self.ex_port}-:22",
+        ]
 
-        if ('disableGraphics' not in self.config) or (self.config['disableGraphics'] == True):
-            cl_args.append(f'-serial stdio')
-            cl_args.append('-nographic')
+        if ("disableGraphics" not in self.config) or (
+            self.config["disableGraphics"] == True
+        ):
+            cl_args.append(f"-serial stdio")
+            cl_args.append("-nographic")
 
-        for flag, val in self.config['arguments'].items():
+        for flag, val in self.config["arguments"].items():
             if type(val) is not list:
-                cl_args.append(f'-{flag} {val}')
+                cl_args.append(f"-{flag} {val}")
             else:
                 for v in val:
-                    cl_args.append(f'-{flag} {val}')
+                    cl_args.append(f"-{flag} {val}")
 
         return f'"{qemu_system}" {" ".join(cl_args)}'
