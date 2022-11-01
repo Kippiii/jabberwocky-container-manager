@@ -101,7 +101,17 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        cmd_list = cmd.split()
+        if len(cmd_list) != 3:
+            pass # TODO Error
+        container_name, remote_file, local_file = *cmd_list,
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            pass # TODO Error
+        comp = re.compile(FILE_NAME_REGEX)
+        if not comp.match(remote_file) or not comp.match(local_file):
+            pass # TODO Error
+        self.cm.get_file(container_name, remote_file, local_file)
 
     def install(self, cmd: str) -> None:
         """
