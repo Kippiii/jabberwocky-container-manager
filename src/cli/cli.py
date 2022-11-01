@@ -71,7 +71,10 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(cmd.strip()):
+            pass # TODO Error
+        self.cm.stop(cmd)
 
     def send_file(self, cmd: str) -> None:
         """
