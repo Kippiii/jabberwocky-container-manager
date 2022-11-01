@@ -1,7 +1,14 @@
+import re
+
+from src.containers.container_manager import ContainerManager
+
+CONTAINER_NAME_REGEX = r"""[a-zA-Z_]+"""
+
 class JabberwockyCLI:
     """
     Represents an instance of the command-line interface
     """
+    cm: ContainerManager
 
     def __init__(self) -> None:
         pass
@@ -53,7 +60,10 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(cmd.strip()):
+            pass # TODO Error
+        self.cm.start(cmd)
 
     def stop(self, cmd: str) -> None:
         """
