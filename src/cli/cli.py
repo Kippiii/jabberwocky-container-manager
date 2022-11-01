@@ -1,4 +1,5 @@
 import re
+from system import stdin
 
 from src.containers.container_manager import ContainerManager
 
@@ -150,7 +151,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        stdin.writeline("Command not yet supported")
 
     def archive(self, cmd: str) -> None:
         """
@@ -158,7 +159,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        stdin.writeline("Command not yet supported")
 
     def add_repo(self, cmd: str) -> None:
         """
@@ -166,7 +167,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        stdin.writeline("Command not yet supported")
 
     def update_repo(self, cmd: str) -> None:
         """
@@ -174,7 +175,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        stdin.writeline("Command not yet supported")
 
     def create(self, cmd: str) -> None:
         """
@@ -182,4 +183,4 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        stdin.writeline("Command not yet supported")
