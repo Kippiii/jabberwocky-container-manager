@@ -77,6 +77,21 @@ class JabberwockyCLI:
             pass # TODO Error
         self.cm.stop(cmd)
 
+    def run(self, cmd: str) -> None:
+        """
+        Runs a command in the container
+
+        :param cmd: The rest of the command sent
+        """
+        cmd_list = cmd.split(None, 1)
+        if len(cmd_list != 2):
+            pass # TODO Error
+        container_name, command = *cmd_list,
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            pass # TODO Error
+        self.cm.run_command(container_name, command)
+
     def send_file(self, cmd: str) -> None:
         """
         Sends a file to a container
