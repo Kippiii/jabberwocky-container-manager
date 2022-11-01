@@ -2,7 +2,8 @@ import re
 
 from src.containers.container_manager import ContainerManager
 
-CONTAINER_NAME_REGEX = r"""[a-zA-Z_]+"""
+CONTAINER_NAME_REGEX = r"""\w+"""
+FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
 
 class JabberwockyCLI:
     """
@@ -82,7 +83,17 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        cmd_list = cmd.split()
+        if len(cmd_list) != 3:
+            pass # TODO Error
+        container_name, local_file, remote_file = *cmd_list,
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            pass # TODO Error
+        comp = re.compile(FILE_NAME_REGEX)
+        if not comp.match(local_file) or not comp.match(remote_file):
+            pass # TODO Error
+        self.cm.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: str) -> None:
         """
