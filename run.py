@@ -1,7 +1,8 @@
 import logging
 from sys import stdin, stdout
 
-from src.containers.container import Container
+from src.containers.container_manager import ContainerManager
+from src.cli.cli import JabberwockyCLI
 
 
 class MyInStream:
@@ -38,24 +39,12 @@ def main():
     #     cm.stop("planb")
     #     raise e
 
-    ct = Container('ct', logger)
-    ct.start()
-
-    try:
-        ct.sshi.__update_hostkey__()
-        ct.run('ls')
-        ct.run('rm -f echo.c')
-        #ct.run('rm -f a.out')
-        ct.put('echo.c', 'echo.c')
-        ct.run('sparc-linux-gcc echo.c')
-        ct.run('./a.out')
-        ct.get('a.out', 'a.out')
-    except Exception as ex:
-        ct.stop()
-        logger.info(ex)
-    else:
-        ct.stop()
-        logger.info("Success!")
+    logger.info("Please input commands: ")
+    while True:
+        cli = JabberwockyCLI()
+        cli.cm = ContainerManager(logger=logger)
+        inp = input()
+        cli.parse_cmd(inp)
 
 
 if __name__ == "__main__":

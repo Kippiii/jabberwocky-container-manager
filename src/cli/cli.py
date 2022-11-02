@@ -1,5 +1,5 @@
 import re
-from system import stdin
+from sys import stdin
 
 from src.containers.container_manager import ContainerManager
 
@@ -54,7 +54,10 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(cmd.strip()):
+            pass # TODO Error
+        self.cm.run_shell(cmd)
 
     def start(self, cmd: str) -> None:
         """

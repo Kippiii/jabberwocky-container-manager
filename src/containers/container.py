@@ -90,6 +90,12 @@ class Container:
         )
         self.sshi.open_all()
 
+    def shell(self) -> None:
+        """
+        Starts a shell for the container
+        """
+        self.sshi.exec_ssh_shell()
+
     def run(self, cmd: str) -> None:
         """
         Runs a command in the container
@@ -125,13 +131,13 @@ class Container:
         self.logging_file.close()
 
     def __generate_start_cmd__(self) -> str:
+        """
+        Build command-line from JSON config file for QEMU system
+        """
         qemu_system = Path.joinpath(
             syspath.qemu_bin(), f'qemu-system-{self.config["arch"]}'
         )
 
-        """
-        Build command-line from JSON config file for QEMU system
-        """
         cl_args = [
             "-monitor null",
             "-net nic",

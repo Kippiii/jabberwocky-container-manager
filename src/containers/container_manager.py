@@ -31,7 +31,7 @@ class ContainerManager:
         )
         self.containers[container_name].start()
 
-    def stop(self, container_name: str):
+    def stop(self, container_name: str) -> None:
         """
         Stops a container
 
@@ -42,6 +42,17 @@ class ContainerManager:
             return  # Raise exception
         self.containers[container_name].stop()
         del self.containers[container_name]
+
+    def run_shell(self, container_name: str) -> None:
+        """
+        Starts a shell on the container in question
+
+        :param container_name: The container whose shell is being used
+        """
+        self.logger.debug("Opening shell on container '%s'", container_name)
+        if container_name not in self.containers:
+            return # Raise exception
+        self.containers[container_name].shell()
 
     def run_command(self, container_name: str, cmd: str, *args, **kwargs) -> None:
         """
