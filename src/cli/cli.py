@@ -48,6 +48,7 @@ class JabberwockyCLI:
             command, rest = cmd_list
         if command not in subcmd_dict:
             self.out_stream.write(f"Command of '{command}' is not valid\n")
+            return
         subcmd_dict[command](rest)
 
     def help(self, cmd: str) -> None:
@@ -66,8 +67,9 @@ class JabberwockyCLI:
         """
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(cmd.strip()):
-            pass # TODO Error
-        self.cm.run_shell(cmd)
+            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+            return
+        self.cm.run_shell(cmd.strip())
 
     def start(self, cmd: str) -> None:
         """
@@ -77,7 +79,8 @@ class JabberwockyCLI:
         """
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(cmd.strip()):
-            pass # TODO Error
+            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+            return
         self.cm.start(cmd)
 
     def stop(self, cmd: str) -> None:
@@ -88,7 +91,8 @@ class JabberwockyCLI:
         """
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(cmd.strip()):
-            pass # TODO Error
+            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+            return
         self.cm.stop(cmd)
 
     def run(self, cmd: str) -> None:
@@ -99,11 +103,13 @@ class JabberwockyCLI:
         """
         cmd_list = cmd.split(None, 1)
         if len(cmd_list) != 2:
-            pass # TODO Error
+            self.out_stream.write(f"Command requires two arguments\n")
+            return
         container_name, command = *cmd_list,
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            pass # TODO Error
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
         self.cm.run_command(container_name, command)
 
     def send_file(self, cmd: str) -> None:
@@ -114,14 +120,20 @@ class JabberwockyCLI:
         """
         cmd_list = cmd.split()
         if len(cmd_list) != 3:
-            pass # TODO Error
+            self.out_stream.write(f"Command requires three arguments\n")
+            return
         container_name, local_file, remote_file = *cmd_list,
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            pass # TODO Error
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
         comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(local_file) or not comp.match(remote_file):
-            pass # TODO Error
+        if not comp.match(local_file):
+            self.out_stream.write(f"'{local_file}' is not a valid file name")
+            return
+        if not comp.match(remote_file):
+            self.out_stream.write(f"'{remote_file}' is not a valid file name")
+            return
         self.cm.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: str) -> None:
@@ -132,14 +144,20 @@ class JabberwockyCLI:
         """
         cmd_list = cmd.split()
         if len(cmd_list) != 3:
-            pass # TODO Error
+            self.out_stream.write(f"Command requires three arguments\n")
+            return
         container_name, remote_file, local_file = *cmd_list,
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            pass # TODO Error
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
         comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(remote_file) or not comp.match(local_file):
-            pass # TODO Error
+        if not comp.match(remote_file):
+            self.out_stream.write(f"'{remote_file}' is not a valid file name")
+            return
+        if not comp.match(local_file):
+            self.out_stream.write(f"'{local_file}' is not a valid file name")
+            return
         self.cm.get_file(container_name, remote_file, local_file)
 
     def install(self, cmd: str) -> None:
