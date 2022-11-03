@@ -112,7 +112,7 @@ class SSHInterface:
             "-oLogLevel=ERROR",
             "-oPasswordAuthentication=no",
             "-i",
-            str(syspath.container_id_rsa(self.container_name)),
+            str(syspath.get_container_id_rsa(self.container_name)),
             "-p",
             str(self.port),
             f"{self.user}@{self.host}",
@@ -162,14 +162,14 @@ class SSHInterface:
         if not self.ssh_client:
             raise OSError("ssh client not opened")
 
-        if syspath.container_id_rsa(self.container_name).is_file():
-            os.remove(syspath.container_id_rsa(self.container_name))
-        if syspath.container_id_rsa_pub(self.container_name).is_file():
-            os.remove(syspath.container_id_rsa_pub(self.container_name))
+        if syspath.get_container_id_rsa(self.container_name).is_file():
+            os.remove(syspath.get_container_id_rsa(self.container_name))
+        if syspath.get_get_container_id_rsa_pub(self.container_name).is_file():
+            os.remove(syspath.get_get_container_id_rsa_pub(self.container_name))
 
         key = paramiko.RSAKey.generate(1024)
-        key.write_private_key_file(syspath.container_id_rsa(self.container_name))
-        with open(syspath.container_id_rsa_pub(self.container_name), "w") as pub:
+        key.write_private_key_file(syspath.get_container_id_rsa(self.container_name))
+        with open(syspath.get_get_container_id_rsa_pub(self.container_name), "w") as pub:
             pub.write(f"ssh-rsa {key.get_base64()}\n")
 
         _, stdout, _ = self.ssh_client.exec_command(

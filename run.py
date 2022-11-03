@@ -40,10 +40,12 @@ def main():
     #     raise e
 
     logger.info("Please input commands: ")
+    cli = JabberwockyCLI()
+    cli.cm = ContainerManager(logger=logger)
     while True:
-        cli = JabberwockyCLI()
-        cli.cm = ContainerManager(logger=logger)
-        inp = input()
+        stdout.write("> ")
+        stdout.flush()
+        inp = stdin.readline()
         cli.parse_cmd(inp)
 
 

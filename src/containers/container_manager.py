@@ -2,6 +2,7 @@ import logging
 from typing import Dict
 
 from src.containers.container import Container
+from src.system.syspath import get_container_dir
 
 
 class ContainerManager:
@@ -27,7 +28,7 @@ class ContainerManager:
         if container_name in self.containers:
             return  # Raise exception
         self.containers[container_name] = Container(
-            f"{container_name}.qcow2", logger=self.logger
+            container_name, logger=self.logger
         )
         self.containers[container_name].start()
 

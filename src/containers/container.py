@@ -38,16 +38,16 @@ class Container:
     logging_file: BytesIO
 
     def __init__(self, name: str, logger: logging.Logger) -> None:
-        if not syspath.container_root(name).is_dir():
-            raise FileNotFoundError(syspath.container_root(name))
-        if not syspath.container_config(name).is_file():
-            raise FileNotFoundError(syspath.container_config(name))
+        if not syspath.get_container_dir(name).is_dir():
+            raise FileNotFoundError(syspath.get_container_dir(name))
+        if not syspath.get_container_config(name).is_file():
+            raise FileNotFoundError(syspath.get_container_config(name))
 
-        with open(syspath.container_config(name), "r") as config_file:
-            self.name = name
+        self.name = name
+        with open(syspath.get_container_config(name), "r") as config_file:
             self.config = json.load(config_file)
-            self.arch = self.config["arch"]
-            self.logger = logger
+        self.arch = self.config["arch"]
+        self.logger = logger
 
     def start(self) -> None:
         """
@@ -59,7 +59,7 @@ class Container:
             cmd = self.__generate_start_cmd__()
             self.logger.info(f"Executing {cmd}")
             self.booter = popen_spawn.PopenSpawn(
-                cmd, logfile=self.logging_file, cwd=syspath.container_root(self.name)
+                cmd, logfile=self.logging_file, cwd=syspath.get_container_dir(self.name)
             )
             try:
                 self.booter.expect("debian login: ", timeout=360)
@@ -133,9 +133,11 @@ class Container:
     def __generate_start_cmd__(self) -> str:
         """
         Build command-line from JSON config file for QEMU system
+
+        :return: The cmd command to start qemu
         """
         qemu_system = Path.joinpath(
-            syspath.qemu_bin(), f'qemu-system-{self.config["arch"]}'
+            syspath.get_qemu_bin(), f'qemu-system-{self.config["arch"]}'
         )
 
         cl_args = [
@@ -151,7 +153,7 @@ class Container:
             cl_args.append("-nographic")
 
         for flag, val in self.config["arguments"].items():
-            if type(val) is not list:
+            if not isinstance(val, list):
                 cl_args.append(f"-{flag} {val}")
             else:
                 for v in val:

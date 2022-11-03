@@ -24,6 +24,7 @@ class JabberwockyCLI:
             "interact": self.interact,
             "start": self.start,
             "stop": self.stop,
+            "run": self.run,
             "send-file": self.send_file,
             "get-file": self.get_file,
             "install": self.install,
@@ -35,6 +36,7 @@ class JabberwockyCLI:
             "create": self.create,
         }
 
+        cmd = cmd.strip()
         command, rest = cmd.split(None, 1)
         if command not in subcmd_dict:
             pass # TODO Error
@@ -88,7 +90,7 @@ class JabberwockyCLI:
         :param cmd: The rest of the command sent
         """
         cmd_list = cmd.split(None, 1)
-        if len(cmd_list != 2):
+        if len(cmd_list) != 2:
             pass # TODO Error
         container_name, command = *cmd_list,
         comp = re.compile(CONTAINER_NAME_REGEX)
