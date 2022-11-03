@@ -1,5 +1,5 @@
 import re
-from sys import stdin
+from sys import stdin, stdout
 
 from src.containers.container_manager import ContainerManager
 
@@ -11,9 +11,12 @@ class JabberwockyCLI:
     Represents an instance of the command-line interface
     """
     cm: ContainerManager
+    out_stream = stdout
+    in_stream = stdin
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, in_stream=stdin, out_stream=stdout) -> None:
+        self.in_stream = in_stream
+        self.out_stream = out_stream
 
     def parse_cmd(self, cmd: str) -> None:
         """
@@ -37,9 +40,14 @@ class JabberwockyCLI:
         }
 
         cmd = cmd.strip()
-        command, rest = cmd.split(None, 1)
+        cmd_list = cmd.split(None, 1)
+        if len(cmd_list) == 1:
+            command = cmd_list[0]
+            rest = ""
+        else:
+            command, rest = cmd_list
         if command not in subcmd_dict:
-            pass # TODO Error
+            self.out_stream.write(f"Command of '{command}' is not valid\n")
         subcmd_dict[command](rest)
 
     def help(self, cmd: str) -> None:
@@ -156,7 +164,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        stdin.writeline("Command not yet supported")
+        self.out_stream.write("Command not yet supported")
 
     def archive(self, cmd: str) -> None:
         """
@@ -164,7 +172,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        stdin.writeline("Command not yet supported")
+        self.out_stream.write("Command not yet supported")
 
     def add_repo(self, cmd: str) -> None:
         """
@@ -172,7 +180,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        stdin.writeline("Command not yet supported")
+        self.out_stream.write("Command not yet supported")
 
     def update_repo(self, cmd: str) -> None:
         """
@@ -180,7 +188,7 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        stdin.writeline("Command not yet supported")
+        self.out_stream.write("Command not yet supported")
 
     def create(self, cmd: str) -> None:
         """
@@ -188,4 +196,4 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        stdin.writeline("Command not yet supported")
+        self.out_stream.write("Command not yet supported")
