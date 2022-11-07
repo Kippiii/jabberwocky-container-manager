@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import tarfile
+from pathlib import Path
 from shutil import rmtree
 
 
@@ -80,6 +80,7 @@ def get_container_id_rsa(container_name: str) -> Path:
     """
     return get_container_dir(container_name) / "id_rsa"
 
+
 def install_container(archive_path: Path, container_name: str) -> None:
     """
     Installs a container from an archive
@@ -92,6 +93,7 @@ def install_container(archive_path: Path, container_name: str) -> None:
         tar.extractall(path=get_container_dir(container_name))
         # TODO Sanity check this extraction
 
+
 def delete_container(container_name: Path) -> None:
     """
     Deletes a currently installed container
@@ -101,5 +103,5 @@ def delete_container(container_name: Path) -> None:
     container_path = Path(get_container_dir(container_name))
     if not container_path.is_dir():
         raise FileNotFoundError(str(container_path))
-    
+
     rmtree(str(container_path))

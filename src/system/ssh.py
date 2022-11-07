@@ -170,7 +170,9 @@ class SSHInterface:
 
         key = paramiko.RSAKey.generate(1024)
         key.write_private_key_file(syspath.get_container_id_rsa(self.container_name))
-        with open(syspath.get_get_container_id_rsa_pub(self.container_name), "w") as pub:
+        with open(
+            syspath.get_get_container_id_rsa_pub(self.container_name), "w"
+        ) as pub:
             pub.write(f"ssh-rsa {key.get_base64()}\n")
 
         _, stdout, _ = self.ssh_client.exec_command(

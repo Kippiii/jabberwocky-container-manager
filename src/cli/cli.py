@@ -1,16 +1,18 @@
 import re
-from sys import stdin, stdout
 from pathlib import Path
+from sys import stdin, stdout
 
 from src.containers.container_manager import ContainerManager
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
 
+
 class JabberwockyCLI:
     """
     Represents an instance of the command-line interface
     """
+
     cm: ContainerManager
     out_stream = stdout
     in_stream = stdin
@@ -146,7 +148,7 @@ Starts the container creation wizard
         if len(cmd_list) != 2:
             self.out_stream.write(f"Command requires two arguments\n")
             return
-        container_name, command = *cmd_list,
+        container_name, command = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -163,7 +165,7 @@ Starts the container creation wizard
         if len(cmd_list) != 3:
             self.out_stream.write(f"Command requires three arguments\n")
             return
-        container_name, local_file, remote_file = *cmd_list,
+        container_name, local_file, remote_file = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -187,7 +189,7 @@ Starts the container creation wizard
         if len(cmd_list) != 3:
             self.out_stream.write(f"Command requires three arguments\n")
             return
-        container_name, remote_file, local_file = *cmd_list,
+        container_name, remote_file, local_file = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -211,7 +213,7 @@ Starts the container creation wizard
         if len(cmd_list) != 2:
             self.out_stream.write("Command requires two arguments\n")
             return
-        archive_path_str, container_name = *cmd_list,
+        archive_path_str, container_name = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")

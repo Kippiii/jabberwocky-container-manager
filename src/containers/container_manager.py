@@ -1,11 +1,12 @@
 import logging
-from typing import Dict
-from sys import stdin, stdout
 from pathlib import Path
+from sys import stdin, stdout
+from typing import Dict
 
 from src.containers.container import Container
 from src.containers.exceptions import BootFailure
-from src.system.syspath import get_container_dir, install_container, delete_container
+from src.system.syspath import (delete_container, get_container_dir,
+                                install_container)
 
 
 class ContainerManager:
@@ -65,7 +66,9 @@ class ContainerManager:
         self.logger.debug("Stopping container '%s'", container_name)
 
         if container_name not in self.containers:
-            out_stream.write(f"There is no running container called '{container_name}'\n")
+            out_stream.write(
+                f"There is no running container called '{container_name}'\n"
+            )
             return
 
         try:
@@ -77,7 +80,9 @@ class ContainerManager:
 
         del self.containers[container_name]
 
-    def run_shell(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def run_shell(
+        self, container_name: str, *, in_stream=stdin, out_stream=stdout
+    ) -> None:
         """
         Starts a shell on the container in question
 
@@ -86,9 +91,11 @@ class ContainerManager:
         self.logger.debug("Opening shell on container '%s'", container_name)
 
         if container_name not in self.containers:
-            out_stream.write(f"There is no running container called '{container_name}'\n")
+            out_stream.write(
+                f"There is no running container called '{container_name}'\n"
+            )
             return
-        
+
         try:
             self.containers[container_name].shell()
         except Exception as exc:
@@ -96,7 +103,9 @@ class ContainerManager:
             out_stream.write("Something went wrong\n")
             return
 
-    def run_command(self, container_name: str, cmd: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def run_command(
+        self, container_name: str, cmd: str, *, in_stream=stdin, out_stream=stdout
+    ) -> None:
         """
         Runs a command in a contianer
 
@@ -106,16 +115,26 @@ class ContainerManager:
         self.logger.debug("Running command '%s' in '%s'", cmd, container_name)
 
         if container_name not in self.containers:
-            out_stream.write(f"There is no running container called '{container_name}'\n")
+            out_stream.write(
+                f"There is no running container called '{container_name}'\n"
+            )
             return
-        
+
         try:
             self.containers[container_name].run(cmd)
         except Exception as exc:
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
 
-    def get_file(self, container_name: str, remote_file: str, local_file: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def get_file(
+        self,
+        container_name: str,
+        remote_file: str,
+        local_file: str,
+        *,
+        in_stream=stdin,
+        out_stream=stdout,
+    ) -> None:
         """
         Gets a file from a container
 
@@ -128,9 +147,11 @@ class ContainerManager:
         )
 
         if container_name not in self.containers:
-            out_stream.write(f"There is no running container called '{container_name}'\n")
+            out_stream.write(
+                f"There is no running container called '{container_name}'\n"
+            )
             return
-        
+
         try:
             self.containers[container_name].get(remote_file, local_file)
         except Exception as exc:
@@ -138,7 +159,15 @@ class ContainerManager:
             out_stream.write("Something went wrong\n")
             return
 
-    def put_file(self, container_name: str, local_file: str, remote_file: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def put_file(
+        self,
+        container_name: str,
+        local_file: str,
+        remote_file: str,
+        *,
+        in_stream=stdin,
+        out_stream=stdout,
+    ) -> None:
         """
         Puts a file into a container
 
@@ -151,9 +180,11 @@ class ContainerManager:
         )
 
         if container_name not in self.containers:
-            out_stream.write(f"There is no running container called '{container_name}'\n")
+            out_stream.write(
+                f"There is no running container called '{container_name}'\n"
+            )
             return
-        
+
         try:
             self.containers[container_name].put(local_file, remote_file)
         except Exception as exc:
@@ -161,7 +192,14 @@ class ContainerManager:
             out_stream.write("Something went wrong\n")
             return
 
-    def install(self, archive_path_str: str, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def install(
+        self,
+        archive_path_str: str,
+        container_name: str,
+        *,
+        in_stream=stdin,
+        out_stream=stdout,
+    ) -> None:
         """
         Installs a new container from a given archive path
 
@@ -179,7 +217,9 @@ class ContainerManager:
             out_stream.write("Something went wrong\n")
             return
 
-    def delete(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def delete(
+        self, container_name: str, *, in_stream=stdin, out_stream=stdout
+    ) -> None:
         """
         Deletes a current container
 
