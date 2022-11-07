@@ -172,7 +172,12 @@ class ContainerManager:
         if not archive_path.is_file():
             out_stream.write("The given path is not a file!\n")
             return
-        install_container(archive_path, container_name)
+        try:
+            install_container(archive_path, container_name)
+        except Exception as exc:
+            out_stream.write(f"{exc}\n")
+            out_stream.write("Something went wrong\n")
+            return
 
     def delete(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
         """
@@ -180,4 +185,9 @@ class ContainerManager:
 
         :param container_name: The name of the container to delete
         """
-        delete_container(container_name)
+        try:
+            delete_container(container_name)
+        except Exception as exc:
+            out_stream.write(f"{exc}\n")
+            out_stream.write("Something went wrong\n")
+            return
