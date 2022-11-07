@@ -3,7 +3,6 @@ from sys import stdin, stdout
 from pathlib import Path
 
 from src.containers.container_manager import ContainerManager
-from src.containers.syspath import install_container
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
