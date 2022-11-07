@@ -58,7 +58,47 @@ class JabberwockyCLI:
 
         :param cmd: The rest of command sent
         """
-        pass
+        help_str = """Manages containers installed on this system.
+Usage: jabberwocky [subcommand] {args}
+
+interact [container_name]
+Open the shell of the container
+
+start [container_name]
+Boots a container and allows it to idle in the background
+
+stop [container_name]
+Powers off a container
+
+send-file [container_name] [path_to_source] [path_to_destination]
+Copy a file from the host to the container
+
+get-file [container_name] [path_to_source] [path_to_destination]
+Copy a file from the container to the host
+
+install [path_to_archive] [name]
+Installs a container archive on the computer
+
+download [container_name] [name]
+Downloads a container to your computer
+
+archive [container_name] [path_to_destination]
+Sends a container to a downloadable archive
+
+add-repo [URL]
+remove-repo [URL]
+Adds or a removes a repository
+
+update-repo [URL]
+Download index files for a repository
+
+delete [container_name]
+Deletes a container from the file system
+
+create
+Starts the container creation wizard
+"""
+        stdout.write(help_str)
 
     def interact(self, cmd: str) -> None:
         """
