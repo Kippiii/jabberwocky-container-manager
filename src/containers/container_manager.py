@@ -1,10 +1,11 @@
 import logging
 from typing import Dict
 from sys import stdin, stdout
+from pathlib import Path
 
 from src.containers.container import Container
 from src.containers.exceptions import BootFailure
-from src.system.syspath import get_container_dir
+from src.system.syspath import get_container_dir, install_container, delete_container
 
 
 class ContainerManager:
@@ -159,3 +160,24 @@ class ContainerManager:
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
+
+    def install(self, archive_path_str: str, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+        """
+        Installs a new container from a given archive path
+
+        :param archive_path_str: The path to the archive
+        :param container_name: The name of the container
+        """
+        archive_path = Path(archive_path_str)
+        if not archive_path.is_file():
+            out_stream.write("The given path is not a file!\n")
+            return
+        install_container(archive_path, container_name)
+
+    def delete(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+        """
+        Deletes a current container
+
+        :param container_name: The name of the container to delete
+        """
+        delete_container(container_name)

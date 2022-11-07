@@ -1,7 +1,9 @@
 import re
 from sys import stdin, stdout
+from pathlib import Path
 
 from src.containers.container_manager import ContainerManager
+from src.containers.syspath import install_container
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
@@ -166,7 +168,16 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        cmd_list = cmd.split()
+        if len(cmd_list) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        archive_path_str, container_name = *cmd_list,
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        self.cm.install(archive_path_str, container_name)
 
     def delete(self, cmd: str) -> None:
         """
@@ -174,7 +185,12 @@ class JabberwockyCLI:
 
         :param cmd: The rest of the command sent
         """
-        pass
+        container_name = cmd.strip()
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        self.cm.delete(container_name)
 
     def download(self, cmd: str) -> None:
         """

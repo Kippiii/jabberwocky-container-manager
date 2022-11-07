@@ -80,7 +80,7 @@ def get_container_id_rsa(container_name: str) -> Path:
     """
     return get_container_dir(container_name) / "id_rsa"
 
-def install_container(archive_path: Path) -> None:
+def install_container(archive_path: Path, container_name: str) -> None:
     """
     Installs a container from an archive
 
@@ -88,7 +88,6 @@ def install_container(archive_path: Path) -> None:
     """
     if not tarfile.is_tarfile(str(archive_path)):
         return # TODO Exception
-    container_name = archive_path.stem
     with tarfile.open(str(archive_path)) as tar:
         tar.extractall(path=get_container_dir(container_name))
         # TODO Sanity check this extraction
