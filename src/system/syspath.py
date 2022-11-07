@@ -87,7 +87,7 @@ def install_container(archive_path: Path, container_name: str) -> None:
     :param archive_path: The path to the archive
     """
     if not tarfile.is_tarfile(str(archive_path)):
-        return # TODO Exception
+        raise FileNotFoundError(str(archive_path))
     with tarfile.open(str(archive_path)) as tar:
         tar.extractall(path=get_container_dir(container_name))
         # TODO Sanity check this extraction
@@ -100,6 +100,6 @@ def delete_container(container_name: Path) -> None:
     """
     container_path = Path(get_container_dir(container_name))
     if not container_path.is_dir():
-        return # TODO Exception
+        raise FileNotFoundError(str(container_path))
     
     rmtree(str(container_path))
