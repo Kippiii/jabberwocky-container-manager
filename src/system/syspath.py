@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+import tarfile
+from shutil import rmtree
 
 
 def get_qemu_bin() -> Path:
@@ -77,3 +79,28 @@ def get_container_id_rsa(container_name: str) -> Path:
     :return: The path to the container's private key
     """
     return get_container_dir(container_name) / "id_rsa"
+
+def install_container(archive_path: Path) -> None:
+    """
+    Installs a container from an archive
+
+    :param archive_path: The path to the archive
+    """
+    if not tarfile.is_tarfile(str(archive_path)):
+        return # TODO Exception
+    container_name = archive_path.stem
+    with tarfile.open(str(archive_path)) as tar:
+        tar.extractall(path=get_container_dir(container_name))
+        # TODO Sanity check this extraction
+
+def delete_container(container_name: Path) -> None:
+    """
+    Deletes a currently installed container
+
+    :param container_name: The container being deleted
+    """
+    container_path = Path(get_container_dir(container_name))
+    if not container_path.is_dir():
+        return # TODO Exception
+    
+    rmtree(str(container_path))
