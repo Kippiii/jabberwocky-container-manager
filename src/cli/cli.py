@@ -98,7 +98,7 @@ Deletes a container from the file system
 create
 Starts the container creation wizard
 """
-        stdout.write(help_str)
+        self.out_stream.write(help_str)
 
     def interact(self, cmd: str) -> None:
         """
