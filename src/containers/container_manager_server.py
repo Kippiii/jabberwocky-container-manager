@@ -189,7 +189,7 @@ class _SocketConnection:
 class _RunCommandServer:
     manager: ContainerManagerServer
     client_sock: socket.socket
-    client_addr: Tuple[str, int]    
+    client_addr: Tuple[str, int]
 
     stdin:  Optional[ChannelStdinFile] = None
     stdout: Optional[ChannelFile] = None
