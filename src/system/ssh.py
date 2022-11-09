@@ -1,3 +1,7 @@
+"""
+Manages SSH connections (with containers)
+"""
+
 import logging
 import os
 import subprocess
@@ -107,7 +111,7 @@ class SSHInterface:
 
         :param cli: The command run in the SSH as an array
         """
-        _CMD = [
+        cmd = [
             "ssh",
             "-oStrictHostKeyChecking=no",
             "-oLogLevel=ERROR",
@@ -121,13 +125,14 @@ class SSHInterface:
         ]
 
         if self.logger:
-            self.logger.info(f'Executing {" ".join(_CMD)}')
+            self.logger.info(f'Executing {" ".join(cmd)}')
 
-        completed_process = subprocess.run(_CMD, shell=True)
+        completed_process = subprocess.run(cmd, shell=True, check=False)
 
         if completed_process.returncode:
             raise SSHBadExitError(
-                f"{completed_process.returncode}. You may need to run __update_hostkey__."
+                f"{completed_process.returncode}."
+                " You may need to run __update_hostkey__."
             )
 
     def exec_ssh_shell(self) -> None:
@@ -171,7 +176,9 @@ class SSHInterface:
         key = paramiko.RSAKey.generate(1024)
         key.write_private_key_file(syspath.get_container_id_rsa(self.container_name))
         with open(
-            syspath.get_get_container_id_rsa_pub(self.container_name), "w"
+            syspath.get_get_container_id_rsa_pub(self.container_name),
+            "w",
+            encoding="utf-8",
         ) as pub:
             pub.write(f"ssh-rsa {key.get_base64()}\n")
 

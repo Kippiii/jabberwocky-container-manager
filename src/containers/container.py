@@ -1,15 +1,19 @@
+"""
+Manages the individual container objects
+"""
+
 import json
 import logging
 from io import BytesIO
 from pathlib import Path
-from time import sleep
 from typing import Optional
 
-import pexpect
 from pexpect import ExceptionPexpect, popen_spawn
 
-from src.containers.exceptions import (BootFailure, PortAllocationError,
-                                       gen_boot_exception)
+from src.containers.exceptions import (
+    PortAllocationError,
+    gen_boot_exception,
+)
 from src.containers.port_allocation import allocate_port
 from src.system import ssh, syspath
 
@@ -44,7 +48,9 @@ class Container:
             raise FileNotFoundError(syspath.get_container_config(name))
 
         self.name = name
-        with open(syspath.get_container_config(name), "r") as config_file:
+        with open(
+            syspath.get_container_config(name), "r", encoding="utf-8"
+        ) as config_file:
             self.config = json.load(config_file)
         self.arch = self.config["arch"]
         self.logger = logger
@@ -53,8 +59,10 @@ class Container:
         """
         Starts a container
         """
-        self.logging_file = open(self.logging_file_path, "wb")
-        for i in range(self.max_retries):
+        self.logging_file = open(  # pylint: disable=consider-using-with
+            self.logging_file_path, "wb"
+        )
+        for _ in range(self.max_retries):
             self.ex_port = allocate_port()
             cmd = self.__generate_start_cmd__()
             self.logger.info(f"Executing {cmd}")
@@ -147,16 +155,16 @@ class Container:
         ]
 
         if ("disableGraphics" not in self.config) or (
-            self.config["disableGraphics"] == True
+            self.config["disableGraphics"] is True
         ):
-            cl_args.append(f"-serial stdio")
+            cl_args.append("-serial stdio")
             cl_args.append("-nographic")
 
         for flag, val in self.config["arguments"].items():
             if not isinstance(val, list):
                 cl_args.append(f"-{flag} {val}")
             else:
-                for v in val:
+                for _ in val:
                     cl_args.append(f"-{flag} {val}")
 
         return f'"{qemu_system}" {" ".join(cl_args)}'

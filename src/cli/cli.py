@@ -1,5 +1,8 @@
+"""
+Defines the CLI that takes user input and dispatches the container manager
+"""
+
 import re
-from pathlib import Path
 from sys import stdin, stdout
 
 from src.containers.container_manager import ContainerManager
@@ -13,7 +16,7 @@ class JabberwockyCLI:
     Represents an instance of the command-line interface
     """
 
-    cm: ContainerManager
+    container_manager: ContainerManager
     out_stream = stdout
     in_stream = stdin
 
@@ -54,7 +57,7 @@ class JabberwockyCLI:
             return
         subcmd_dict[command](rest)
 
-    def help(self, cmd: str) -> None:
+    def help(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Prints the basic help menu for the CLI
 
@@ -112,7 +115,7 @@ Starts the container creation wizard
         if not comp.match(cmd.strip()):
             self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
             return
-        self.cm.run_shell(cmd.strip())
+        self.container_manager.run_shell(cmd.strip())
 
     def start(self, cmd: str) -> None:
         """
@@ -124,7 +127,7 @@ Starts the container creation wizard
         if not comp.match(cmd.strip()):
             self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
             return
-        self.cm.start(cmd)
+        self.container_manager.start(cmd)
 
     def stop(self, cmd: str) -> None:
         """
@@ -136,7 +139,7 @@ Starts the container creation wizard
         if not comp.match(cmd.strip()):
             self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
             return
-        self.cm.stop(cmd)
+        self.container_manager.stop(cmd)
 
     def run(self, cmd: str) -> None:
         """
@@ -146,14 +149,14 @@ Starts the container creation wizard
         """
         cmd_list = cmd.split(None, 1)
         if len(cmd_list) != 2:
-            self.out_stream.write(f"Command requires two arguments\n")
+            self.out_stream.write("Command requires two arguments\n")
             return
         container_name, command = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        self.cm.run_command(container_name, command)
+        self.container_manager.run_command(container_name, command)
 
     def send_file(self, cmd: str) -> None:
         """
@@ -163,7 +166,7 @@ Starts the container creation wizard
         """
         cmd_list = cmd.split()
         if len(cmd_list) != 3:
-            self.out_stream.write(f"Command requires three arguments\n")
+            self.out_stream.write("Command requires three arguments\n")
             return
         container_name, local_file, remote_file = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
@@ -177,7 +180,7 @@ Starts the container creation wizard
         if not comp.match(remote_file):
             self.out_stream.write(f"'{remote_file}' is not a valid file name")
             return
-        self.cm.put_file(container_name, local_file, remote_file)
+        self.container_manager.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: str) -> None:
         """
@@ -187,7 +190,7 @@ Starts the container creation wizard
         """
         cmd_list = cmd.split()
         if len(cmd_list) != 3:
-            self.out_stream.write(f"Command requires three arguments\n")
+            self.out_stream.write("Command requires three arguments\n")
             return
         container_name, remote_file, local_file = (*cmd_list,)
         comp = re.compile(CONTAINER_NAME_REGEX)
@@ -201,7 +204,7 @@ Starts the container creation wizard
         if not comp.match(local_file):
             self.out_stream.write(f"'{local_file}' is not a valid file name")
             return
-        self.cm.get_file(container_name, remote_file, local_file)
+        self.container_manager.get_file(container_name, remote_file, local_file)
 
     def install(self, cmd: str) -> None:
         """
@@ -218,7 +221,7 @@ Starts the container creation wizard
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        self.cm.install(archive_path_str, container_name)
+        self.container_manager.install(archive_path_str, container_name)
 
     def delete(self, cmd: str) -> None:
         """
@@ -231,9 +234,9 @@ Starts the container creation wizard
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        self.cm.delete(container_name)
+        self.container_manager.delete(container_name)
 
-    def download(self, cmd: str) -> None:
+    def download(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Downloads a container from an archive
 
@@ -241,7 +244,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def archive(self, cmd: str) -> None:
+    def archive(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Sends a container to an archive
 
@@ -249,7 +252,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def add_repo(self, cmd: str) -> None:
+    def add_repo(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Adds an archive to the system
 
@@ -257,7 +260,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def update_repo(self, cmd: str) -> None:
+    def update_repo(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Updates an archive
 
@@ -265,7 +268,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def create(self, cmd: str) -> None:
+    def create(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Runs the container creation wizard
 

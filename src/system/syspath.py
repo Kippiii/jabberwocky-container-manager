@@ -1,3 +1,7 @@
+"""
+Manages the file system used by the container manager
+"""
+
 import os
 import tarfile
 from pathlib import Path
@@ -12,10 +16,9 @@ def get_qemu_bin() -> Path:
     """
     if os.name == "nt":
         return Path("C:\\Program Files\\qemu")
-    elif os.name == "posix":
+    if os.name == "posix":
         return Path("/usr/bin")
-    else:
-        raise OSError(f'Unsupported platform "{os.name}"')
+    raise OSError(f'Unsupported platform "{os.name}"')
 
 
 def get_dev_null() -> Path:
@@ -26,10 +29,9 @@ def get_dev_null() -> Path:
     """
     if os.name == "nt":
         return Path("NUL")
-    elif os.name == "posix":
+    if os.name == "posix":
         return Path("/dev/null")
-    else:
-        raise OSError(f'Unsupported platform "{os.name}"')
+    raise OSError(f'Unsupported platform "{os.name}"')
 
 
 def get_container_home() -> Path:

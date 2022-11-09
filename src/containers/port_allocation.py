@@ -1,3 +1,7 @@
+"""
+Manages allocating ports for connecting the containers
+"""
+
 from typing import Optional
 
 
@@ -23,7 +27,7 @@ class PortAllocator:
         return self.cur_port - 1
 
 
-pa: Optional[PortAllocator] = None
+PORT_ALLOCATOR: Optional[PortAllocator] = None
 
 
 def allocate_port() -> int:
@@ -32,7 +36,7 @@ def allocate_port() -> int:
 
     :return: The port allocated
     """
-    global pa
-    if pa is None:
-        pa = PortAllocator()
-    return pa.allocate()
+    global PORT_ALLOCATOR  # pylint: disable=global-statement
+    if PORT_ALLOCATOR is None:
+        PORT_ALLOCATOR = PortAllocator()
+    return PORT_ALLOCATOR.allocate()

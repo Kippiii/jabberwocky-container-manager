@@ -1,3 +1,7 @@
+"""
+Manages all of the containers being used by the system
+"""
+
 import logging
 from pathlib import Path
 from sys import stdin, stdout
@@ -5,8 +9,7 @@ from typing import Dict
 
 from src.containers.container import Container
 from src.containers.exceptions import BootFailure
-from src.system.syspath import (delete_container, get_container_dir,
-                                install_container)
+from src.system.syspath import delete_container, install_container
 
 
 class ContainerManager:
@@ -22,7 +25,13 @@ class ContainerManager:
     def __init__(self, *, logger: logging.Logger) -> None:
         self.logger = logger
 
-    def start(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def start(
+        self,
+        container_name: str,
+        *,
+        in_stream=stdin,  # pylint: disable=unused-argument
+        out_stream=stdout,
+    ) -> None:
         """
         Starts a container
 
@@ -39,9 +48,9 @@ class ContainerManager:
                 container_name, logger=self.logger
             )
         except FileNotFoundError:
-            out_stream.write(f"Container is not installed on the system\n")
+            out_stream.write("Container is not installed on the system\n")
             return
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
@@ -50,14 +59,20 @@ class ContainerManager:
             self.containers[container_name].start()
         except BootFailure as exc:
             out_stream.write(f"{exc}\n")
-            out_stream.write(f"Ran into error while booting container\n")
+            out_stream.write("Ran into error while booting container\n")
             return
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
 
-    def stop(self, container_name: str, *, in_stream=stdin, out_stream=stdout) -> None:
+    def stop(
+        self,
+        container_name: str,
+        *,
+        in_stream=stdin,  # pylint: disable=unused-argument
+        out_stream=stdout,
+    ) -> None:
         """
         Stops a container
 
@@ -73,7 +88,7 @@ class ContainerManager:
 
         try:
             self.containers[container_name].stop()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
@@ -81,7 +96,11 @@ class ContainerManager:
         del self.containers[container_name]
 
     def run_shell(
-        self, container_name: str, *, in_stream=stdin, out_stream=stdout
+        self,
+        container_name: str,
+        *,
+        in_stream=stdin,  # pylint: disable=unused-argument
+        out_stream=stdout,
     ) -> None:
         """
         Starts a shell on the container in question
@@ -98,13 +117,18 @@ class ContainerManager:
 
         try:
             self.containers[container_name].shell()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
 
     def run_command(
-        self, container_name: str, cmd: str, *, in_stream=stdin, out_stream=stdout
+        self,
+        container_name: str,
+        cmd: str,
+        *,
+        in_stream=stdin,  # pylint: disable=unused-argument
+        out_stream=stdout,
     ) -> None:
         """
         Runs a command in a contianer
@@ -122,7 +146,7 @@ class ContainerManager:
 
         try:
             self.containers[container_name].run(cmd)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
 
@@ -132,7 +156,7 @@ class ContainerManager:
         remote_file: str,
         local_file: str,
         *,
-        in_stream=stdin,
+        in_stream=stdin,  # pylint: disable=unused-argument
         out_stream=stdout,
     ) -> None:
         """
@@ -154,7 +178,7 @@ class ContainerManager:
 
         try:
             self.containers[container_name].get(remote_file, local_file)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
@@ -165,7 +189,7 @@ class ContainerManager:
         local_file: str,
         remote_file: str,
         *,
-        in_stream=stdin,
+        in_stream=stdin,  # pylint: disable=unused-argument
         out_stream=stdout,
     ) -> None:
         """
@@ -187,7 +211,7 @@ class ContainerManager:
 
         try:
             self.containers[container_name].put(local_file, remote_file)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
@@ -197,7 +221,7 @@ class ContainerManager:
         archive_path_str: str,
         container_name: str,
         *,
-        in_stream=stdin,
+        in_stream=stdin,  # pylint: disable=unused-argument
         out_stream=stdout,
     ) -> None:
         """
@@ -212,13 +236,17 @@ class ContainerManager:
             return
         try:
             install_container(archive_path, container_name)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
 
     def delete(
-        self, container_name: str, *, in_stream=stdin, out_stream=stdout
+        self,
+        container_name: str,
+        *,
+        in_stream=stdin,  # pylint: disable=unused-argument
+        out_stream=stdout,
     ) -> None:
         """
         Deletes a current container
@@ -227,7 +255,7 @@ class ContainerManager:
         """
         try:
             delete_container(container_name)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             out_stream.write(f"{exc}\n")
             out_stream.write("Something went wrong\n")
             return
