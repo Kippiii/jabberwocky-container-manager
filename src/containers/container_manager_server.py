@@ -98,15 +98,14 @@ class _SocketConnection:
         self.client_sock.send(b'BEGIN')
 
         stdin, stdout, stderr = self.manager.containers[container_name].run(' '.join(cli))
-        listener = _RunCommandServer(
+        _RunCommandHandler(
             client_sock=self.client_sock,
             client_addr=self.client_addr,
             manager=self.manager,
             stdin=stdin,
             stdout=stdout,
             stderr=stderr
-        )
-        listener.start_listening()
+        ).send_and_recv()
 
 
     def _start(self) -> None:
@@ -182,7 +181,7 @@ class _SocketConnection:
 
 
 
-class _RunCommandServer:
+class _RunCommandHandler:
     manager: ContainerManagerServer
     client_sock: socket.socket
     client_addr: Tuple[str, int]
@@ -201,7 +200,7 @@ class _RunCommandServer:
         self.stdout = stdout
         self.stderr = stderr
 
-    def start_listening(self):
+    def send_and_recv(self):
         self.stdout_closed = False
         self.stderr_closed = False
 
