@@ -1,3 +1,7 @@
+"""
+Manages SSH connections (with containers)
+"""
+
 import logging
 import os
 import subprocess
@@ -151,7 +155,9 @@ class SSHInterface:
         key = paramiko.RSAKey.generate(1024)
         key.write_private_key_file(syspath.get_container_id_rsa(self.container_name))
         with open(
-            syspath.get_get_container_id_rsa_pub(self.container_name), "w"
+            syspath.get_get_container_id_rsa_pub(self.container_name),
+            "w",
+            encoding="utf-8",
         ) as pub:
             pub.write(f"ssh-rsa {key.get_base64()}\n")
 

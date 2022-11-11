@@ -1,3 +1,7 @@
+"""
+Manages the exceptions related to the containers
+"""
+
 import re
 
 from pexpect import EOF as PexpectEOFException
