@@ -32,9 +32,6 @@ class ContainerManagerClient:
     def run_shell(self, cli: List[str]) -> None:
         raise NotImplementedError()
 
-    def run_command(self, cli: List[str]) -> None:
-        raise NotImplementedError()
-
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         absolute_local_path = abspath(local_file)
 
