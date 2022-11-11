@@ -9,10 +9,6 @@ from src.containers.exceptions import BootFailure
 from src.system.syspath import get_container_dir
 
 
-class ContainerDoesNotExistError(RuntimeError):
-    pass
-
-
 class ContainerManagerServer:
     backlog: int = 20
     address: Tuple[str, int] = (socket.gethostname(), 35053)
@@ -25,7 +21,7 @@ class ContainerManagerServer:
         self.logger = logger
 
 
-    def start_server(self) -> None:
+    def listen(self) -> None:
         logging.debug(f'Starting Container Manager Server @ {self.address}')
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
@@ -74,11 +70,11 @@ class _SocketConnection:
             }[msg]()
 
         except KeyError:
-            self.client_sock.send(b'ERROR UNKNOWN_REQUEST')
+            self.client_sock.send(b'UNKNOWN_REQUEST')
         except ConnectionError:
             pass
         except Exception as ex:
-            self.client_sock.send(b'ERROR EXCEPTION_OCCURED')
+            self.client_sock.send(b'EXCEPTION_OCCURED')
             self.manager.logger.exception(ex)
 
         self.client_sock.close()
@@ -118,7 +114,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode('utf-8')
 
         if not get_container_dir(container_name).is_dir():
-            self.client_sock.send('ERROR NO_SUCH_CONTAINER')
+            self.client_sock.send('NO_SUCH_CONTAINER')
 
         elif container_name not in self.manager.containers:
             try:
@@ -128,7 +124,7 @@ class _SocketConnection:
                 )
                 self.manager.containers[container_name].start()
             except BootFailure:
-                self.client_sock.send(b'ERROR BOOT_FAILURE')
+                self.client_sock.send(b'BOOT_FAILURE')
             else:
                 self.client_sock.send(b'OK')
 
@@ -138,7 +134,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode('utf-8')
 
         if container_name not in self.manager.containers:
-            self.client_sock.send('ERROR NO_SUCH_CONTAINER')
+            self.client_sock.send('NO_SUCH_CONTAINER')
         else:
             self.manager.logger.debug("Stopping container '%s'", container_name)
             self.manager.containers[container_name].stop()
@@ -159,7 +155,7 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.client_sock.send(b'ERROR CONTAINER_NOT_STARTED')
+            self.client_sock.send(b'CONTAINER_NOT_STARTED')
         else:
             self.manager.containers[container_name].get(remote_file, local_file)
             self.client_sock.send(b'OK')
@@ -179,7 +175,7 @@ class _SocketConnection:
 
 
         if container_name not in self.manager.containers:
-            self.client_sock.send(b'ERROR CONTAINER_NOT_STARTED')
+            self.client_sock.send(b'CONTAINER_NOT_STARTED')
         else:
             self.manager.containers[container_name].put(local_file, remote_file)
             self.client_sock.send(b'OK')
