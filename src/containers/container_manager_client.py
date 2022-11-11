@@ -114,17 +114,22 @@ class _RunCommandClient:
 
     def _send_msvcrt(self):
         try:
+            msg = ''
             while not self.recv_closed:
-                msg = ''
                 while msvcrt.kbhit():
-                    char = msvcrt.getwch()
-                    char = char if char != '\r' else '\n'
-                    msg += char
-                
-                if msg:
-                    sys.stdout.write(msg)
-                    sys.stdout.flush()
-                    self.sock.send(bytes(msg, 'utf-8'))
+                    char = msvcrt.getwche()
+
+                    if char == '\r':
+                        print(end='\n')
+                        self.sock.send(bytes(msg + '\n', 'utf-8'))
+                        msg = ''
+
+                    elif char == '\b':
+                        print(' ', end='\b', flush=True)
+                        msg = msg[:-1]
+
+                    else:
+                        msg += char
                 
                 time.sleep(0.1)
         except ConnectionError:
