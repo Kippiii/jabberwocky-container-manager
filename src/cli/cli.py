@@ -5,7 +5,7 @@ Defines the CLI that takes user input and dispatches the container manager
 import re
 from sys import stdin, stdout
 
-from src.containers.container_manager import ContainerManager
+from src.containers.container_manager_client import ContainerManagerClient
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
@@ -16,7 +16,7 @@ class JabberwockyCLI:
     Represents an instance of the command-line interface
     """
 
-    container_manager: ContainerManager
+    container_manager: ContainerManagerClient
     out_stream = stdout
     in_stream = stdin
 
@@ -43,6 +43,7 @@ class JabberwockyCLI:
             "add-repo": self.add_repo,
             "update-repo": self.update_repo,
             "create": self.create,
+            "server-halt": self.server_halt,
         }
 
         cmd = cmd.strip()
@@ -275,3 +276,12 @@ Starts the container creation wizard
         :param cmd: The rest of the command sent
         """
         self.out_stream.write("Command not yet supported")
+
+
+    def server_halt(self, cmd: str) -> None:
+        """
+        Tells the server to halt
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.server_halt()

@@ -1,7 +1,9 @@
 import logging
 from sys import stdin, stdout
+from subprocess import Popen
 
-from src.containers.container_manager import ContainerManager
+from src.containers.container_manager_client import ContainerManagerClient
+from src.containers.container_manager_server import ContainerManagerServer
 from src.cli.cli import JabberwockyCLI
 
 
@@ -25,28 +27,21 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    # cm = ContainerManager(logger=logger)
-    # cm.start("planb")
-    # try:
-    #     cm.run_command("planb", "rm -f echo.c")
-    #     cm.run_command("planb", "rm -f a.out")
-    #     cm.put_file("planb", "echo.c", "echo.c")
-    #     cm.run_command("planb", "gcc echo.c")
-    #     cm.run_command("planb", "./a.out")
-    #     cm.get_file("planb", "a.out", "a.out")
-    #     cm.stop("planb")
-    # except Exception as e:
-    #     cm.stop("planb")
-    #     raise e
+    # Start the server
+    logger.debug('Starting Server...')
+    Popen('python server.py')
 
     logger.info("Please input commands: ")
     cli = JabberwockyCLI(stdin, stdout)
-    cli.cm = ContainerManager(logger=logger)
+    cli.container_manager = ContainerManagerClient()
     while True:
         stdout.write("> ")
         stdout.flush()
         inp = stdin.readline()
         cli.parse_cmd(inp)
+
+    # Halt server
+    # TODO
 
 
 if __name__ == "__main__":
