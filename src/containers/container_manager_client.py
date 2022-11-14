@@ -1,11 +1,10 @@
-import socket
-import threading
-from typing import Tuple, List, Optional
-from os.path import abspath
 import msvcrt
+import socket
 import sys
+import threading
 import time
-import os
+from os.path import abspath
+from typing import List, Tuple
 
 from src.system.syspath import get_server_addr_file
 
@@ -14,24 +13,24 @@ class ContainerManagerClient:
     server_address: Tuple[str, int]
 
     def __init__(self):
-        with open(get_server_addr_file(), 'r') as server_addr:
-            addr, port = server_addr.read().split('\n')
+        with open(get_server_addr_file(), "r", encoding="utf-8") as server_addr:
+            addr, port = server_addr.read().split("\n")
             self.server_address = (addr, int(port))
 
     def start(self, container_name: str) -> None:
         sock = self._make_connection()
-        sock.send(b'START')
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(container_name, 'utf-8'))
-        self._recv_expect(sock, 1024, b'OK')
+        sock.send(b"START")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
     def stop(self, container_name: str) -> None:
         sock = self._make_connection()
-        sock.send(b'STOP')
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(container_name, 'utf-8'))
-        self._recv_expect(sock, 1024, b'OK')
+        sock.send(b"STOP")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
     def run_shell(self, cli: List[str]) -> None:
@@ -41,62 +40,63 @@ class ContainerManagerClient:
         absolute_local_path = abspath(local_file)
 
         sock = self._make_connection()
-        sock.send(b'GET-FILE')
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(container_name, 'utf-8'))
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(remote_file, 'utf-8'))
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(absolute_local_path, 'utf-8'))
-        self._recv_expect(sock, 1024, b'OK')
+        sock.send(b"GET-FILE")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(remote_file, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(absolute_local_path, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
     def put_file(self, container_name: str, local_file: str, remote_file: str) -> None:
         absolute_local_path = abspath(local_file)
 
         sock = self._make_connection()
-        sock.send(b'PUT-FILE')
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(container_name, 'utf-8'))
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(absolute_local_path, 'utf-8'))
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(remote_file, 'utf-8'))
-        self._recv_expect(sock, 1024, b'OK')
+        sock.send(b"PUT-FILE")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(absolute_local_path, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(remote_file, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
     def run_command(self, container_name: str, cli: List[str]) -> None:
         sock = self._make_connection()
-        sock.send(b'RUN-COMMAND')
-        self._recv_expect(sock, 1024, b'CONT')
-        sock.send(bytes(container_name, 'utf-8'))
-        self._recv_expect(sock, 1024, b'CONT')
+        sock.send(b"RUN-COMMAND")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
 
-        sock.send(bytes(str(len(cli)), 'utf-8'))
+        sock.send(bytes(str(len(cli)), "utf-8"))
         for arg in cli:
-            self._recv_expect(sock, 1024, b'CONT')
-            sock.send(bytes(arg, 'utf-8'))
-        
-        self._recv_expect(sock, 1024, b'BEGIN')
+            self._recv_expect(sock, 1024, b"CONT")
+            sock.send(bytes(arg, "utf-8"))
+
+        self._recv_expect(sock, 1024, b"BEGIN")
         _RunCommandClient(sock)
 
     def server_halt(self) -> None:
         sock = self._make_connection()
-        sock.send(b'HALT')
+        sock.send(b"HALT")
         sock.close()
 
     def _make_connection(self) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(self.server_address)
-        self._recv_expect(sock, 1024, b'READY')
+        self._recv_expect(sock, 1024, b"READY")
         return sock
 
     def _recv_expect(self, sock: socket.socket, bufsize: int, expected: bytes) -> bytes:
         if (msg := sock.recv(bufsize)) != expected:
             sock.close()
-            raise RuntimeError(f'Got Unexpected Response "{msg}" from {self.server_address}')
-        else:
-            return msg
+            raise RuntimeError(
+                f'Got Unexpected Response "{msg}" from {self.server_address}'
+            )
+        return msg
 
 
 class _RunCommandClient:
@@ -116,23 +116,23 @@ class _RunCommandClient:
 
     def _send_msvcrt(self):
         try:
-            msg = ''
+            msg = ""
             while not self.recv_closed:
                 while msvcrt.kbhit():
                     char = msvcrt.getwche()
 
-                    if char == '\r':
-                        print(end='\n')
-                        self.sock.send(bytes(msg + '\n', 'utf-8'))
-                        msg = ''
+                    if char == "\r":
+                        print(end="\n")
+                        self.sock.send(bytes(msg + "\n", "utf-8"))
+                        msg = ""
 
-                    elif char == '\b':
-                        print(' ', end='\b', flush=True)
+                    elif char == "\b":
+                        print(" ", end="\b", flush=True)
                         msg = msg[:-1]
 
                     else:
                         msg += char
-                
+
                 time.sleep(0.1)
         except ConnectionError:
             pass

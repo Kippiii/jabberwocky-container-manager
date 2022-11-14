@@ -6,16 +6,12 @@ import json
 import logging
 from io import BytesIO
 from pathlib import Path
-from time import sleep
 from typing import Optional, Tuple
-from paramiko.channel import ChannelStdinFile, ChannelFile, ChannelStderrFile
 
+from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from pexpect import ExceptionPexpect, popen_spawn
 
-from src.containers.exceptions import (
-    PortAllocationError,
-    gen_boot_exception,
-)
+from src.containers.exceptions import PortAllocationError, gen_boot_exception
 from src.containers.port_allocation import allocate_port
 from src.system import ssh, syspath
 

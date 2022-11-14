@@ -277,8 +277,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-
-    def server_halt(self, cmd: str) -> None:
+    def server_halt(self, cmd: str) -> None:  # pylint: disable=unused-argument
         """
         Tells the server to halt
 

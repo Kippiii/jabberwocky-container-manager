@@ -4,11 +4,10 @@ Manages SSH connections (with containers)
 
 import logging
 import os
-import subprocess
 from typing import Optional, Tuple
 
 import paramiko
-from paramiko.channel import ChannelStdinFile, ChannelFile, ChannelStderrFile
+from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from src.system import syspath
 
@@ -106,7 +105,9 @@ class SSHInterface:
 
         self.ftp_client.get(remote_file_path, local_file_path)
 
-    def exec_ssh_command(self, cli: list) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
+    def exec_ssh_command(
+        self, cli: list
+    ) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
         """
         Executes a command in the SSH
 
