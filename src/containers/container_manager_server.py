@@ -107,7 +107,7 @@ class _SocketConnection:
 
         except KeyError:
             self.client_sock.send(b"UNKNOWN_REQUEST")
-        except ConnectionError:
+        except (ConnectionError, OSError):
             pass
         except Exception as ex:  # pylint: disable=broad-except
             self.client_sock.send(b"EXCEPTION_OCCURED")
@@ -285,14 +285,14 @@ class _RunCommandHandler:
         try:
             while msg := self.client_sock.recv(1024):
                 self.stdin.write(msg)
-        except ConnectionError:
+        except (ConnectionError, OSError):
             pass
 
     def _send_stdout(self):
         try:
             while my_byte := self.stdout.read(1):
                 self.client_sock.send(my_byte)
-        except ConnectionError as ex:
+        except (ConnectionError, OSError) as ex:
             self.manager.logger.exception(ex)
         finally:
             self.stdout_closed = True
@@ -303,7 +303,7 @@ class _RunCommandHandler:
         try:
             while my_byte := self.stderr.read(1):
                 self.client_sock.send(my_byte)
-        except ConnectionError as ex:
+        except (ConnectionError, OSError) as ex:
             self.manager.logger.exception(ex)
         finally:
             self.stderr_closed = True

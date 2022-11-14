@@ -1,4 +1,3 @@
-import msvcrt
 import socket
 import sys
 import threading
@@ -171,16 +170,32 @@ class _RunCommandClient:
         self.recv_closed = False
 
         t_recv = threading.Thread(target=self._recv)
-        t_send = threading.Thread(target=self._send_msvcrt)
+        t_send = threading.Thread(target=self._send_msvcrt if sys.platform == "win32" else self._send_select)
         t_recv.start()
         t_send.start()
         t_recv.join()
         t_send.join()
 
+    def _send_select(self) -> None:
+        """
+        Sends data read from stdin to the sever. POSIX only.
+        """
+        import select
+        try:
+            while not self.recv_closed:
+                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+                    self.sock.send(bytes(sys.stdin.readline(), "utf-8"))
+                time.sleep(0.1)
+        except (ConnectionError, OSError):
+            pass
+        finally:
+            self.sock.close()
+
     def _send_msvcrt(self) -> None:
         """
         Sends data read from stdin to the sever. Windows only.
         """
+        import msvcrt
         try:
             msg = ""
             while not self.recv_closed:
@@ -200,7 +215,7 @@ class _RunCommandClient:
                         msg += char
 
                 time.sleep(0.1)
-        except ConnectionError:
+        except (ConnectionError, OSError):
             pass
         finally:
             self.sock.close()
@@ -213,7 +228,7 @@ class _RunCommandClient:
             while msg := self.sock.recv(1024):
                 sys.stdout.buffer.write(msg)
                 sys.stdout.flush()
-        except ConnectionError:
+        except (ConnectionError, OSError):
             pass
         finally:
             self.sock.close()
