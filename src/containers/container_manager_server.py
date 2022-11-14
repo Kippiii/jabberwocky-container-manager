@@ -1,12 +1,13 @@
 import socket
 import threading
 import logging
+import os
 from paramiko.channel import ChannelStdinFile, ChannelFile, ChannelStderrFile
 from typing import Optional, Tuple, Dict, List
 
 from src.containers.container import Container
 from src.containers.exceptions import BootFailure
-from src.system.syspath import get_container_dir
+from src.system.syspath import get_container_dir, get_server_addr_file
 
 
 class ContainerManagerServer:
@@ -27,6 +28,11 @@ class ContainerManagerServer:
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
 
+        with open(get_server_addr_file(), 'w') as server_addr:
+            server_addr.write(self.address[0])
+            server_addr.write('\n')
+            server_addr.write(str(self.address[1]))
+
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
@@ -34,8 +40,9 @@ class ContainerManagerServer:
                 threading.Thread(
                     target=_SocketConnection(client_sock, client_addr, self).start_connection
                 ).start()
-        except OSError:
-            pass # TODO: shut down all containers
+        except (OSError, ConnectionError):
+            os.remove(get_server_addr_file())
+            # TODO: shut down all containers
 
 
 class _SocketConnection:

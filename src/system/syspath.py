@@ -43,6 +43,10 @@ def get_container_home() -> Path:
     return Path.home() / ".containers"
 
 
+def get_server_addr_file() -> Path:
+    return get_container_home() / "server_addr"
+
+
 def get_container_dir(container_name: str) -> Path:
     """
     Returns the path to the folder of a current container

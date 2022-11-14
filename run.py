@@ -1,9 +1,11 @@
 import logging
 from sys import stdin, stdout
 from subprocess import Popen
+import time
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.containers.container_manager_server import ContainerManagerServer
+from src.system.syspath import get_server_addr_file
 from src.cli.cli import JabberwockyCLI
 
 
@@ -29,7 +31,11 @@ def main():
 
     # Start the server
     logger.debug('Starting Server...')
-    Popen('python server.py')
+
+    if not get_server_addr_file().is_file():
+        Popen('python server.py')
+        time.sleep(1)
+
 
     logger.info("Please input commands: ")
     cli = JabberwockyCLI(stdin, stdout)

@@ -5,13 +5,18 @@ from os.path import abspath
 import msvcrt
 import sys
 import time
+import os
+
+from src.system.syspath import get_server_addr_file
 
 
 class ContainerManagerClient:
-    server_address: Tuple[str, int] = (socket.gethostname(), 35053)
+    server_address: Tuple[str, int]
 
     def __init__(self):
-        pass
+        with open(get_server_addr_file(), 'r') as server_addr:
+            addr, port = server_addr.read().split('\n')
+            self.server_address = (addr, int(port))
 
     def start(self, container_name: str) -> None:
         sock = self._make_connection()
