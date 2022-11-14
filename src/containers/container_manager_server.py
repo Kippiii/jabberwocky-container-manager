@@ -12,6 +12,15 @@ from src.system.syspath import get_container_dir, get_server_addr_file
 
 
 class ContainerManagerServer:
+    """
+    Class for managing container objects. Accessed by ContainerManagerClient.
+
+    :param backlog: Amount of socket connections the server will accept simultaneously.
+    :param address: (IP, PORT) of the server.
+    :param server_sock: Socket of the server.
+    :param containers: A dictionary for all of the containers
+    :param logger: Logger
+    """
     backlog: int = 20
     address: Tuple[str, int] = (socket.gethostname(), 35053)
     server_sock: Optional[socket.socket] = None
@@ -22,6 +31,10 @@ class ContainerManagerServer:
         self.logger = logger
 
     def listen(self) -> None:
+        """
+        Listens for incoming connections. Blocking function.
+        """
+
         logging.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
@@ -47,6 +60,14 @@ class ContainerManagerServer:
 
 
 class _SocketConnection:
+    """
+    Internal class used by ContaienrManagerServer to handle an individual connection.
+
+    :param manager: The parent ContainerManagerServer object
+    :param client_sock: Client socket
+    :param client_addr: (IP, PORT) of the client
+    """
+
     manager: ContainerManagerServer
     client_sock: socket.socket
     client_addr: Tuple[str, int]
@@ -62,6 +83,10 @@ class _SocketConnection:
         self.manager = manager
 
     def start_connection(self) -> None:
+        """
+        Facilitates the communication between the server and the inidivual client. Blocking function.
+        """
+
         self.client_sock.send(b"READY")
 
         try:
@@ -91,6 +116,9 @@ class _SocketConnection:
         self.client_sock.close()
 
     def _run_command(self) -> None:
+        """
+        Runs a command in a contianer
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
         self.client_sock.send(b"CONT")
@@ -120,6 +148,9 @@ class _SocketConnection:
         ).send_and_recv()
 
     def _start(self) -> None:
+        """
+        Starts a container
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
@@ -139,6 +170,9 @@ class _SocketConnection:
                 self.client_sock.send(b"OK")
 
     def _stop(self) -> None:
+        """
+        Stops a container
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
@@ -151,6 +185,9 @@ class _SocketConnection:
             self.client_sock.send(b"OK")
 
     def _get(self) -> None:
+        """
+        Gets a file from a container
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
         self.client_sock.send(b"CONT")
@@ -169,6 +206,9 @@ class _SocketConnection:
             self.client_sock.send(b"OK")
 
     def _put(self) -> None:
+        """
+        Puts a file into a container
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
         self.client_sock.send(b"CONT")
@@ -188,6 +228,16 @@ class _SocketConnection:
 
 
 class _RunCommandHandler:
+    """
+    Internal class used only for run_command.
+
+    :param manager: The parent ContainerManagerServer class
+    :param client_sock: Client socket object
+    :param client_addr: Client (IP, PORT)
+    :param stdin: Container's stdin
+    :param stdout: Container's stdout
+    :param stderr: Container's stderr
+    """
     manager: ContainerManagerServer
     client_sock: socket.socket
     client_addr: Tuple[str, int]
@@ -215,6 +265,9 @@ class _RunCommandHandler:
         self.stderr = stderr
 
     def send_and_recv(self):
+        """
+        Sends output, receives input. Blocking function.
+        """
         self.stdout_closed = False
         self.stderr_closed = False
 
