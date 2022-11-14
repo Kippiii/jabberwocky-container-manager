@@ -157,7 +157,7 @@ Starts the container creation wizard
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        self.container_manager.run_command(container_name, command)
+        self.container_manager.run_command(container_name, [command])
 
     def send_file(self, cmd: str) -> None:
         """
