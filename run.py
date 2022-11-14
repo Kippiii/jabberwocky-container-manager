@@ -30,9 +30,8 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     # Start the server
-    logger.debug('Starting Server...')
-
     if not get_server_addr_file().is_file():
+        logger.debug('Starting Server...')
         Popen('python server.py')
         time.sleep(1)
 
