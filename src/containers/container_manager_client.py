@@ -1,3 +1,9 @@
+"""
+The client version of the container manager
+"""
+
+import msvcrt
+import select
 import socket
 import sys
 import threading
@@ -140,8 +146,9 @@ class ContainerManagerClient:
 
     def _recv_expect(self, sock: socket.socket, bufsize: int, expected: bytes) -> bytes:
         """
-        Receives data from a socket, then checks if the data it receives is equal to the expected data.
-        If it gets the expected response, return it. If not, raise an exception.
+        Receives data from a socket, then checks if the data it receives is
+        equal to the expected data. If it gets the expected response, return it.
+        If not, raise an exception.
 
         :param sock: The server socket object
         :param bufsize: Buffer size to be passed to socket.recv
@@ -158,10 +165,12 @@ class ContainerManagerClient:
 
 class _RunCommandClient:
     """
-    Internal class used only for run_command. This class' __init__ is a blocking function.
+    Internal class used only for run_command. This class' __init__ is
+    a blocking function.
 
     :param sock: The server socket object
     """
+
     sock: socket.socket
     recv_closed: bool
 
@@ -170,7 +179,9 @@ class _RunCommandClient:
         self.recv_closed = False
 
         t_recv = threading.Thread(target=self._recv)
-        t_send = threading.Thread(target=self._send_msvcrt if sys.platform == "win32" else self._send_select)
+        t_send = threading.Thread(
+            target=self._send_msvcrt if sys.platform == "win32" else self._send_select
+        )
         t_recv.start()
         t_send.start()
         t_recv.join()
@@ -180,7 +191,6 @@ class _RunCommandClient:
         """
         Sends data read from stdin to the sever. POSIX only.
         """
-        import select
         try:
             while not self.recv_closed:
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
@@ -195,7 +205,6 @@ class _RunCommandClient:
         """
         Sends data read from stdin to the sever. Windows only.
         """
-        import msvcrt
         try:
             msg = ""
             while not self.recv_closed:

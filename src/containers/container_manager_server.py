@@ -1,3 +1,7 @@
+"""
+The server version of the container manager
+"""
+
 import logging
 import os
 import socket
@@ -21,6 +25,7 @@ class ContainerManagerServer:
     :param containers: A dictionary for all of the containers
     :param logger: Logger
     """
+
     backlog: int = 20
     address: Tuple[str, int] = (socket.gethostname(), 35053)
     server_sock: Optional[socket.socket] = None
@@ -84,7 +89,8 @@ class _SocketConnection:
 
     def start_connection(self) -> None:
         """
-        Facilitates the communication between the server and the inidivual client. Blocking function.
+        Facilitates the communication between the server and the inidivual client.
+        Blocking function.
         """
 
         self.client_sock.send(b"READY")
@@ -238,6 +244,7 @@ class _RunCommandHandler:
     :param stdout: Container's stdout
     :param stderr: Container's stderr
     """
+
     manager: ContainerManagerServer
     client_sock: socket.socket
     client_addr: Tuple[str, int]

@@ -44,6 +44,11 @@ def get_container_home() -> Path:
 
 
 def get_server_addr_file() -> Path:
+    """
+    Returns the path to the server address file
+
+    :return: The path to the server address file
+    """
     return get_container_home() / "server_addr"
 
 
