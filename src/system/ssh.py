@@ -4,10 +4,10 @@ Manages SSH connections (with containers)
 
 import logging
 import os
-import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 
 import paramiko
+from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from src.system import syspath
 
@@ -105,41 +105,21 @@ class SSHInterface:
 
         self.ftp_client.get(remote_file_path, local_file_path)
 
-    def exec_ssh_command(self, cli: list) -> None:
+    def exec_ssh_command(
+        self, cli: list
+    ) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
         """
         Executes a command in the SSH
 
         :param cli: The command run in the SSH as an array
         """
-        cmd = [
-            "ssh",
-            "-oStrictHostKeyChecking=no",
-            "-oLogLevel=ERROR",
-            "-oPasswordAuthentication=no",
-            "-i",
-            str(syspath.get_container_id_rsa(self.container_name)),
-            "-p",
-            str(self.port),
-            f"{self.user}@{self.host}",
-            *cli,
-        ]
-
-        if self.logger:
-            self.logger.info(f'Executing {" ".join(cmd)}')
-
-        completed_process = subprocess.run(cmd, shell=True, check=False)
-
-        if completed_process.returncode:
-            raise SSHBadExitError(
-                f"{completed_process.returncode}."
-                " You may need to run __update_hostkey__."
-            )
+        return self.ssh_client.exec_command(" ".join(cli))
 
     def exec_ssh_shell(self) -> None:
         """
         Executes a shell in the SSH
         """
-        self.exec_ssh_command([])
+        raise NotImplementedError()
 
     def send_poweroff(self) -> None:
         """

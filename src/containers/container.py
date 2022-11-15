@@ -6,14 +6,12 @@ import json
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
+from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from pexpect import ExceptionPexpect, popen_spawn
 
-from src.containers.exceptions import (
-    PortAllocationError,
-    gen_boot_exception,
-)
+from src.containers.exceptions import PortAllocationError, gen_boot_exception
 from src.containers.port_allocation import allocate_port
 from src.system import ssh, syspath
 
@@ -104,13 +102,13 @@ class Container:
         """
         self.sshi.exec_ssh_shell()
 
-    def run(self, cmd: str) -> None:
+    def run(self, cmd: str) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
         """
         Runs a command in the container
 
         :param cmd: The command run in the container
         """
-        self.sshi.exec_ssh_command([cmd])
+        return self.sshi.exec_ssh_command([cmd])
 
     def get(self, remote_file_path: str, local_file_path: str):
         """
