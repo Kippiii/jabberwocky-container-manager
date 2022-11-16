@@ -51,6 +51,14 @@ def get_server_addr_file() -> Path:
     """
     return get_container_home() / "server_addr"
 
+def get_server_log_file() -> Path:
+    """
+    Returns the path to the server log file
+
+    :return: The path to the server log file
+    """
+    return get_container_home() / "server.log"
+
 
 def get_container_dir(container_name: str) -> Path:
     """

@@ -11,7 +11,7 @@ import time
 from os.path import abspath
 from typing import List, Tuple
 
-from src.system.syspath import get_server_addr_file
+from src.system.syspath import get_server_addr_file, get_server_log_file
 
 
 class ContainerManagerClient:
@@ -157,6 +157,17 @@ class ContainerManagerClient:
         """
         if (msg := sock.recv(bufsize)) != expected:
             sock.close()
+            msg = msg.decode()
+            if msg == "UNKNOWN_REQUEST":
+                raise RuntimeError("Recieved invalid request")
+            if msg == "NO_SUCH_CONATINER":
+                raise RuntimeError("Container does not exist")
+            if msg == "CONTAINER_NOT_STARTED":
+                raise RuntimeError("Container has not been started")
+            if msg == "BOOT_FAILURE":
+                raise RuntimeError("Container failed while booting")
+            if msg == "EXCEPTION_OCCURED":
+                raise RuntimeError(f"An exception occured! Please check {get_server_log_file()} for more information")
             raise RuntimeError(
                 f'Got Unexpected Response "{msg}" from {self.server_address}'
             )

@@ -113,8 +113,9 @@ class _SocketConnection:
 
         except KeyError:
             self.client_sock.send(b"UNKNOWN_REQUEST")
-        except (ConnectionError, OSError):
-            pass
+        except (ConnectionError, OSError) as ex:
+            self.client_sock.send(b"EXCEPTION_OCCURED")
+            self.manager.logger.exception(ex)
         except Exception as ex:  # pylint: disable=broad-except
             self.client_sock.send(b"EXCEPTION_OCCURED")
             self.manager.logger.exception(ex)
@@ -137,6 +138,10 @@ class _SocketConnection:
 
         if not get_container_dir(container_name).is_dir():
             self.client_sock.send(b"NO_SUCH_CONATINER")
+            return
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
         self.client_sock.send(b"BEGIN")
@@ -183,12 +188,13 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.client_sock.send("NO_SUCH_CONTAINER")
-        else:
-            self.manager.logger.debug("Stopping container '%s'", container_name)
-            self.manager.containers[container_name].stop()
-            del self.manager.containers[container_name]
-            self.client_sock.send(b"OK")
+            self.client_sock.send("CONTAINER_NOT_STARTED")
+            return
+        
+        self.manager.logger.debug("Stopping container '%s'", container_name)
+        self.manager.containers[container_name].stop()
+        del self.manager.containers[container_name]
+        self.client_sock.send(b"OK")
 
     def _get(self) -> None:
         """
@@ -228,9 +234,9 @@ class _SocketConnection:
 
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
-        else:
-            self.manager.containers[container_name].put(local_file, remote_file)
-            self.client_sock.send(b"OK")
+            return
+        self.manager.containers[container_name].put(local_file, remote_file)
+        self.client_sock.send(b"OK")
 
 
 class _RunCommandHandler:
