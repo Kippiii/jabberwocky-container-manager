@@ -60,18 +60,18 @@ class ContainerManagerServer:
                     ).start_connection
                 ).start()
         except (OSError, ConnectionError):
-            self.stop()
+            pass
 
     def stop(self) -> None:
         """
         Stops the container manager server
         """
 
-        logging.debug("Stopping the server")
+        self.logger.debug("Stopping the server")
         self.server_sock.close()
         os.remove(get_server_addr_file())
-        for _, container in self.containers.values():
-            logging.debug("Closing %s", container.name)
+        for _, container in self.containers.items():
+            self.logger.debug("Closing %s", container.name)
             container.stop()
 
 
@@ -110,8 +110,7 @@ class _SocketConnection:
             msg = self.client_sock.recv(1024)
 
             if msg == b"HALT":
-                self.client_sock.close()
-                self.manager.server_sock.close()
+                self.manager.stop()
                 return
 
             {
