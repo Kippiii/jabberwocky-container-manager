@@ -7,6 +7,7 @@ import os
 import socket
 import threading
 from typing import Dict, Optional, Tuple
+from signal import SIGABRT
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from paramiko import SSHException
@@ -79,6 +80,8 @@ class ContainerManagerServer:
                 container.stop()
             except (PoweroffBadExitError, SSHException):
                 container.kill()
+
+        os.kill(os.getpid(), SIGABRT)
 
 
 class _SocketConnection:
