@@ -33,6 +33,7 @@ class JabberwockyCLI:
             "interact": self.interact,
             "start": self.start,
             "stop": self.stop,
+            "kill": self.kill,
             "run": self.run,
             "send-file": self.send_file,
             "get-file": self.get_file,
@@ -143,6 +144,18 @@ Starts the container creation wizard
             self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
             return
         self.container_manager.stop(cmd)
+
+    def kill(self, cmd: str) -> None:
+        """
+        Kills a container
+
+        :param cmd: The rest of the command sent
+        """
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(cmd.strip()):
+            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+            return
+        self.container_manager.kill(cmd)
 
     def run(self, cmd: str) -> None:
         """

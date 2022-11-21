@@ -9,9 +9,10 @@ import threading
 from typing import Dict, Optional, Tuple
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
+from paramiko import SSHException
 
 from src.containers.container import Container
-from src.containers.exceptions import BootFailure
+from src.containers.exceptions import BootFailure, PoweroffBadExitError
 from src.system.syspath import get_container_dir, get_server_addr_file
 
 
@@ -72,7 +73,10 @@ class ContainerManagerServer:
         os.remove(get_server_addr_file())
         for _, container in self.containers.items():
             self.logger.debug("Closing %s", container.name)
-            container.stop()
+            try:
+                container.stop()
+            except (PoweroffBadExitError, SSHException):
+                container.kill()
 
 
 class _SocketConnection:
@@ -121,6 +125,7 @@ class _SocketConnection:
                 b"PUT-FILE": self._put,
                 b"START": self._start,
                 b"STOP": self._stop,
+                b"KILL": self._kill,
                 b"PING": self._ping,
             }[msg]()
 
@@ -237,6 +242,23 @@ class _SocketConnection:
 
         self.manager.logger.debug("Stopping container '%s'", container_name)
         self.manager.containers[container_name].stop()
+        del self.manager.containers[container_name]
+        self.client_sock.send(b"OK")
+
+    def _kill(self) -> None:
+        """
+        Kills the QEMU process of the container.
+        This is like yanking the power cord. Only use when you have no other choice.
+        """
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send("CONTAINER_NOT_STARTED")
+            return
+
+        self.manager.logger.debug("Killing container '%s'", container_name)
+        self.manager.containers[container_name].kill()
         del self.manager.containers[container_name]
         self.client_sock.send(b"OK")
 

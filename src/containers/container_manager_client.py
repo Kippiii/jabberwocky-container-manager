@@ -87,6 +87,19 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
+    def kill(self, container_name: str) -> None:
+        """
+        KIlls a container
+
+        :param container_name: The container being stopped
+        """
+        sock = self._make_connection()
+        sock.send(b"KILL")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
+        sock.close()
+
     def run_shell(self, container_name: str) -> None:
         """
         Starts a shell on the container in question

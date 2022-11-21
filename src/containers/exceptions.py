@@ -63,3 +63,15 @@ def gen_boot_exception(exc: ExceptionPexpect, log_file_path: str) -> BootFailure
             if re.search(exp, data) is not None:
                 return InvalidLoginError(log_file_path)
     return BootFailure(log_file_path)
+
+
+class PoweroffBadExitError(RuntimeError):
+    """
+    Raised when poweroff fails
+    """
+
+
+class FailedToAuthorizeKeyError(RuntimeError):
+    """
+    Raised during failure to authorize keys
+    """
