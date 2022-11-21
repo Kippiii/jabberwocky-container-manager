@@ -40,9 +40,6 @@ def main():
     inp = " ".join(argv[1:])
     cli.parse_cmd(inp)
 
-    # Halt server
-    # TODO
-
 
 if __name__ == "__main__":
     main()
