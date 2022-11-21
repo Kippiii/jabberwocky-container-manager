@@ -2,6 +2,7 @@ import logging
 from sys import stdin, stdout, argv
 import subprocess
 import time
+import os
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.syspath import get_server_addr_file
@@ -14,14 +15,23 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     if not get_server_addr_file().is_file():
-        subprocess.Popen(
-            "pythonw server.py",
-            shell=True,
-            stdin=None, 
-            stdout=None, 
-            stderr=None, 
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
-        )
+        if os.name == "nt":
+            subprocess.Popen(
+                "pythonw server.py",
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+                creationflags=subprocess.DETACHED_PROCESS,
+            )
+        else:
+            subprocess.Popen(
+                "python3 server.py",
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+            )
         time.sleep(1)
 
     cli = JabberwockyCLI(stdin, stdout)

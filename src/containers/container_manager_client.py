@@ -2,14 +2,16 @@
 The client version of the container manager
 """
 
-import msvcrt
-import select
 import socket
 import sys
 import threading
 import time
 from os.path import abspath
 from typing import List, Tuple
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import select
 
 from src.system.syspath import get_server_addr_file, get_server_log_file
 
