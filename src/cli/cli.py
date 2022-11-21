@@ -295,7 +295,12 @@ Starts the container creation wizard
         """
         self.container_manager.ping()
 
-    def ssh_address(self, cmd: str) -> None:
+    def ssh_address(self, cmd: str) -> None:  # pylint: disable=unused-argument
+        """
+        Prints the information necessary to SSH into the container's shell
+
+        :param cmd: The rest of the command sent
+        """
         container_name = cmd.strip()
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):

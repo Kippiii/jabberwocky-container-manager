@@ -136,9 +136,16 @@ class _SocketConnection:
             self.client_sock.close()
 
     def _ping(self) -> None:
+        """
+        Pong!
+        """
         self.client_sock.send(b"PONG")
 
     def _address(self) -> None:
+        """
+        Sends the information necessary to SSH into the container's shell
+        in the form of "HOSTNAME:PORT:USERNAME"
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
@@ -151,6 +158,9 @@ class _SocketConnection:
             self.client_sock.send(f"{host}:{port}:{user}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
+        """
+        Generates a new id_rsa and updates the container
+        """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
@@ -224,7 +234,7 @@ class _SocketConnection:
         if container_name not in self.manager.containers:
             self.client_sock.send("CONTAINER_NOT_STARTED")
             return
-        
+
         self.manager.logger.debug("Stopping container '%s'", container_name)
         self.manager.containers[container_name].stop()
         del self.manager.containers[container_name]

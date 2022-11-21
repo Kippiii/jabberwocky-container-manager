@@ -95,7 +95,7 @@ class ContainerManagerClient:
         """
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
-        
+
         host, port, user = self.ssh_address(container_name)
         subprocess.run([
             "ssh",
