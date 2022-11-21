@@ -28,6 +28,14 @@ class ContainerManagerClient:
             addr, port = server_addr.read().split("\n")
             self.server_address = (addr, int(port))
 
+    def ping(self) -> None:
+        """
+        Pings the server
+        """
+        sock = self._make_connection()
+        sock.send(b"PING")
+        self._recv_expect(sock, 1024, b"PONG")
+
     def start(self, container_name: str) -> None:
         """
         Starts a container

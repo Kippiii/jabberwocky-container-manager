@@ -44,6 +44,7 @@ class JabberwockyCLI:
             "update-repo": self.update_repo,
             "create": self.create,
             "server-halt": self.server_halt,
+            "ping": self.ping,
         }
 
         cmd = cmd.strip()
@@ -284,3 +285,11 @@ Starts the container creation wizard
         :param cmd: The rest of the command sent
         """
         self.container_manager.server_halt()
+
+    def ping(self, cmd: str) -> None:  # pylint: disable=unused-argument
+        """
+        Pings the server
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.ping()

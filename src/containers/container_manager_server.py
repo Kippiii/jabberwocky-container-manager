@@ -119,6 +119,7 @@ class _SocketConnection:
                 b"PUT-FILE": self._put,
                 b"START": self._start,
                 b"STOP": self._stop,
+                b"PING": self._ping
             }[msg]()
 
         except KeyError:
@@ -130,6 +131,10 @@ class _SocketConnection:
             self.client_sock.send(b"EXCEPTION_OCCURED")
             self.manager.logger.exception(ex)
 
+        self.client_sock.close()
+
+    def _ping(self) -> None:
+        self.client_sock.send(b"PONG")
         self.client_sock.close()
 
     def _run_command(self) -> None:
