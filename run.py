@@ -13,13 +13,6 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    # Start the server
-    if not get_server_addr_file().is_file():
-        logger.debug('Starting Server...')
-        Popen('python server.py', shell=True)
-        time.sleep(1)
-
-
     cli = JabberwockyCLI(stdin, stdout)
     cli.container_manager = ContainerManagerClient()
     inp = " ".join(argv[1:])
