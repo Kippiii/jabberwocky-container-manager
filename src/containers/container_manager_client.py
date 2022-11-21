@@ -118,7 +118,7 @@ class ContainerManagerClient:
             f"-i{get_container_id_rsa(container_name)}",
             f"-p{port}",
             f"{user}@{host}"
-        ], shell=sys.platform == "win32", check=True)
+        ], shell=sys.platform == "win32")
 
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """
