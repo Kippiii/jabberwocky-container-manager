@@ -96,6 +96,7 @@ class Container:
             self.logger,
         )
         self.sshi.open_all()
+        self.sshi.update_hostkey()
 
     def shell(self) -> None:
         """
