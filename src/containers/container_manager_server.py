@@ -12,6 +12,7 @@ from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from paramiko import SSHException
 
 from src.containers.container import Container
+from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
 from src.system.syspath import get_container_dir, get_server_addr_file
 
@@ -28,7 +29,7 @@ class ContainerManagerServer:
     """
 
     backlog: int = 20
-    address: Tuple[str, int] = (socket.gethostname(), 35053)
+    address: Tuple[str, int]
     server_sock: Optional[socket.socket] = None
     containers: Dict[str, Container] = {}
     logger: logging.Logger
@@ -41,6 +42,7 @@ class ContainerManagerServer:
         Listens for incoming connections. Blocking function.
         """
 
+        self.address = (socket.gethostname(), allocate_port(22300))
         logging.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
