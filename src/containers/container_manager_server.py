@@ -114,12 +114,14 @@ class _SocketConnection:
                 return
 
             {
+                b"UPDATE-HOSTKEY": self._update_hostkey,
                 b"RUN-COMMAND": self._run_command,
+                b"SSH-ADDRESS": self._address,
                 b"GET-FILE": self._get,
                 b"PUT-FILE": self._put,
                 b"START": self._start,
                 b"STOP": self._stop,
-                b"PING": self._ping
+                b"PING": self._ping,
             }[msg]()
 
         except KeyError:
@@ -130,12 +132,33 @@ class _SocketConnection:
         except Exception as ex:  # pylint: disable=broad-except
             self.client_sock.send(b"EXCEPTION_OCCURED")
             self.manager.logger.exception(ex)
-
-        self.client_sock.close()
+        finally:
+            self.client_sock.close()
 
     def _ping(self) -> None:
         self.client_sock.send(b"PONG")
-        self.client_sock.close()
+
+    def _address(self) -> None:
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
+        else:
+            host = "localhost"
+            port = self.manager.containers[container_name].ex_port
+            user = self.manager.containers[container_name].username
+            self.client_sock.send(f"{host}:{port}:{user}".encode("utf-8"))
+
+    def _update_hostkey(self) -> None:
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
+        else:
+            self.manager.containers[container_name].sshi.update_hostkey()
+            self.client_sock.send(b"OK")
 
     def _run_command(self) -> None:
         """
@@ -150,10 +173,6 @@ class _SocketConnection:
         for _ in range(cli_len):
             self.client_sock.send(b"CONT")
             cli.append(self.client_sock.recv(1024).decode("utf-8"))
-
-        if not get_container_dir(container_name).is_dir():
-            self.client_sock.send(b"NO_SUCH_CONATINER")
-            return
 
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")

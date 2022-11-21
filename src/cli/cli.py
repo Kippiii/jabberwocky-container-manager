@@ -45,6 +45,7 @@ class JabberwockyCLI:
             "create": self.create,
             "server-halt": self.server_halt,
             "ping": self.ping,
+            "ssh-address": self.ssh_address,
         }
 
         cmd = cmd.strip()
@@ -293,3 +294,11 @@ Starts the container creation wizard
         :param cmd: The rest of the command sent
         """
         self.container_manager.ping()
+
+    def ssh_address(self, cmd: str) -> None:
+        container_name = cmd.strip()
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        self.out_stream.write(str(self.container_manager.ssh_address(container_name)))

@@ -2,6 +2,7 @@
 The client version of the container manager
 """
 
+import subprocess
 import socket
 import sys
 import threading
@@ -13,7 +14,7 @@ if sys.platform == "win32":
 else:
     import select
 
-from src.system.syspath import get_server_addr_file, get_server_log_file
+from src.system.syspath import get_server_addr_file, get_server_log_file, get_container_id_rsa
 
 
 class ContainerManagerClient:
@@ -37,6 +38,28 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"PING")
         self._recv_expect(sock, 1024, b"PONG")
+
+    def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
+        """
+        Return the address (ip, port) needed to connect to a container's ssh
+
+        :param container_name: The container whose shell is being used
+        :return: The address
+        """
+        sock = self._make_connection()
+        sock.send(b"SSH-ADDRESS")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        host, port, user = sock.recv(1024).decode("utf-8").split(":")
+        sock.close()
+        return (host, port, user)
+
+    def update_hostkey(self, container_name: str) -> None:
+        sock = self._make_connection()
+        sock.send(b"UPDATE-HOSTKEY")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
 
     def start(self, container_name: str) -> None:
         """
@@ -64,13 +87,27 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
-    def run_shell(self, cli: List[str]) -> None:
+    def run_shell(self, container_name: str) -> None:
         """
         Starts a shell on the container in question
 
         :param container_name: The container whose shell is being used
         """
-        raise NotImplementedError()
+        if not get_container_id_rsa(container_name).is_file():
+            self.update_hostkey(container_name)
+        
+        host, port, user = self.ssh_address(container_name)
+        subprocess.run([
+            "ssh",
+            "-oStrictHostKeyChecking=no",
+            "-oLogLevel=ERROR",
+            "-oPasswordAuthentication=no",
+            "-i",
+            str(get_container_id_rsa(container_name)),
+            "-p",
+            port,
+            f"{user}@{host}"
+        ], shell=True)
 
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """

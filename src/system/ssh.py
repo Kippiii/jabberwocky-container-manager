@@ -79,7 +79,6 @@ class SSHInterface:
             hostname=self.host, username=self.user, port=self.port, password=self.passwd
         )
         self.ftp_client = self.ssh_client.open_sftp()
-        self.__update_hostkey__()
 
     def put(self, local_file_path: str, remote_file_path: str) -> None:
         """
@@ -141,7 +140,7 @@ class SSHInterface:
         self.ssh_client = None
         self.ftp_client = None
 
-    def __update_hostkey__(self) -> None:
+    def update_hostkey(self) -> None:
         """
         Updates the keys used for the SSH
         """
