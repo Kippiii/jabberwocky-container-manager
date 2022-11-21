@@ -1,6 +1,6 @@
 import logging
 from sys import stdin, stdout, argv
-from subprocess import Popen
+import subprocess
 import time
 
 from src.containers.container_manager_client import ContainerManagerClient
@@ -12,6 +12,17 @@ def main():
     logging.basicConfig()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
+
+    if not get_server_addr_file().is_file():
+        subprocess.Popen(
+            "pythonw server.py",
+            shell=True,
+            stdin=None, 
+            stdout=None, 
+            stderr=None, 
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
+        )
+        time.sleep(1)
 
     cli = JabberwockyCLI(stdin, stdout)
     cli.container_manager = ContainerManagerClient()
