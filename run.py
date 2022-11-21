@@ -15,6 +15,7 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     if not get_server_addr_file().is_file():
+        logger.debug("Starting server...")
         if os.name == "nt":
             subprocess.Popen(
                 "pythonw server.py",
