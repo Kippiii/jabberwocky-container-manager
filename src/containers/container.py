@@ -6,6 +6,7 @@ import json
 import logging
 from io import BytesIO
 from pathlib import Path
+from signal import SIGABRT
 from typing import Optional, Tuple
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
@@ -95,6 +96,7 @@ class Container:
             self.logger,
         )
         self.sshi.open_all()
+        self.sshi.update_hostkey()
 
     def shell(self) -> None:
         """
@@ -133,6 +135,15 @@ class Container:
         Stops the container
         """
         self.sshi.send_poweroff()
+        self.sshi.close_all()
+        self.logging_file.close()
+
+    def kill(self) -> None:
+        """
+        Kills the QEMU process of the container.
+        This is like yanking the power cord. Only use when you have no other choice.
+        """
+        self.booter.kill(SIGABRT)
         self.sshi.close_all()
         self.logging_file.close()
 

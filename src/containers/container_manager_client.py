@@ -2,16 +2,19 @@
 The client version of the container manager
 """
 
-import msvcrt
-import select
+import subprocess
 import socket
 import sys
 import threading
 import time
 from os.path import abspath
 from typing import List, Tuple
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import select
 
-from src.system.syspath import get_server_addr_file, get_server_log_file
+from src.system.syspath import get_server_addr_file, get_server_log_file, get_container_id_rsa
 
 
 class ContainerManagerClient:
@@ -27,6 +30,41 @@ class ContainerManagerClient:
         with open(get_server_addr_file(), "r", encoding="utf-8") as server_addr:
             addr, port = server_addr.read().split("\n")
             self.server_address = (addr, int(port))
+
+    def ping(self) -> None:
+        """
+        Pings the server
+        """
+        sock = self._make_connection()
+        sock.send(b"PING")
+        self._recv_expect(sock, 1024, b"PONG")
+
+    def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
+        """
+        Return the address (ip, port, username) needed to connect to a container's ssh
+
+        :param container_name: The container whose shell is being used
+        :return: The address
+        """
+        sock = self._make_connection()
+        sock.send(b"SSH-ADDRESS")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        host, port, user = sock.recv(1024).decode("utf-8").split(":")
+        sock.close()
+        return (host, port, user)
+
+    def update_hostkey(self, container_name: str) -> None:
+        """
+        Asks the server tp generate a new id_rsa and updates the container
+
+        :param container_name: The container to generate the keys for
+        """
+        sock = self._make_connection()
+        sock.send(b"UPDATE-HOSTKEY")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
 
     def start(self, container_name: str) -> None:
         """
@@ -54,13 +92,38 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
-    def run_shell(self, cli: List[str]) -> None:
+    def kill(self, container_name: str) -> None:
+        """
+        KIlls a container
+
+        :param container_name: The container being stopped
+        """
+        sock = self._make_connection()
+        sock.send(b"KILL")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
+        sock.close()
+
+    def run_shell(self, container_name: str) -> None:
         """
         Starts a shell on the container in question
 
         :param container_name: The container whose shell is being used
         """
-        raise NotImplementedError()
+        if not get_container_id_rsa(container_name).is_file():
+            self.update_hostkey(container_name)
+
+        host, port, user = self.ssh_address(container_name)
+        subprocess.run([
+            "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
+            "-oStrictHostKeyChecking=no",
+            "-oLogLevel=ERROR",
+            "-oPasswordAuthentication=no",
+            f"-i{get_container_id_rsa(container_name)}",
+            f"-p{port}",
+            f"{user}@{host}"
+        ], shell=sys.platform == "win32")
 
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """

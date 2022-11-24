@@ -33,6 +33,7 @@ class JabberwockyCLI:
             "interact": self.interact,
             "start": self.start,
             "stop": self.stop,
+            "kill": self.kill,
             "run": self.run,
             "send-file": self.send_file,
             "get-file": self.get_file,
@@ -44,6 +45,8 @@ class JabberwockyCLI:
             "update-repo": self.update_repo,
             "create": self.create,
             "server-halt": self.server_halt,
+            "ping": self.ping,
+            "ssh-address": self.ssh_address,
         }
 
         cmd = cmd.strip()
@@ -141,6 +144,18 @@ Starts the container creation wizard
             self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
             return
         self.container_manager.stop(cmd)
+
+    def kill(self, cmd: str) -> None:
+        """
+        Kills a container
+
+        :param cmd: The rest of the command sent
+        """
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(cmd.strip()):
+            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+            return
+        self.container_manager.kill(cmd)
 
     def run(self, cmd: str) -> None:
         """
@@ -284,3 +299,24 @@ Starts the container creation wizard
         :param cmd: The rest of the command sent
         """
         self.container_manager.server_halt()
+
+    def ping(self, cmd: str) -> None:  # pylint: disable=unused-argument
+        """
+        Pings the server
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.ping()
+
+    def ssh_address(self, cmd: str) -> None:  # pylint: disable=unused-argument
+        """
+        Prints the information necessary to SSH into the container's shell
+
+        :param cmd: The rest of the command sent
+        """
+        container_name = cmd.strip()
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        self.out_stream.write(str(self.container_manager.ssh_address(container_name)))

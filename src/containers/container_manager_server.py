@@ -7,11 +7,14 @@ import os
 import socket
 import threading
 from typing import Dict, Optional, Tuple
+from signal import SIGABRT
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
+from paramiko import SSHException
 
 from src.containers.container import Container
-from src.containers.exceptions import BootFailure
+from src.containers.port_allocation import allocate_port
+from src.containers.exceptions import BootFailure, PoweroffBadExitError
 from src.system.syspath import get_container_dir, get_server_addr_file
 
 
@@ -27,7 +30,7 @@ class ContainerManagerServer:
     """
 
     backlog: int = 20
-    address: Tuple[str, int] = (socket.gethostname(), 35053)
+    address: Tuple[str, int]
     server_sock: Optional[socket.socket] = None
     containers: Dict[str, Container] = {}
     logger: logging.Logger
@@ -40,6 +43,7 @@ class ContainerManagerServer:
         Listens for incoming connections. Blocking function.
         """
 
+        self.address = (socket.gethostname(), allocate_port(22300))
         logging.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
@@ -72,7 +76,12 @@ class ContainerManagerServer:
         os.remove(get_server_addr_file())
         for _, container in self.containers.items():
             self.logger.debug("Closing %s", container.name)
-            container.stop()
+            try:
+                container.stop()
+            except (PoweroffBadExitError, SSHException):
+                container.kill()
+
+        os.kill(os.getpid(), SIGABRT)
 
 
 class _SocketConnection:
@@ -114,11 +123,15 @@ class _SocketConnection:
                 return
 
             {
+                b"UPDATE-HOSTKEY": self._update_hostkey,
                 b"RUN-COMMAND": self._run_command,
+                b"SSH-ADDRESS": self._address,
                 b"GET-FILE": self._get,
                 b"PUT-FILE": self._put,
                 b"START": self._start,
                 b"STOP": self._stop,
+                b"KILL": self._kill,
+                b"PING": self._ping,
             }[msg]()
 
         except KeyError:
@@ -129,8 +142,43 @@ class _SocketConnection:
         except Exception as ex:  # pylint: disable=broad-except
             self.client_sock.send(b"EXCEPTION_OCCURED")
             self.manager.logger.exception(ex)
+        finally:
+            self.client_sock.close()
 
-        self.client_sock.close()
+    def _ping(self) -> None:
+        """
+        Pong!
+        """
+        self.client_sock.send(b"PONG")
+
+    def _address(self) -> None:
+        """
+        Sends the information necessary to SSH into the container's shell
+        in the form of "HOSTNAME:PORT:USERNAME"
+        """
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
+        else:
+            host = "localhost"
+            port = self.manager.containers[container_name].ex_port
+            user = self.manager.containers[container_name].username
+            self.client_sock.send(f"{host}:{port}:{user}".encode("utf-8"))
+
+    def _update_hostkey(self) -> None:
+        """
+        Generates a new id_rsa and updates the container
+        """
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
+        else:
+            self.manager.containers[container_name].sshi.update_hostkey()
+            self.client_sock.send(b"OK")
 
     def _run_command(self) -> None:
         """
@@ -145,10 +193,6 @@ class _SocketConnection:
         for _ in range(cli_len):
             self.client_sock.send(b"CONT")
             cli.append(self.client_sock.recv(1024).decode("utf-8"))
-
-        if not get_container_dir(container_name).is_dir():
-            self.client_sock.send(b"NO_SUCH_CONATINER")
-            return
 
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
@@ -200,9 +244,26 @@ class _SocketConnection:
         if container_name not in self.manager.containers:
             self.client_sock.send("CONTAINER_NOT_STARTED")
             return
-        
+
         self.manager.logger.debug("Stopping container '%s'", container_name)
         self.manager.containers[container_name].stop()
+        del self.manager.containers[container_name]
+        self.client_sock.send(b"OK")
+
+    def _kill(self) -> None:
+        """
+        Kills the QEMU process of the container.
+        This is like yanking the power cord. Only use when you have no other choice.
+        """
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name not in self.manager.containers:
+            self.client_sock.send("CONTAINER_NOT_STARTED")
+            return
+
+        self.manager.logger.debug("Killing container '%s'", container_name)
+        self.manager.containers[container_name].kill()
         del self.manager.containers[container_name]
         self.client_sock.send(b"OK")
 

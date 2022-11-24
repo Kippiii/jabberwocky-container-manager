@@ -10,24 +10,7 @@ import paramiko
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from src.system import syspath
-
-
-class PoweroffBadExitError(RuntimeError):
-    """
-    Raised when poweroff fails
-    """
-
-
-class SSHBadExitError(RuntimeError):
-    """
-    Raised when ssh has an error on exit
-    """
-
-
-class FailedToAuthorizeKeyError(RuntimeError):
-    """
-    Raised during failure to authorize keys
-    """
+from src.containers.exceptions import PoweroffBadExitError, FailedToAuthorizeKeyError
 
 
 class SSHInterface:
@@ -79,7 +62,6 @@ class SSHInterface:
             hostname=self.host, username=self.user, port=self.port, password=self.passwd
         )
         self.ftp_client = self.ssh_client.open_sftp()
-        self.__update_hostkey__()
 
     def put(self, local_file_path: str, remote_file_path: str) -> None:
         """
@@ -141,7 +123,7 @@ class SSHInterface:
         self.ssh_client = None
         self.ftp_client = None
 
-    def __update_hostkey__(self) -> None:
+    def update_hostkey(self) -> None:
         """
         Updates the keys used for the SSH
         """

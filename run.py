@@ -1,7 +1,8 @@
 import logging
 from sys import stdin, stdout, argv
-from subprocess import Popen
+import subprocess
 import time
+import os
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.syspath import get_server_addr_file
@@ -13,20 +14,31 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    # Start the server
     if not get_server_addr_file().is_file():
-        logger.debug('Starting Server...')
-        Popen('python server.py', shell=True)
+        logger.debug("Starting server...")
+        if os.name == "nt":
+            subprocess.Popen(
+                "pythonw server.py",
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+                creationflags=subprocess.DETACHED_PROCESS,
+            )
+        else:
+            subprocess.Popen(
+                "python3 server.py",
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+            )
         time.sleep(1)
-
 
     cli = JabberwockyCLI(stdin, stdout)
     cli.container_manager = ContainerManagerClient()
     inp = " ".join(argv[1:])
     cli.parse_cmd(inp)
-
-    # Halt server
-    # TODO
 
 
 if __name__ == "__main__":
