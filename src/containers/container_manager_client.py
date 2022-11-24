@@ -41,7 +41,7 @@ class ContainerManagerClient:
 
     def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
         """
-        Return the address (ip, port) needed to connect to a container's ssh
+        Return the address (ip, port, username) needed to connect to a container's ssh
 
         :param container_name: The container whose shell is being used
         :return: The address
@@ -55,6 +55,11 @@ class ContainerManagerClient:
         return (host, port, user)
 
     def update_hostkey(self, container_name: str) -> None:
+        """
+        Asks the server tp generate a new id_rsa and updates the container
+
+        :param container_name: The container to generate the keys for
+        """
         sock = self._make_connection()
         sock.send(b"UPDATE-HOSTKEY")
         self._recv_expect(sock, 1024, b"CONT")
