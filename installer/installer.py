@@ -88,16 +88,17 @@ def copy_files() -> Path:
 
 
 def update_PATH(install_dir: Path) -> None:
-    path = environ["PATH"].split(";")
     bin = str(install_dir / "cman")
 
     if platform == "win32":
+        path = environ["PATH"].split(";")
         if bin.upper() not in map(lambda s: s.upper(), path):
             path.append(bin)
             PATH = ";".join(path)
             subprocess.run(f"setx PATH \"{PATH}\" > NUL", shell=True, check=True)
 
     elif platform == "linux":
+        path = environ["PATH"].split(":")
         if bin not in path:
             with open(Path.home() / ".bashrc", "a") as bashrc:
                 bashrc.write(f"\n")
