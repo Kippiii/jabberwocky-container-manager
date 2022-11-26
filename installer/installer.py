@@ -4,7 +4,7 @@ import shutil
 import os
 import sys
 from pathlib import Path
-from sys import platform
+from sys import platform, exit
 from time import sleep
 from urllib import request
 from typing import Callable, Iterable, Dict
@@ -17,6 +17,7 @@ def abort() -> None:
     print("The installation has been aborted.")
     print("If this is an error, please report an issue at https://github.com/Kippiii/jabberwocky")
     getpass("Press Enter to exit. ")
+    exit(1)
 
 
 def do_long_task(prompt: str, target: Callable[[], None], args: Iterable = ()) -> None:
@@ -60,12 +61,19 @@ def install_qemu() -> None:
             print("For information on how to install QEMU on Linux, see https://www.qemu.org/download/#linux")
             abort()
 
+    elif platform == "darwin":
+        if not shutil.which("qemu-system-x86_64"):
+            print("QEMU is not installed. The installation cannot continue.")
+            print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
+            abort()
+
 
 def copy_files() -> Path:
     install_src = Path(os.path.dirname(sys.executable))
     install_dir = {
         "win32": Path.home() / "AppData\\Local\\Programs\\VDevBox",
         "linux": Path.home() / ".local/share/VDevBox",
+        "darwin": Path.home() / ".local/share/VDevBox",
     }[platform]
 
     inp = input(f"The software will be installed to {install_dir}. Is this OK? [y/N] ")
@@ -97,17 +105,17 @@ def update_PATH(install_dir: Path) -> None:
             PATH = ";".join(path)
             subprocess.run(f"setx PATH \"{PATH}\" > NUL", shell=True, check=True)
 
-    elif platform == "linux":
+    else:
         path = environ["PATH"].split(":")
         if bin not in path:
-            with open(Path.home() / ".bashrc", "a") as bashrc:
-                bashrc.write(f"\n")
-                bashrc.write(f"# Added by VDevBoxInstaller\n")
-                bashrc.write(f"PATH=\"$PATH:{bin}\"")
+            with open(Path.home() / ".profile", "a") as profile:
+                profile.write(f"\n")
+                profile.write(f"# Added by VDevBoxInstaller\n")
+                profile.write(f"export PATH=\"$PATH:{bin}\"")
 
 
 if __name__ == "__main__":
-    if platform not in ("win32", "linux"):
+    if platform not in ("win32", "linux", "darwin"):
         print(f"{platform} not supported.")
         abort()
 

@@ -47,6 +47,7 @@ subprocess.run([
 
 subprocess.run([
     *pyinstaller,
+    "--console",
     "--onefile",
     *build_options,
     target_install,
