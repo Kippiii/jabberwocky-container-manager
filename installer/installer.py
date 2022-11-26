@@ -116,10 +116,10 @@ def update_PATH(install_dir: Path) -> None:
     else:
         path = environ["PATH"].split(":")
         if bin not in path:
-            with open(Path.home() / ".profile", "a") as profile:
-                profile.write(f"\n")
-                profile.write(f"# Added by VDevBoxInstaller\n")
-                profile.write(f"export PATH=\"$PATH:{bin}\"")
+            with open(Path.home() / ".bashrc", "a") as bashrc:
+                bashrc.write(f"\n")
+                bashrc.write(f"# Added by VDevBoxInstaller\n")
+                bashrc.write(f"PATH=\"$PATH:{bin}\"")
 
 
 if __name__ == "__main__":
