@@ -28,6 +28,14 @@ def abort() -> None:
 
 
 class LongTask:
+    """
+    Perform a task that takes a long time. Provides a progress spinner.
+
+    :param exception: Exception raised by thread, if any.
+    :param prompt: The prompt showed to the user while the task is being performed.
+    :param target: The function to be executed.
+    :param args: Arguments to the function.
+    """
     exception: Optional[Exception] = None
     prompt : str
     target: Callable[[], None]
@@ -39,7 +47,10 @@ class LongTask:
         self.args = args
 
     def exec(self):
-        thread = threading.Thread(target=self.task)
+        """
+        Execute the target task.
+        """
+        thread = threading.Thread(target=self._task)
         thread.start()
 
         spinner = ("|", "/", "-", "\\")
@@ -58,10 +69,13 @@ class LongTask:
         else:
             print(f"\r{self.prompt}... Done!")
 
-    def task(self):
+    def _task(self):
+        """
+        Executes the target. Catches any exceptions to be raised by main thread.
+        """
         try:
             self.target(*self.args)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             self.exception = ex
 
 
