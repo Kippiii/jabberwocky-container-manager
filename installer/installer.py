@@ -3,7 +3,8 @@ import threading
 import shutil
 import base64
 import os
-import sys
+import hashlib
+import tempfile
 from pathlib import Path
 from sys import platform, exit
 from time import sleep
@@ -94,10 +95,22 @@ def install_qemu() -> None:
 
             installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
             checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
-            installer_file = ".\\qemu-setup.exe"
+            installer_file = Path(tempfile.gettempdir()) / "qemu-setup.exe"
+            checksum_file = Path(tempfile.gettempdir()) / "qemu-setup.sha512"
 
             t = LongTask("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
             t.exec()
+
+            def verify():
+                request.urlretrieve(checksum_url, checksum_file)
+                with open(installer_file, "rb") as inst, open(checksum_file, "r") as chksm:
+                    bytes = inst.read()
+                    hash = hashlib.sha512(bytes).hexdigest()
+                    assert hash.upper() == chksm.read().split()[0].upper()
+
+            t = LongTask("Verifying QEMU installer", verify)
+            t.exec()
+
             print("Please complete the QEMU installation.")
             subprocess.run([installer_file], shell=True, check=True)
 
