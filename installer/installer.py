@@ -12,7 +12,7 @@ from typing import Callable, Iterable, Dict
 from getpass import getpass
 from os import makedirs, chdir, environ
 
-BUILD_BASE64 = ""   # Base64 encoded ZIP file containing the program's files
+BUILD_BASE64 = ""   # Base64 encoded tar file containing the program's files
 BUILD_LICENSE = ""  # License agreement
 
 def abort() -> None:
@@ -126,10 +126,10 @@ def copy_files() -> Path:
         makedirs(install_dir)
 
         # Decode and extract program contents stored in BUILD_BASE64
-        with open(install_dir / "contents.zip", "wb") as f:
+        with open(install_dir / "contents.tar", "wb") as f:
             f.write(base64.b64decode(BUILD_BASE64))
-        shutil.unpack_archive(install_dir / "contents.zip", install_dir, "zip")
-        os.remove(install_dir / "contents.zip")
+        shutil.unpack_archive(install_dir / "contents.tar", install_dir, "tar")
+        os.remove(install_dir / "contents.tar")
 
     do_long_task("Copying files", do_copy)
 
