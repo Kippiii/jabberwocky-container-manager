@@ -1,11 +1,11 @@
 import subprocess
 import shutil
 from pathlib import Path
-from os import makedirs, chdir, remove
+from os import makedirs, chdir
 from sys import executable
 
-root = Path(__file__).parent
-build          = root  / "build/"
+root           = Path(__file__).parent
+build          = root / "build/"
 target_run     = root / "run.py"
 target_server  = root / "server.py"
 target_install = root / "installer" / "installer.py"
@@ -52,6 +52,8 @@ subprocess.run([
     *build_options,
     target_install,
 ], check=True)
+
+shutil.copy(root / "LICENSE", build / "VDevBox" / "LICENSE")
 
 
 # Zip
