@@ -53,11 +53,11 @@ def install_qemu() -> None:
             print("Please complete the QEMU installation.")
             subprocess.run([installer_file], shell=True, check=True)
 
-        elif platform == "darwin":
-            if not shutil.which("qemu-system-x86_64"):
-                print("QEMU is not installed. The installation cannot continue.")
-                print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
-                abort()
+    elif platform == "darwin":
+        if not shutil.which("qemu-system-x86_64"):
+            print("QEMU is not installed. The installation cannot continue.")
+            print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
+            abort()
 
     else:
         if not shutil.which("qemu-system-x86_64"):
