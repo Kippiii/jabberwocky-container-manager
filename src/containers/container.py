@@ -37,7 +37,7 @@ class Container:
     password: str = "root"
     timeout: int = 360
     max_retries: int = 25
-    logging_file_path: str = "pexpect.log"
+    logging_file_path: Path
     logging_file: BytesIO
 
     def __init__(self, name: str, logger: logging.Logger) -> None:
@@ -45,6 +45,8 @@ class Container:
             raise FileNotFoundError(syspath.get_container_dir(name))
         if not syspath.get_container_config(name).is_file():
             raise FileNotFoundError(syspath.get_container_config(name))
+
+        self.logging_file_path = syspath.get_container_dir(name) / "pexpect.log"
 
         self.name = name
         with open(

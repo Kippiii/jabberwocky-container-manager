@@ -7,6 +7,7 @@ import re
 from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
+from pathlib import Path
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
@@ -44,7 +45,7 @@ class InvalidLoginError(BootFailure):
         return "The login provided for the container is invalid"
 
 
-def gen_boot_exception(exc: ExceptionPexpect, log_file_path: str) -> BootFailure:
+def gen_boot_exception(exc: ExceptionPexpect, log_file_path: Path) -> BootFailure:
     """
     Converts a Pexpect Exception to one for this program
 
