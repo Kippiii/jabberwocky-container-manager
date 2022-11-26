@@ -47,9 +47,9 @@ subprocess.run([
 ], check=True)
 
 
-shutil.make_archive(build / "build", "tar", build / "dist")
+shutil.make_archive(build / "dist", "tar", build / "dist")
 
-with open(build / "build.tar", "rb") as f:
+with open(build / "dist.tar", "rb") as f:
     build_base64 = base64.b64encode(f.read())
 
 with open(root / "LICENSE") as f:
