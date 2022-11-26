@@ -1,8 +1,10 @@
 import logging
 from sys import stdin, stdout, argv
+from pathlib import Path
 import subprocess
 import time
 import os
+import sys
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.syspath import get_server_addr_file
@@ -17,8 +19,13 @@ def main():
     if not get_server_addr_file().is_file():
         logger.debug("Starting server...")
         if os.name == "nt":
+            if getattr(sys, 'frozen', False):
+                target = Path(sys.executable).parent.parent / "server" / "server.exe"
+            else:
+                target = "python server.py"
+
             subprocess.Popen(
-                "pythonw server.py",
+                str(target),
                 shell=True,
                 stdin=None,
                 stdout=None,
@@ -26,13 +33,14 @@ def main():
                 creationflags=subprocess.DETACHED_PROCESS,
             )
         else:
-            subprocess.Popen(
-                "python3 server.py",
-                shell=True,
-                stdin=None,
-                stdout=None,
-                stderr=None,
-            )
+            raise NotImplementedError(os.name)
+            # subprocess.Popen(
+            #     "python3 server.py",
+            #     shell=True,
+            #     stdin=None,
+            #     stdout=None,
+            #     stderr=None,
+            # )
         time.sleep(1)
 
     cli = JabberwockyCLI(stdin, stdout)
