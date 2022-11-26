@@ -1,6 +1,7 @@
 import subprocess
 import threading
 import shutil
+import base64
 import os
 import sys
 from pathlib import Path
@@ -11,8 +12,13 @@ from typing import Callable, Iterable, Dict
 from getpass import getpass
 from os import makedirs, chdir, environ
 
+BUILD_BASE64 = ""   # Base64 encoded ZIP file containing the program's files
+BUILD_LICENSE = ""  # License agreement
 
 def abort() -> None:
+    """
+    Aborts the installation
+    """
     print()
     print("The installation has been aborted.")
     print("If this is an error, please report an issue at https://github.com/Kippiii/jabberwocky")
@@ -32,11 +38,15 @@ def do_long_task(prompt: str, target: Callable[[], None], args: Iterable = ()) -
         idx = (idx + 1) % len(spinner)
         sleep(0.1)
 
+    thread.join()
     print(f"\r{prompt}... Done!")
 
 
 def install_qemu() -> None:
-    # Check if QEMU is already installed.
+    """
+    Checks is QEMU is already installed. If it isn't, install it.
+    If the user refuses the install, abort the installation.
+    """
     if platform == "win32":
         qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
         if not qemu_system_x86_64.exists():
@@ -76,8 +86,25 @@ def install_qemu() -> None:
             abort()
 
 
+def license_agreement() -> None:
+    """
+    Prompt the user to accept the license agreement.
+    """
+    print("Please review the following license agreement carefully.")
+    print("========================================================")
+    print(BUILD_LICENSE)
+    print()
+    inp = input("Do you accept these terms? [y/N] ")
+    if inp.lower() not in ("y", "yes"):
+        abort()
+
+
 def copy_files() -> Path:
-    install_src = Path(os.path.dirname(sys.executable))
+    """
+    Write the program files in the install directory.
+    """
+
+    # Get the installation directory
     install_dir = {
         "win32": Path.home() / "AppData\\Local\\Programs\\VDevBox",
         "linux": Path.home() / ".local/share/VDevBox",
@@ -89,14 +116,20 @@ def copy_files() -> Path:
         abort()
 
     def do_copy():
+        # Create .containers if not exists
         if not (Path.home() / ".containers").exists():
             makedirs(Path.home() / ".containers/")
+
+        # Prepare install directory
         if install_dir.exists():
             shutil.rmtree(install_dir)
-
         makedirs(install_dir)
-        shutil.copytree(install_src / "cman/",   install_dir / "cman/")
-        shutil.copytree(install_src / "server/", install_dir / "server/")
+
+        # Decode and extract program contents stored in BUILD_BASE64
+        with open(install_dir / "contents.zip", "wb") as f:
+            f.write(base64.b64decode(BUILD_BASE64))
+        shutil.unpack_archive(install_dir / "contents.zip", install_dir, "zip")
+        os.remove(install_dir / "contents.zip")
 
     do_long_task("Copying files", do_copy)
 
@@ -104,6 +137,9 @@ def copy_files() -> Path:
 
 
 def update_PATH(install_dir: Path) -> None:
+    """
+    Update the user's PATH variable
+    """
     bin = str(install_dir / "cman")
 
     if platform == "win32":
@@ -131,6 +167,7 @@ if __name__ == "__main__":
     chdir(project_root)
 
     install_qemu()
+    license_agreement()
     install_dir = copy_files()
     update_PATH(install_dir)
 
