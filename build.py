@@ -55,7 +55,6 @@ with open(build / "build.tar", "rb") as f:
 with open(root / "LICENSE") as f:
     build_license = f.read()
 
-installer_py_contents = ""
 with open(target_install, "r") as fsrc, open(build / "installer.py", "w") as fdest:
     for line in fsrc.readlines():
         if line.startswith("BUILD_BASE64"):
