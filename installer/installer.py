@@ -39,32 +39,30 @@ def install_qemu() -> None:
     # Check if QEMU is already installed.
     if platform == "win32":
         qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
-        if qemu_system_x86_64.exists():
-            return
+        if not qemu_system_x86_64.exists():
+            print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
+            inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
+            if inp.lower() not in ("y", "yes"):
+                abort()
 
-        print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
-        inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
-        if inp.lower() not in ("y", "yes"):
-            abort()
+            installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
+            checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
+            installer_file = ".\\qemu-setup.exe"
 
-        installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
-        checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
-        installer_file = ".\\qemu-setup.exe"
+            do_long_task("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
+            print("Please complete the QEMU installation.")
+            subprocess.run([installer_file], shell=True, check=True)
 
-        do_long_task("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
-        print("Please complete the QEMU installation.")
-        subprocess.run([installer_file], shell=True, check=True)
+        elif platform == "darwin":
+            if not shutil.which("qemu-system-x86_64"):
+                print("QEMU is not installed. The installation cannot continue.")
+                print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
+                abort()
 
-    elif platform == "linux":
+    else:
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
             print("For information on how to install QEMU on Linux, see https://www.qemu.org/download/#linux")
-            abort()
-
-    elif platform == "darwin":
-        if not shutil.which("qemu-system-x86_64"):
-            print("QEMU is not installed. The installation cannot continue.")
-            print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
             abort()
 
 
