@@ -33,22 +33,19 @@ def do_long_task(prompt: str, target: Callable[[], None], args: Iterable = ()) -
 
     print(f"\r{prompt}... Done!")
 
+
 def install_qemu() -> None:
     # Check if QEMU is already installed.
-    qemu_bin = {
-        "win32": Path("C:\\Program Files\\qemu")
-    }[platform]
-
-    if (qemu_bin / "qemu-system-x86_64.exe").exists():
-        return
-
-    print(f"Could not find QEMU installed at {qemu_bin}.")
-    inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
-    if inp.lower() not in ("y", "yes"):
-        abort()
-
-
     if platform == "win32":
+        qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
+        if qemu_system_x86_64.exists():
+            return
+
+        print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
+        inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
+        if inp.lower() not in ("y", "yes"):
+            abort()
+
         installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
         checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
         installer_file = ".\\qemu-setup.exe"
@@ -57,11 +54,18 @@ def install_qemu() -> None:
         print("Please complete the QEMU installation.")
         subprocess.run([installer_file], shell=True, check=True)
 
+    elif platform == "linux":
+        if not shutil.which("qemu-system-x86_64"):
+            print("QEMU is not installed. The installation cannot continue.")
+            print("For information on how to install QEMU on Linux, see https://www.qemu.org/download/#linux")
+            abort()
+
 
 def copy_files() -> Path:
     install_src = Path(os.path.dirname(sys.executable))
     install_dir = {
-        "win32": Path.home() / "AppData\\Local\\Programs\\VDevBox"
+        "win32": Path.home() / "AppData\\Local\\Programs\\VDevBox",
+        "linux": Path.home() / ".local/share/VDevBox",
     }[platform]
 
     inp = input(f"The software will be installed to {install_dir}. Is this OK? [y/N] ")
@@ -93,12 +97,16 @@ def update_PATH(install_dir: Path) -> None:
             PATH = ";".join(path)
             subprocess.run(f"setx PATH \"{PATH}\" > NUL", shell=True, check=True)
 
-    else:
-        raise NotImplementedError(platform)
+    elif platform == "linux":
+        if bin not in path:
+            with open(Path.home() / ".bashrc", "a") as bashrc:
+                bashrc.write(f"\n")
+                bashrc.write(f"# Added by VDevBoxInstaller\n")
+                bashrc.write(f"PATH=\"$PATH:{bin}\"")
 
 
 if __name__ == "__main__":
-    if platform not in ("win32", ):
+    if platform not in ("win32", "linux"):
         print(f"{platform} not supported.")
         abort()
 

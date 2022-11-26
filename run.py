@@ -18,12 +18,13 @@ def main():
 
     if not get_server_addr_file().is_file():
         logger.debug("Starting server...")
-        if os.name == "nt":
-            if getattr(sys, 'frozen', False):
-                target = Path(sys.executable).parent.parent / "server" / "server.exe"
-            else:
-                target = "python server.py"
 
+        if getattr(sys, 'frozen', False):
+            target = Path(sys.executable).parent.parent / "server" / "server"
+        else:
+            target = f"\"{sys.executable}\" server.py"
+
+        if os.name == "nt":
             subprocess.Popen(
                 str(target),
                 shell=True,
@@ -33,14 +34,13 @@ def main():
                 creationflags=subprocess.DETACHED_PROCESS,
             )
         else:
-            raise NotImplementedError(os.name)
-            # subprocess.Popen(
-            #     "python3 server.py",
-            #     shell=True,
-            #     stdin=None,
-            #     stdout=None,
-            #     stderr=None,
-            # )
+            subprocess.Popen(
+                str(target),
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+            )
         time.sleep(1)
 
     cli = JabberwockyCLI(stdin, stdout)

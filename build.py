@@ -2,6 +2,7 @@ import subprocess
 import shutil
 from pathlib import Path
 from os import makedirs, chdir, remove
+from sys import executable
 
 root = Path(__file__).parent
 build          = root  / "build/"
@@ -18,6 +19,11 @@ chdir(build)
 
 
 # Build
+pyinstaller = [
+    executable,
+    "-m",
+    "PyInstaller"
+]
 build_options = [
     "--workpath", "work",
     "--specpath", "spec",
@@ -25,26 +31,26 @@ build_options = [
 ]
 
 subprocess.run([
-    "pyinstaller",
+    *pyinstaller,
     "--name",
     "cman",
     *build_options,
     target_run,
-], shell=True, check=True)
+], check=True)
 
 subprocess.run([
-    "pyinstaller",
+    *pyinstaller,
     "--noconsole",
     *build_options,
     target_server,
-], shell=True, check=True)
+], check=True)
 
 subprocess.run([
-    "pyinstaller",
+    *pyinstaller,
     "--onefile",
     *build_options,
     target_install,
-], shell=True, check=True)
+], check=True)
 
 
 # Zip
