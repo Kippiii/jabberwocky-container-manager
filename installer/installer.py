@@ -59,6 +59,16 @@ def install_qemu() -> None:
             print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
             abort()
 
+
+    elif shutil.which("apt-get"):
+        if not shutil.which("qemu-system-x86_64"):
+            inp = input("qemu-system is required to continue, would you like to install it now? [y/N] ")
+            if inp.lower() not in ("y", "yes"):
+                abort()
+
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "qemu-system" ,"-y"], check=True)
+
     else:
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
