@@ -159,9 +159,9 @@ def copy_files() -> Path:
 
     # Get the installation directory
     install_dir = {
-        "win32": Path.home() / "AppData\\Local\\Programs\\VDevBox",
-        "linux": Path.home() / ".local/share/VDevBox",
-        "darwin": Path.home() / ".local/share/VDevBox",
+        "win32": Path.home() / "AppData\\Local\\Programs\\Jabberwocky",
+        "linux": Path.home() / ".local/share/Jabberwocky",
+        "darwin": Path.home() / ".local/share/Jabberwocky",
     }[platform]
 
     inp = input(f"The software will be installed to {install_dir}. Is this OK? [y/N] ")
@@ -194,7 +194,7 @@ def update_PATH(install_dir: Path) -> None:
     """
     Update the user's PATH variable
     """
-    bin = str(install_dir / "cman")
+    bin = str(install_dir / "jab")
 
     if platform == "win32":
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", access=winreg.KEY_ALL_ACCESS)
@@ -210,7 +210,7 @@ def update_PATH(install_dir: Path) -> None:
         if bin not in path:
             with open(Path.home() / ".bashrc", "a") as bashrc:
                 bashrc.write(f"\n")
-                bashrc.write(f"# Added by VDevBoxInstaller\n")
+                bashrc.write(f"# Added by Jabberwocky Installer\n")
                 bashrc.write(f"PATH=\"$PATH:{bin}\"")
 
 

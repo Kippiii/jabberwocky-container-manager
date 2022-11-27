@@ -34,7 +34,7 @@ build_options = [
 subprocess.run([
     *pyinstaller,
     "--name",
-    "cman",
+    "jab",
     *build_options,
     target_run,
 ], check=True)
