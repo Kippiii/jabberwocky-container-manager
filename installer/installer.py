@@ -9,9 +9,11 @@ from pathlib import Path
 from sys import platform, exit
 from time import sleep
 from urllib import request
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, List
 from getpass import getpass
 from os import makedirs, chdir, environ
+if platform == "win32":
+    import winreg
 
 BUILD_BASE64 = ""   # Base64 encoded tar file containing the program's files
 BUILD_LICENSE = ""  # License agreement
@@ -195,11 +197,13 @@ def update_PATH(install_dir: Path) -> None:
     bin = str(install_dir / "cman")
 
     if platform == "win32":
-        path = environ["PATH"].split(";")
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", access=winreg.KEY_ALL_ACCESS)
+        path: List[str] = winreg.QueryValueEx(key, "Path")[0].split(";")
+
         if bin.upper() not in map(lambda s: s.upper(), path):
             path.append(bin)
-            PATH = ";".join(path)
-            subprocess.run(f"setx PATH \"{PATH}\" > NUL", shell=True, check=True)
+            PATH = ";".join(path) + ";"
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, PATH)
 
     else:
         path = environ["PATH"].split(":")
