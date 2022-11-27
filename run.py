@@ -8,7 +8,7 @@ from src.containers.container_manager_client import ContainerManagerClient
 from src.system.syspath import get_server_addr_file
 from src.cli.cli import JabberwockyCLI
 
-
+PYTHON_PATH = "C:\\Users\\iworz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\jabberwocky-container-manager-TNO-nxlu-py3.10\\Scripts\\pythonw.exe"
 def main():
     logging.basicConfig()
     logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def main():
         logger.debug("Starting server...")
         if os.name == "nt":
             subprocess.Popen(
-                "pythonw server.py",
+                f"{PYTHON_PATH} server.py",
                 shell=True,
                 stdin=None,
                 stdout=None,
