@@ -236,7 +236,7 @@ if __name__ == "__main__":
     project_root = Path(__file__).parent.parent
     chdir(project_root)
 
-    #install_qemu()
+    install_qemu()
     license_agreement()
     install_dir = copy_files()
     update_PATH(install_dir)
