@@ -1,8 +1,7 @@
 import subprocess
 import shutil
-import base64
 from pathlib import Path
-from os import makedirs, chdir
+from os import makedirs, chdir, pathsep
 from sys import executable
 
 root           = Path(__file__).parent.absolute()
@@ -46,29 +45,16 @@ subprocess.run([
     target_server,
 ], check=True)
 
-
 shutil.make_archive(build / "dist", "tar", build / "dist")
-
-with open(build / "dist.tar", "rb") as f:
-    build_base64 = base64.b64encode(f.read())
-
-with open(root / "LICENSE") as f:
-    build_license = f.read()
-
-with open(target_install, "r") as fsrc, open(build / "installer.py", "w") as fdest:
-    for line in fsrc.readlines():
-        if line.startswith("BUILD_BASE64"):
-            fdest.write(f"BUILD_BASE64 = {build_base64}\n")
-        elif line.startswith("BUILD_LICENSE"):
-            fdest.write(f"BUILD_LICENSE = {build_license.__repr__()}\n")
-        else:
-            fdest.write(line)
-
 
 subprocess.run([
     *pyinstaller,
     "--console",
     "--onefile",
+    "--add-data",
+    f"{build / 'dist.tar'}{pathsep}.",
+    f"--add-data",
+    f"{root / 'LICENSE'}{pathsep}.",
     *build_options,
-    build / "installer.py",
+    target_install,
 ], check=True)

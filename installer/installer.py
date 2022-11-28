@@ -1,8 +1,6 @@
 import subprocess
 import threading
 import shutil
-import base64
-import os
 import hashlib
 import tempfile
 from pathlib import Path
@@ -11,12 +9,11 @@ from time import sleep
 from urllib import request
 from typing import Callable, Iterable, Optional, List
 from getpass import getpass
-from os import makedirs, chdir, environ
+from os import makedirs, chdir, environ, pathsep, listdir
 if platform == "win32":
     import winreg
 
-BUILD_BASE64 = ""   # Base64 encoded tar file containing the program's files
-BUILD_LICENSE = ""  # License agreement
+PYINSTALLER_DATA_PATH = Path(__file__).absolute().parent
 
 
 def abort() -> None:
@@ -143,13 +140,13 @@ def license_agreement() -> None:
     """
     Prompt the user to accept the license agreement.
     """
-    print("Please review the following license agreement carefully.")
-    print("========================================================")
-    print(BUILD_LICENSE)
-    print()
-    inp = input("Do you accept these terms? [y/N] ")
-    if inp.lower() not in ("y", "yes"):
-        abort()
+    with open(PYINSTALLER_DATA_PATH / "LICENSE", "r") as f:
+        print("Please review the following license agreement carefully.")
+        print("========================================================")
+        print(f.read())
+        inp = input("Do you accept these terms? [y/N] ")
+        if inp.lower() not in ("y", "yes"):
+            abort()
 
 
 def copy_files() -> Path:
@@ -178,11 +175,8 @@ def copy_files() -> Path:
             shutil.rmtree(install_dir)
         makedirs(install_dir)
 
-        # Decode and extract program contents stored in BUILD_BASE64
-        with open(install_dir / "contents.tar", "wb") as f:
-            f.write(base64.b64decode(BUILD_BASE64))
-        shutil.unpack_archive(install_dir / "contents.tar", install_dir, "tar")
-        os.remove(install_dir / "contents.tar")
+        # Copy files
+        shutil.unpack_archive(PYINSTALLER_DATA_PATH / "dist.tar", install_dir)
 
     t = LongTask("Copying files", do_copy)
     t.exec()
@@ -198,20 +192,20 @@ def update_PATH(install_dir: Path) -> None:
 
     if platform == "win32":
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", access=winreg.KEY_ALL_ACCESS)
-        path: List[str] = winreg.QueryValueEx(key, "Path")[0].split(";")
+        path: List[str] = winreg.QueryValueEx(key, "Path")[0].split(pathsep)
 
         if bin.upper() not in map(lambda s: s.upper(), path):
             path.append(bin)
-            PATH = ";".join(path) + ";"
+            PATH = pathsep.join(path) + pathsep
             winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, PATH)
 
     else:
-        path = environ["PATH"].split(":")
+        path = environ["PATH"].split(pathsep)
         if bin not in path:
             with open(Path.home() / ".bashrc", "a") as bashrc:
                 bashrc.write(f"\n")
                 bashrc.write(f"# Added by Jabberwocky Installer\n")
-                bashrc.write(f"PATH=\"$PATH:{bin}\"")
+                bashrc.write(f"PATH=\"$PATH{pathsep}{bin}\"")
 
 
 if __name__ == "__main__":
