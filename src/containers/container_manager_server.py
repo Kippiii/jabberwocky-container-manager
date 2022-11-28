@@ -4,6 +4,8 @@ The server version of the container manager
 
 import logging
 import os
+import time
+import json
 import socket
 import threading
 from typing import Dict, Optional, Tuple
@@ -15,7 +17,7 @@ from paramiko import SSHException
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
-from src.system.syspath import get_container_dir, get_server_addr_file
+from src.system.syspath import get_container_dir, get_server_info_file
 
 
 class ContainerManagerServer:
@@ -49,10 +51,15 @@ class ContainerManagerServer:
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
 
-        with open(get_server_addr_file(), "w", encoding="utf-8") as server_addr:
-            server_addr.write(self.address[0])
-            server_addr.write("\n")
-            server_addr.write(str(self.address[1]))
+        server_info = {
+            "addr": self.address[0],
+            "port": self.address[1],
+            "pid":  os.getpid(),
+            "boot": time.time(),
+        }
+
+        with open(get_server_info_file(), "w", encoding="utf-8") as f:
+            json.dump(server_info, f)
 
         try:
             while True:
@@ -73,7 +80,7 @@ class ContainerManagerServer:
 
         self.logger.debug("Stopping the server")
         self.server_sock.close()
-        os.remove(get_server_addr_file())
+        os.remove(get_server_info_file())
         for _, container in self.containers.items():
             self.logger.debug("Closing %s", container.name)
             try:
