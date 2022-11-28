@@ -51,7 +51,10 @@ class JabberwockyCLI:
 
         cmd = cmd.strip()
         cmd_list = cmd.split(None, 1)
-        if len(cmd_list) == 1:
+        if len(cmd_list) == 0:
+            command = "help"
+            rest = ""
+        elif len(cmd_list) == 1:
             command = cmd_list[0]
             rest = ""
         else:
