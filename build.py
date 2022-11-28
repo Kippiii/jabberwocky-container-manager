@@ -8,7 +8,7 @@ root           = Path(__file__).parent.absolute()
 build          = root / "build/"
 target_run     = root / "run.py"
 target_server  = root / "server.py"
-target_install = root / "installer" / "installer.py"
+target_install = root / "installer.py"
 
 
 # Clean previous build

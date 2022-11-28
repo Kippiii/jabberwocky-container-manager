@@ -3,13 +3,15 @@ import threading
 import shutil
 import hashlib
 import tempfile
+import sys
 from pathlib import Path
 from sys import platform, exit
 from time import sleep
 from urllib import request
 from typing import Callable, Iterable, Optional, List
 from getpass import getpass
-from os import makedirs, chdir, environ, pathsep, listdir
+from os import makedirs, chdir, environ, pathsep
+from server import server_is_running
 if platform == "win32":
     import winreg
 
@@ -209,8 +211,18 @@ def update_PATH(install_dir: Path) -> None:
 
 
 if __name__ == "__main__":
+    if not getattr(sys, 'frozen', False):
+        print("The installer cannot by run unless it is built with PyInstaller.")
+        print("See the README for building instruction.")
+        abort()
+
     if platform not in ("win32", "linux", "darwin"):
         print(f"{platform} not supported.")
+        abort()
+
+    if server_is_running():
+        print("Install cannot continue while the Jabberwocky server is running.")
+        print("Please run `jab server-halt` and then run this installer again.")
         abort()
 
     project_root = Path(__file__).parent.parent
