@@ -228,4 +228,5 @@ if __name__ == "__main__":
     update_PATH(install_dir)
 
     print("The installation completed successfully!")
+    print("You may need to restart your computer for the changes to take full effect.")
     getpass("Press Enter to exit. ")
