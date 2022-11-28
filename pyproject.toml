@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "jabberwocky_container_manager"}]
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.12"
+python = "^3.8,<3.12"
 black = "^22.8.0"
 mypy = "^0.982"
 pylint = "^2.15.3"

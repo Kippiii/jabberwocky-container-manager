@@ -201,6 +201,14 @@ def update_PATH(install_dir: Path) -> None:
             PATH = pathsep.join(path) + pathsep
             winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, PATH)
 
+    elif platform == "darwin":
+        path = environ["PATH"].split(pathsep)
+        if bin not in path:
+            with open(Path.home() / ".bash_profile", "a") as bashrc:
+                bashrc.write(f"\n")
+                bashrc.write(f"# Added by Jabberwocky Installer\n")
+                bashrc.write(f"export PATH=\"$PATH{pathsep}{bin}\"")
+
     else:
         path = environ["PATH"].split(pathsep)
         if bin not in path:
@@ -228,7 +236,7 @@ if __name__ == "__main__":
     project_root = Path(__file__).parent.parent
     chdir(project_root)
 
-    install_qemu()
+    #install_qemu()
     license_agreement()
     install_dir = copy_files()
     update_PATH(install_dir)

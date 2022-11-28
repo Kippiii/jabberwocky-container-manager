@@ -45,7 +45,7 @@ class ContainerManagerServer:
         Listens for incoming connections. Blocking function.
         """
 
-        self.address = (socket.gethostname(), allocate_port(22300))
+        self.address = (socket.gethostbyname("localhost"), allocate_port(22300))
         logging.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
