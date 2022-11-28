@@ -3,6 +3,7 @@ from src.system.syspath import get_server_log_file, get_server_info_file
 import logging
 import psutil
 import json
+import os
 
 
 def server_is_running() -> bool:
@@ -18,7 +19,12 @@ def server_is_running() -> bool:
         info = json.load(f)
         pid  = info["pid"]
         boot = info["boot"]
-        return boot > psutil.boot_time() and psutil.pid_exists(pid)
+    
+    if boot > psutil.boot_time() and psutil.pid_exists(pid):
+        return True
+    else:
+        os.remove(get_server_info_file())
+        return False
 
 
 if __name__ == "__main__":
