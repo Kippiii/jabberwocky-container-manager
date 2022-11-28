@@ -5,7 +5,7 @@ from pathlib import Path
 from os import makedirs, chdir
 from sys import executable
 
-root           = Path(__file__).parent
+root           = Path(__file__).parent.absolute()
 build          = root / "build/"
 target_run     = root / "run.py"
 target_server  = root / "server.py"
