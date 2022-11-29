@@ -1,3 +1,4 @@
 poetry.lock
 *.qcow2
 **/__pycache__
+build

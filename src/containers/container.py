@@ -37,7 +37,7 @@ class Container:
     password: str = "root"
     timeout: int = 360
     max_retries: int = 25
-    logging_file_path: str = "pexpect.log"
+    logging_file_path: Path
     logging_file: BytesIO
 
     def __init__(self, name: str, logger: logging.Logger) -> None:
@@ -45,6 +45,8 @@ class Container:
             raise FileNotFoundError(syspath.get_container_dir(name))
         if not syspath.get_container_config(name).is_file():
             raise FileNotFoundError(syspath.get_container_config(name))
+
+        self.logging_file_path = syspath.get_container_dir(name) / "pexpect.log"
 
         self.name = name
         with open(
@@ -64,7 +66,7 @@ class Container:
         for _ in range(self.max_retries):
             self.ex_port = allocate_port()
             cmd = self.__generate_start_cmd__()
-            self.logger.info(f"Executing {cmd}")
+            self.logger.debug(f"Executing {cmd}")
             self.booter = popen_spawn.PopenSpawn(
                 cmd, logfile=self.logging_file, cwd=syspath.get_container_dir(self.name)
             )

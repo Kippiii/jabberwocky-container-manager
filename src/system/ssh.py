@@ -32,7 +32,7 @@ class SSHInterface:
     port: int
     passwd: str
     container_name: str
-    logger: Optional[logging.Logger]
+    logger: logging.Logger
     ssh_client: Optional[paramiko.SSHClient] = None
     ftp_client: Optional[paramiko.SFTPClient] = None
 
@@ -43,7 +43,7 @@ class SSHInterface:
         port: int,
         passwd: str,
         container_name: str,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger,
     ):
         self.host = host
         self.user = user
@@ -70,8 +70,7 @@ class SSHInterface:
         :param local_file_path: The local file to be inserted
         :param remote_file_path: The remote path in SSH
         """
-        if self.logger:
-            self.logger.info(f"Attempting put({local_file_path}, {remote_file_path})")
+        self.logger.debug(f"Attempting put({local_file_path}, {remote_file_path})")
 
         self.ftp_client.put(local_file_path, remote_file_path)
 
@@ -82,8 +81,7 @@ class SSHInterface:
         :param remote_file_path: The path to file in the SSH machine
         :param local_file_path: The path to the local file
         """
-        if self.logger:
-            self.logger.info(f"Attempting get({local_file_path}, {remote_file_path})")
+        self.logger.debug(f"Attempting get({local_file_path}, {remote_file_path})")
 
         self.ftp_client.get(remote_file_path, local_file_path)
 
@@ -95,6 +93,7 @@ class SSHInterface:
 
         :param cli: The command run in the SSH as an array
         """
+        self.logger.debug(f"Exec {cli} @ {self.container_name}")
         return self.ssh_client.exec_command(" ".join(cli))
 
     def exec_ssh_shell(self) -> None:
@@ -107,8 +106,7 @@ class SSHInterface:
         """
         Sends a poweroff signal through the SSH connection
         """
-        if self.logger:
-            self.logger.info("Attempting to poweroff")
+        self.logger.debug("Attempting to poweroff")
 
         _, stdout, _ = self.ssh_client.exec_command("poweroff")
         if stdout.channel.recv_exit_status():

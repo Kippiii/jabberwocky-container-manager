@@ -7,6 +7,7 @@ import socket
 import sys
 import threading
 import time
+import json
 from os.path import abspath
 from typing import List, Tuple
 if sys.platform == "win32":
@@ -14,7 +15,7 @@ if sys.platform == "win32":
 else:
     import select
 
-from src.system.syspath import get_server_addr_file, get_server_log_file, get_container_id_rsa
+from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa
 
 
 class ContainerManagerClient:
@@ -27,9 +28,9 @@ class ContainerManagerClient:
     server_address: Tuple[str, int]
 
     def __init__(self):
-        with open(get_server_addr_file(), "r", encoding="utf-8") as server_addr:
-            addr, port = server_addr.read().split("\n")
-            self.server_address = (addr, int(port))
+        with open(get_server_info_file(), "r", encoding="utf-8") as f:
+            info = json.load(f)
+            self.server_address = (info["addr"], info["port"])
 
     def ping(self) -> None:
         """
