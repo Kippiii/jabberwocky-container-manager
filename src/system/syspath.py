@@ -5,7 +5,7 @@ Manages the file system used by the container manager
 import os
 import tarfile
 from pathlib import Path
-from shutil import rmtree
+from shutil import rmtree, which
 
 
 def get_qemu_bin() -> Path:
@@ -17,7 +17,7 @@ def get_qemu_bin() -> Path:
     if os.name == "nt":
         return Path("C:\\Program Files\\qemu")
     if os.name == "posix":
-        return Path("/usr/bin")
+        return Path(which("qemu-system-x86_64")).absolute().parent
     raise OSError(f'Unsupported platform "{os.name}"')
 
 
