@@ -23,6 +23,7 @@ paramiko = "^2.12.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+
 [tool.mypy]
 disallow_any_unimported = true
 disallow_any_expr = true
@@ -41,6 +42,7 @@ local_partial_types = true
 strict_concatenate = true
 strict_equality = true
 show_error_codes = true
+
 
 [tool.pylint.basic]
 argument-naming-style = "snake_case"
