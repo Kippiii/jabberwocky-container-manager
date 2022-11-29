@@ -18,8 +18,6 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     if not server_is_running():
-        logger.debug("Starting server...")
-
         if getattr(sys, 'frozen', False):
             target = Path(sys.executable).parent.parent / "server" / "server"
         else:

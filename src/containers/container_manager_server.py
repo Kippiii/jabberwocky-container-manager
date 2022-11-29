@@ -46,7 +46,7 @@ class ContainerManagerServer:
         """
 
         self.address = (socket.gethostbyname("localhost"), allocate_port(22300))
-        logging.debug("Starting Container Manager Server @ %s", self.address)
+        self.logger.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
@@ -64,7 +64,7 @@ class ContainerManagerServer:
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
-                logging.debug("Accepted connection from %s", client_addr)
+                self.logger.debug("Accepted connection from %s", client_addr)
                 threading.Thread(
                     target=_SocketConnection(
                         client_sock, client_addr, self

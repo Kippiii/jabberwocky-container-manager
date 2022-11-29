@@ -66,7 +66,7 @@ class Container:
         for _ in range(self.max_retries):
             self.ex_port = allocate_port()
             cmd = self.__generate_start_cmd__()
-            self.logger.info(f"Executing {cmd}")
+            self.logger.debug(f"Executing {cmd}")
             self.booter = popen_spawn.PopenSpawn(
                 cmd, logfile=self.logging_file, cwd=syspath.get_container_dir(self.name)
             )
