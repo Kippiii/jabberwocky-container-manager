@@ -221,8 +221,8 @@ def update_PATH(install_dir: Path) -> None:
 
 if __name__ == "__main__":
     if not getattr(sys, 'frozen', False):
-        print("The installer cannot by run unless it is built with PyInstaller.")
-        print("See the README for building instruction.")
+        print("The installer cannot be run unless it is built with PyInstaller.")
+        print("See the README for building instructions.")
         abort()
 
     if platform not in ("win32", "linux", "darwin"):
