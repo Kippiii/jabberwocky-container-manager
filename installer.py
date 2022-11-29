@@ -1,5 +1,6 @@
 import subprocess
 import threading
+import traceback
 import shutil
 import hashlib
 import tempfile
@@ -163,7 +164,7 @@ def copy_files() -> Path:
         "darwin": Path.home() / ".local/share/Jabberwocky",
     }[platform]
 
-    inp = input(f"The software will be installed to {install_dir}. Is this OK? [y/N] ")
+    inp = input(f"The software will be installed to \"{install_dir}\". Is this OK? [y/N] ")
     if inp.lower() not in ("y", "yes"):
         abort()
 
@@ -233,14 +234,15 @@ if __name__ == "__main__":
         print("Please run `jab server-halt` and then run this installer again.")
         abort()
 
-    project_root = Path(__file__).parent.parent
-    chdir(project_root)
-
-    install_qemu()
-    license_agreement()
-    install_dir = copy_files()
-    update_PATH(install_dir)
-
-    print("The installation completed successfully!")
-    print("You may need to restart your computer for the changes to take full effect.")
-    getpass("Press Enter to exit. ")
+    try:
+        install_qemu()
+        license_agreement()
+        install_dir = copy_files()
+        update_PATH(install_dir)
+    except Exception:
+        traceback.print_exc()
+        abort()
+    else:
+        print("The installation completed successfully!")
+        print("You may need to restart your computer for the changes to take full effect.")
+        getpass("Press Enter to exit. ")
