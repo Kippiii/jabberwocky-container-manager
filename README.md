@@ -1,12 +1,23 @@
 # Jabberwocky Container Manager
 
-This project is used for managing the containers related to the Jabberwocky project.
+Used for managing containers used with the Jabberwocky project.
 
-## How to Use
+## How to Build Install Executable
 
 ```sh
 poetry install # Only do on first time
 
 poetry shell
-poetry run start
+python build.py
+```
+
+This will generate an executable file in `build/dist` that can be run by the user in order to install the system.
+
+## How to Run the Tool
+
+```sh
+poetry install # Only do on first time
+
+poetry shell
+python run.py
 ```
