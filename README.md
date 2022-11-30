@@ -2,7 +2,7 @@
 
 Used for managing containers used with the Jabberwocky project.
 
-## How to Build Install Executable
+## How to Build the Executable Files and Installer
 
 ```sh
 poetry install # Only do on first time
@@ -11,7 +11,11 @@ poetry shell
 python build.py
 ```
 
-This will generate an executable file in `build/dist` that can be run by the user in order to install the system.
+Once the build has completed, the results will be stored in `build/dist`.
+
+The installer file for the host platform will be stored at `build/dist/installer-[platform]-[architecture]`
+
+There is no support for cross-compiling at this time.
 
 ## How to Run the Tool
 
