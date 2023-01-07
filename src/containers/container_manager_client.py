@@ -79,6 +79,7 @@ class ContainerManagerClient:
         sock.send(bytes(container_name, "utf-8"))
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
+        self.run_command(container_name, ["cat /etc/motd"])
 
     def stop(self, container_name: str) -> None:
         """
