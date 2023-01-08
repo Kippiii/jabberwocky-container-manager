@@ -10,6 +10,7 @@ import socket
 import threading
 from typing import Dict, Optional, Tuple
 from signal import SIGABRT
+from pathlib import Path
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from paramiko import SSHException
@@ -17,7 +18,7 @@ from paramiko import SSHException
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
-from src.system.syspath import get_container_dir, get_server_info_file
+from src.system.syspath import get_container_dir, get_server_info_file, install_container
 
 
 class ContainerManagerServer:
@@ -139,6 +140,7 @@ class _SocketConnection:
                 b"STOP": self._stop,
                 b"KILL": self._kill,
                 b"PING": self._ping,
+                b"INSTALL": self._install,
             }[msg]()
 
         except KeyError:
@@ -314,6 +316,27 @@ class _SocketConnection:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
         self.manager.containers[container_name].put(local_file, remote_file)
+        self.client_sock.send(b"OK")
+
+    def _install(self) -> None:
+        """
+        Installs a container on the system
+        """
+        self.client_sock.send(b"CONT")
+        archive_path_str = self.client_sock.recv(1024).decode("utf-8")
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        self.manager.logger.debug(
+            "Installing container '%s' from '%s'", archive_path_str, container_name
+        )
+
+        archive_path = Path(archive_path_str)
+        if not archive_path.is_file():
+            self.client_sock.send(b"INVALID_PATH")
+            return
+        install_container(archive_path, container_name)
+
         self.client_sock.send(b"OK")
 
 
