@@ -5,7 +5,9 @@ Defines the CLI that takes user input and dispatches the container manager
 import re
 from sys import stdin, stdout
 from typing import List
+from pathlib import Path
 
+from src.containers.install import install_container
 from src.containers.container_manager_client import ContainerManagerClient
 
 CONTAINER_NAME_REGEX = r"""\w+"""
@@ -230,17 +232,16 @@ Starts the container creation wizard
 
         :param cmd: The rest of the command sent
         """
-        raise NotImplementedError()
-        # cmd_list = cmd.split()
-        # if len(cmd_list) != 2:
-        #     self.out_stream.write("Command requires two arguments\n")
-        #     return
-        # archive_path_str, container_name = (*cmd_list,)
-        # comp = re.compile(CONTAINER_NAME_REGEX)
-        # if not comp.match(container_name):
-        #     self.out_stream.write(f"'{container_name}' is not a valid container name\n")
-        #     return
-        # self.container_manager.install(archive_path_str, container_name)
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        archive_path_str, container_name = cmd[0], cmd[1]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        new_name = install_container(Path(install_container), container_name)
+        self.out_stream.write(f"Successfully installed '{new_name}'")
 
     def delete(self, cmd: List[str]) -> None:
         """
