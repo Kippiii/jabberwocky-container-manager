@@ -13,8 +13,7 @@ def install_container(archive: Path, name: str = ""):
     :param name: The new name of the container. Takes the name of the archive is none is provided.
     """
 
-    if not name:
-        name = archive.stem
+    name = name.lower() if name else archive.stem.lower()
 
     # Some basic guard clauses
     if not archive.exists():
