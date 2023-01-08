@@ -5,7 +5,7 @@ description = "Container manager for the Jabberwocky project"
 authors = ["Kippiii <ianorzel@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "jabberwocky_container_manager"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.12"
