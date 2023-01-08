@@ -289,6 +289,8 @@ class _RunCommandClient:
             while not self.recv_closed:
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                     self.sock.send(bytes(sys.stdin.readline(), "utf-8"))
+                else:
+                    self.sock.send(b"\x00")
                 time.sleep(0.1)
         except (ConnectionError, OSError):
             pass

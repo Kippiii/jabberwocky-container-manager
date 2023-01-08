@@ -76,3 +76,10 @@ class FailedToAuthorizeKeyError(RuntimeError):
     """
     Raised during failure to authorize keys
     """
+
+
+class ContainerAlreadyExistsError(RuntimeError):
+    """
+    Raised during container installation when a
+    container of the desired name already exists
+    """
