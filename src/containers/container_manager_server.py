@@ -375,7 +375,7 @@ class _RunCommandHandler:
     def _recv(self):
         try:
             while msg := self.client_sock.recv(1024):
-                self.stdin.write(msg)
+                self.stdin.write(bytes(filter(lambda b: b, msg)))
         except (ConnectionError, OSError):
             pass
 
