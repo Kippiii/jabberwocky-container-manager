@@ -4,6 +4,7 @@ Defines the CLI that takes user input and dispatches the container manager
 
 import re
 from sys import stdin, stdout
+from typing import List
 
 from src.containers.container_manager_client import ContainerManagerClient
 
@@ -24,7 +25,7 @@ class JabberwockyCLI:
         self.in_stream = in_stream
         self.out_stream = out_stream
 
-    def parse_cmd(self, cmd: str) -> None:
+    def parse_cmd(self, cmd: List[str]) -> None:
         """
         Parses the cmd sent from script
         """
@@ -49,22 +50,19 @@ class JabberwockyCLI:
             "ssh-address": self.ssh_address,
         }
 
-        cmd = cmd.strip()
-        cmd_list = cmd.split(None, 1)
-        if len(cmd_list) == 0:
+        if len(cmd) == 0:
             command = "help"
-            rest = ""
-        elif len(cmd_list) == 1:
-            command = cmd_list[0]
-            rest = ""
+            rest = []
         else:
-            command, rest = cmd_list
+            command = cmd[0]
+            rest = cmd[1:]
+
         if command not in subcmd_dict:
             self.out_stream.write(f"Command of '{command}' is not valid\n")
             return
         subcmd_dict[command](rest)
 
-    def help(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Prints the basic help menu for the CLI
 
@@ -112,82 +110,84 @@ Starts the container creation wizard
 """
         self.out_stream.write(help_str)
 
-    def interact(self, cmd: str) -> None:
+    def interact(self, cmd: List[str]) -> None:
         """
         Allows user to directly interact with shell
 
         :param cmd: The rest of the command sent
         """
+        name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
-        if not comp.match(cmd.strip()):
-            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
-        self.container_manager.run_shell(cmd.strip())
+        self.container_manager.run_shell(name)
 
-    def start(self, cmd: str) -> None:
+    def start(self, cmd: List[str]) -> None:
         """
         Starts a container
 
         :param cmd: The rest of the command sent
         """
+        name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
-        if not comp.match(cmd.strip()):
-            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
-        self.container_manager.start(cmd)
+        self.container_manager.start(name)
 
-    def stop(self, cmd: str) -> None:
+    def stop(self, cmd: List[str]) -> None:
         """
         Stops a container
 
         :param cmd: The rest of the command sent
         """
+        name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
-        if not comp.match(cmd.strip()):
-            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
-        self.container_manager.stop(cmd)
+        self.container_manager.stop(name)
 
-    def kill(self, cmd: str) -> None:
+    def kill(self, cmd: List[str]) -> None:
         """
         Kills a container
 
         :param cmd: The rest of the command sent
         """
+        name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
-        if not comp.match(cmd.strip()):
-            self.out_stream.write(f"'{cmd.strip()}' is not a valid container name\n")
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
-        self.container_manager.kill(cmd)
+        self.container_manager.kill(name)
 
-    def run(self, cmd: str) -> None:
+    def run(self, cmd: List[str]) -> None:
         """
         Runs a command in the container
 
         :param cmd: The rest of the command sent
         """
-        cmd_list = cmd.split(None, 1)
-        if len(cmd_list) != 2:
+        if len(cmd) < 2:
             self.out_stream.write("Command requires two arguments\n")
             return
-        container_name, command = (*cmd_list,)
+        container_name, command = cmd[0], cmd[1:]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        self.container_manager.run_command(container_name, [command])
+        self.container_manager.run_command(container_name, command)
 
-    def send_file(self, cmd: str) -> None:
+    def send_file(self, cmd: List[str]) -> None:
         """
         Sends a file to a container
 
         :param cmd: The rest of the command sent
         """
-        cmd_list = cmd.split()
-        if len(cmd_list) != 3:
+        if len(cmd) < 3:
             self.out_stream.write("Command requires three arguments\n")
             return
-        container_name, local_file, remote_file = (*cmd_list,)
+        container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -201,17 +201,16 @@ Starts the container creation wizard
             return
         self.container_manager.put_file(container_name, local_file, remote_file)
 
-    def get_file(self, cmd: str) -> None:
+    def get_file(self, cmd: List[str]) -> None:
         """
         Gets a file from a container
 
         :param cmd: The rest of the command sent
         """
-        cmd_list = cmd.split()
-        if len(cmd_list) != 3:
+        if len(cmd) < 3:
             self.out_stream.write("Command requires three arguments\n")
             return
-        container_name, remote_file, local_file = (*cmd_list,)
+        container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -225,37 +224,38 @@ Starts the container creation wizard
             return
         self.container_manager.get_file(container_name, remote_file, local_file)
 
-    def install(self, cmd: str) -> None:
+    def install(self, cmd: List[str]) -> None:
         """
         Installs a container from an archive
 
         :param cmd: The rest of the command sent
         """
-        cmd_list = cmd.split()
-        if len(cmd_list) != 2:
-            self.out_stream.write("Command requires two arguments\n")
-            return
-        archive_path_str, container_name = (*cmd_list,)
-        comp = re.compile(CONTAINER_NAME_REGEX)
-        if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
-            return
-        self.container_manager.install(archive_path_str, container_name)
+        raise NotImplementedError()
+        # cmd_list = cmd.split()
+        # if len(cmd_list) != 2:
+        #     self.out_stream.write("Command requires two arguments\n")
+        #     return
+        # archive_path_str, container_name = (*cmd_list,)
+        # comp = re.compile(CONTAINER_NAME_REGEX)
+        # if not comp.match(container_name):
+        #     self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+        #     return
+        # self.container_manager.install(archive_path_str, container_name)
 
-    def delete(self, cmd: str) -> None:
+    def delete(self, cmd: List[str]) -> None:
         """
         Deletes a container from the file system
 
         :param cmd: The rest of the command sent
         """
-        container_name = cmd.strip()
+        container_name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
         self.container_manager.delete(container_name)
 
-    def download(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def download(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Downloads a container from an archive
 
@@ -263,7 +263,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def archive(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def archive(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Sends a container to an archive
 
@@ -271,7 +271,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def add_repo(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def add_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Adds an archive to the system
 
@@ -279,7 +279,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def update_repo(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def update_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Updates an archive
 
@@ -287,7 +287,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def create(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def create(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Runs the container creation wizard
 
@@ -295,7 +295,7 @@ Starts the container creation wizard
         """
         self.out_stream.write("Command not yet supported")
 
-    def server_halt(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def server_halt(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Tells the server to halt
 
@@ -303,7 +303,7 @@ Starts the container creation wizard
         """
         self.container_manager.server_halt()
 
-    def ping(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def ping(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Pings the server
 
@@ -311,7 +311,7 @@ Starts the container creation wizard
         """
         self.container_manager.ping()
 
-    def ssh_address(self, cmd: str) -> None:  # pylint: disable=unused-argument
+    def ssh_address(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Prints the information necessary to SSH into the container's shell
 
