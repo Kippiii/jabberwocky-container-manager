@@ -5,7 +5,7 @@ from shutil import unpack_archive, rmtree
 from src.system.syspath import *
 from src.containers.exceptions import ContainerAlreadyExistsError
 
-def install_container(archive: Path, name: str = ""):
+def install_container(archive: Path, name: str = "") -> str:
     """
     CoInstalls a container from a tar archive
 
@@ -29,3 +29,5 @@ def install_container(archive: Path, name: str = ""):
     except Exception as ex:
         rmtree(get_container_dir(name))
         raise ex
+
+    return name
