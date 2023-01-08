@@ -5,9 +5,7 @@ Defines the CLI that takes user input and dispatches the container manager
 import re
 from sys import stdin, stdout
 from typing import List
-from pathlib import Path
 
-from src.containers.install import install_container
 from src.containers.container_manager_client import ContainerManagerClient
 
 CONTAINER_NAME_REGEX = r"""\w+"""
