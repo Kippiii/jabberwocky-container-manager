@@ -388,6 +388,7 @@ class _RunCommandHandler:
         finally:
             self.stdout_closed = True
             if self.stderr_closed:
+                time.sleep(0.25)
                 self.client_sock.close()
 
     def _send_stderr(self):
@@ -399,4 +400,5 @@ class _RunCommandHandler:
         finally:
             self.stderr_closed = True
             if self.stdout_closed:
+                time.sleep(0.25)
                 self.client_sock.close()
