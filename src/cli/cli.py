@@ -240,8 +240,7 @@ Starts the container creation wizard
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        new_name = install_container(Path(install_container), container_name)
-        self.out_stream.write(f"Successfully installed '{new_name}'")
+        self.container_manager.install(archive_path_str, container_name)
 
     def delete(self, cmd: List[str]) -> None:
         """
