@@ -189,6 +189,24 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"BEGIN")
         _RunCommandClient(sock)
 
+    def install(self, archive_path_str: str, container_name: str) -> None:
+        """
+        Installs a new container from a given archive path
+
+        :param archive_path_str: The path to the archive
+        :param container_name: The name of the container
+        """
+        absolute_archive_path = abspath(archive_path_str)
+
+        sock = self._make_connection()
+        sock.send(b"INSTALL")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(archive_path_str, "utf-8"))
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        self._recv_expect(sock, 1024, b"OK")
+        sock.close()
+
     def server_halt(self) -> None:
         """
         Tells the server to halt
