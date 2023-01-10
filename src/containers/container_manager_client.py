@@ -288,7 +288,11 @@ class _RunCommandClient:
         try:
             while not self.recv_closed:
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                    self.sock.send(bytes(sys.stdin.readline(), "utf-8"))
+                    buffer = bytes(sys.stdin.readline(), "utf-8")
+                    while buffer:
+                        msg = buffer[:255]
+                        self.sock.send(bytes([len(msg)]) + msg)
+                        buffer = buffer[255:]
                 else:
                     self.sock.send(b"\x00")
                 time.sleep(0.1)
@@ -309,7 +313,11 @@ class _RunCommandClient:
 
                     if char == "\r":
                         print(end="\n")
-                        self.sock.send(bytes(msg + "\n", "utf-8"))
+                        buffer = bytes(msg + "\n", "utf-8")
+                        while buffer:
+                            msg = buffer[:255]
+                            self.sock.send(bytes([len(msg)]) + msg)
+                            buffer = buffer[255:]
                         msg = ""
 
                     elif char == "\b":
