@@ -107,7 +107,7 @@ def install_container(archive_path: Path, container_name: str) -> None:
     :param archive_path: The path to the archive
     """
     if not tarfile.is_tarfile(str(archive_path)):
-        raise FileNotFoundError(str(archive_path))
+        raise TypeError(f"'{archive_path}' is not a tar archive")
     with tarfile.open(str(archive_path)) as tar:
         tar.extractall(path=get_container_dir(container_name))
         # TODO Sanity check this extraction

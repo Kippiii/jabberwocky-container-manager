@@ -397,8 +397,11 @@ class _RunCommandHandler:
 
     def _recv(self):
         try:
-            while msg := self.client_sock.recv(1024):
-                self.stdin.write(msg)
+            while msg := self.client_sock.recv(1 << 16):
+                while msg:
+                    size = msg[0]
+                    self.stdin.write(msg[1:size + 1])
+                    msg = msg[size + 1:]
         except (ConnectionError, OSError):
             pass
 
@@ -411,6 +414,7 @@ class _RunCommandHandler:
         finally:
             self.stdout_closed = True
             if self.stderr_closed:
+                time.sleep(0.25)
                 self.client_sock.close()
 
     def _send_stderr(self):
@@ -422,4 +426,5 @@ class _RunCommandHandler:
         finally:
             self.stderr_closed = True
             if self.stdout_closed:
+                time.sleep(0.25)
                 self.client_sock.close()
