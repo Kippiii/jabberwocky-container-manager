@@ -141,6 +141,7 @@ class _SocketConnection:
                 b"KILL": self._kill,
                 b"PING": self._ping,
                 b"INSTALL": self._install,
+                b"STARTED": self._started,
             }[msg]()
 
         except KeyError:
@@ -159,6 +160,15 @@ class _SocketConnection:
         Pong!
         """
         self.client_sock.send(b"PONG")
+
+    def _started(self) -> None:
+        self.client_sock.send(b"CONT")
+        container_name = self.client_sock.recv(1024).decode("utf-8")
+
+        if container_name in self.manager.containers:
+            self.client_sock.send(b"YES")
+        else:
+            self.client_sock.send(b"NO")
 
     def _address(self) -> None:
         """

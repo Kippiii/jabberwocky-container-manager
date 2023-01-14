@@ -126,6 +126,7 @@ update-repo [URL]
             self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
         self.container_manager.start(name)
+        self.container_manager.run_command(name, ["cat", "/etc/motd"])
 
     def stop(self, cmd: List[str]) -> None:
         """
@@ -306,7 +307,7 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        container_name = cmd.strip()
+        container_name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
