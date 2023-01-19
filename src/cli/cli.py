@@ -36,7 +36,7 @@ class JabberwockyCLI:
             "start": self.start,
             "stop": self.stop,
             "kill": self.kill,
-            "exec-shell-command": self.run,
+            "run": self.run,
             "send-file": self.send_file,
             "get-file": self.get_file,
             "install": self.install,
@@ -76,8 +76,7 @@ start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
 stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
-exec-shell-command [container_name]
-    - Execute a single command in the shell.
+run   [container_name] - Execute a single command in the shell.
 
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]
