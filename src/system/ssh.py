@@ -133,7 +133,7 @@ class SSHInterface:
         if syspath.get_get_container_id_rsa_pub(self.container_name).is_file():
             os.remove(syspath.get_get_container_id_rsa_pub(self.container_name))
 
-        key = paramiko.RSAKey.generate(1024)
+        key = paramiko.RSAKey.generate(2048)
         key.write_private_key_file(syspath.get_container_id_rsa(self.container_name))
         with open(
             syspath.get_get_container_id_rsa_pub(self.container_name),
