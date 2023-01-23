@@ -8,12 +8,14 @@ import sys
 import threading
 import time
 import json
+import os
 from os.path import abspath
 from typing import List, Tuple
 if sys.platform == "win32":
     import msvcrt
 else:
     import select
+from github import Github
 
 from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa
 
@@ -215,6 +217,48 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"HALT")
         sock.close()
+
+    def update(self) -> None:
+        """
+        Searches for updates and installs them if needed
+        """
+        # Search for latest release
+        g = Github()
+        repo = g.get_repo('Kippiii/jabberwocky-container-manager')
+        latest = repo.get_latest_release()
+
+        # Compare release versions
+        latest_version_num = latest.title.strip()
+        if latest_version_num == VERSION:
+            pass # TODO
+
+        # Download release
+        try:
+            os = get_os()
+        except ValueError:
+            pass # TODO
+        match os:
+            case OS.WINDOWS:
+                search_for = '.exe'
+            case OS.MACOS:
+                search_for = 'darwin'
+            case OS.LINUX:
+                search_for = 'linux'
+            case _:
+                pass
+        assets = latest.get_assets()
+        asset = filter(lambda x : search_for in x.name, list(assets))
+        r = requests.get(asset.url)
+        with open(str(get_container_home() / asset.name), 'w') as f:
+            f.write(r.content)
+
+        # Installs update
+        subprocess.run([
+            str(get_container_home() / asset.name),
+        ], shell=sys.platform == "win32")
+
+        # Delete executable
+        os.remove(str(get_container_home() / asset.name))
 
     def _make_connection(self) -> socket.socket:
         """
