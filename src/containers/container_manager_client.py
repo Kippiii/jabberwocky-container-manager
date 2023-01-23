@@ -9,6 +9,7 @@ import threading
 import time
 import json
 import os
+import requests
 from os.path import abspath
 from typing import List, Tuple
 if sys.platform == "win32":
@@ -17,8 +18,9 @@ else:
     import select
 from github import Github
 
-from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa
-from src.globals import RELEASE
+from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa, get_container_home
+from src.globals import VERSION
+from src.system.os import get_os, OS
 
 
 class ContainerManagerClient:
@@ -249,12 +251,16 @@ class ContainerManagerClient:
             case _:
                 pass
         assets = latest.get_assets()
-        asset = filter(lambda x : search_for in x.name, list(assets))
+        pos_asset = list(filter(lambda x : search_for in x.name, list(assets)))
+        if len(pos_asset) == 0:
+            raise ValueError("Operating system not supported by latest release :(")
+        asset = pos_asset[0]
         r = requests.get(asset.url)
-        with open(str(get_container_home() / asset.name), 'w') as f:
+        with open(str(get_container_home() / asset.name), 'wb') as f:
             f.write(r.content)
 
         # Installs update
+        # TODO Fix permission denied
         subprocess.run([
             str(get_container_home() / asset.name),
         ], shell=sys.platform == "win32")
