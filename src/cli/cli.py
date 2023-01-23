@@ -48,6 +48,7 @@ class JabberwockyCLI:
             "server-halt": self.server_halt,
             "ping": self.ping,
             "ssh-address": self.ssh_address,
+            "update": self.update,
         }
 
         if len(cmd) == 0:
@@ -321,3 +322,11 @@ Starts the container creation wizard
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
         self.out_stream.write(str(self.container_manager.ssh_address(container_name)))
+
+    def update(self, cmd: List[str]) -> None:
+        """
+        Checks for updates of the tool and installs them if needed
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.update()
