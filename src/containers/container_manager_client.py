@@ -18,6 +18,7 @@ else:
 from github import Github
 
 from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa
+from src.globals import RELEASE
 
 
 class ContainerManagerClient:
@@ -230,13 +231,14 @@ class ContainerManagerClient:
         # Compare release versions
         latest_version_num = latest.title.strip()
         if latest_version_num == VERSION:
-            pass # TODO
+            print("You currently have the latest version :)")
+            return
 
         # Download release
         try:
             os = get_os()
-        except ValueError:
-            pass # TODO
+        except ValueError as exc:
+            raise ValueError(f"Unsupported platform for updates") from exc
         match os:
             case OS.WINDOWS:
                 search_for = '.exe'
