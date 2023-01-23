@@ -9,7 +9,7 @@ import threading
 import time
 import json
 from os.path import abspath
-from typing import List, Tuple
+from typing import List, Tuple, Union
 if sys.platform == "win32":
     import msvcrt
 else:
@@ -39,6 +39,19 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"PING")
         self._recv_expect(sock, 1024, b"PONG")
+
+    def started(self, container_name: str) -> bool:
+        sock = self._make_connection()
+        sock.send(b"STARTED")
+        self._recv_expect(sock, 1024, b"CONT")
+        sock.send(bytes(container_name, "utf-8"))
+        response = self._recv_expect(sock, 1024, [b"YES", b"NO"])
+
+        if response == b"YES":
+            return True
+        if response == b"NO":
+            return False
+
 
     def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
         """
@@ -79,7 +92,6 @@ class ContainerManagerClient:
         sock.send(bytes(container_name, "utf-8"))
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
-        self.run_command(container_name, ["cat /etc/motd"])
 
     def stop(self, container_name: str) -> None:
         """
@@ -113,6 +125,9 @@ class ContainerManagerClient:
 
         :param container_name: The container whose shell is being used
         """
+        if not self.started(container_name):
+            self.start(container_name)
+
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
@@ -135,6 +150,9 @@ class ContainerManagerClient:
         :param remote_file: The file obtained from the container
         :param local_file: Where the file obtained from the container is placed
         """
+        if not self.started(container_name):
+            self.start(container_name)
+
         absolute_local_path = abspath(local_file)
 
         sock = self._make_connection()
@@ -156,6 +174,9 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
+        if not self.started(container_name):
+            self.start(container_name)
+
         absolute_local_path = abspath(local_file)
 
         sock = self._make_connection()
@@ -176,6 +197,9 @@ class ContainerManagerClient:
         :param container_name: The container with the command being run
         :param cmd: The command being run, as a list of arguments
         """
+        if not self.started(container_name):
+            self.start(container_name)
+
         sock = self._make_connection()
         sock.send(b"RUN-COMMAND")
         self._recv_expect(sock, 1024, b"CONT")
@@ -227,7 +251,7 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"READY")
         return sock
 
-    def _recv_expect(self, sock: socket.socket, bufsize: int, expected: bytes) -> bytes:
+    def _recv_expect(self, sock: socket.socket, bufsize: int, expected: Union[bytes, List[bytes]]) -> bytes:
         """
         Receives data from a socket, then checks if the data it receives is
         equal to the expected data. If it gets the expected response, return it.
@@ -238,7 +262,14 @@ class ContainerManagerClient:
         :param expected: The expected data
         :return: The data received
         """
-        if (msg := sock.recv(bufsize)) != expected:
+        msg = sock.recv(bufsize)
+
+        if type(expected) is bytes:
+            match = msg == expected
+        else:
+            match = msg in expected
+
+        if not match:
             sock.close()
             msg = msg.decode()
             if msg == "UNKNOWN_REQUEST":
