@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 import json
-import os
+import os as pyos
 import requests
 from os.path import abspath
 from typing import List, Tuple
@@ -255,18 +255,19 @@ class ContainerManagerClient:
         if len(pos_asset) == 0:
             raise ValueError("Operating system not supported by latest release :(")
         asset = pos_asset[0]
-        r = requests.get(asset.url)
-        with open(str(get_container_home() / asset.name), 'wb') as f:
+        r = requests.get(asset.browser_download_url)
+        file_path = str(get_container_home() / asset.name)
+        with open(file_path, 'wb') as f:
             f.write(r.content)
 
         # Installs update
-        # TODO Fix permission denied
-        subprocess.run([
-            str(get_container_home() / asset.name),
-        ], shell=sys.platform == "win32")
+        self.server_halt()
+        if os != OS.WINDOWS:
+            subprocess.run(["chmod", "+x", file_path], shell=False)
+        subprocess.run([file_path], shell=sys.platform == "win32")
 
         # Delete executable
-        os.remove(str(get_container_home() / asset.name))
+        pyos.remove(file_path)
 
     def _make_connection(self) -> socket.socket:
         """
