@@ -12,13 +12,19 @@ import os as pyos
 import requests
 from os.path import abspath
 from typing import List, Tuple
+
 if sys.platform == "win32":
     import msvcrt
 else:
     import select
 from github import Github
 
-from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa, get_container_home
+from src.system.syspath import (
+    get_server_info_file,
+    get_server_log_file,
+    get_container_id_rsa,
+    get_container_home,
+)
 from src.globals import VERSION
 from src.system.os import get_os, OS
 
@@ -122,15 +128,18 @@ class ContainerManagerClient:
             self.update_hostkey(container_name)
 
         host, port, user = self.ssh_address(container_name)
-        subprocess.run([
-            "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
-            "-oStrictHostKeyChecking=no",
-            "-oLogLevel=ERROR",
-            "-oPasswordAuthentication=no",
-            f"-i{get_container_id_rsa(container_name)}",
-            f"-p{port}",
-            f"{user}@{host}"
-        ], shell=sys.platform == "win32")
+        subprocess.run(
+            [
+                "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
+                "-oStrictHostKeyChecking=no",
+                "-oLogLevel=ERROR",
+                "-oPasswordAuthentication=no",
+                f"-i{get_container_id_rsa(container_name)}",
+                f"-p{port}",
+                f"{user}@{host}",
+            ],
+            shell=sys.platform == "win32",
+        )
 
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """
@@ -227,7 +236,7 @@ class ContainerManagerClient:
         """
         # Search for latest release
         g = Github()
-        repo = g.get_repo('Kippiii/jabberwocky-container-manager')
+        repo = g.get_repo("Kippiii/jabberwocky-container-manager")
         latest = repo.get_latest_release()
 
         # Compare release versions
@@ -243,21 +252,21 @@ class ContainerManagerClient:
             raise ValueError(f"Unsupported platform for updates") from exc
         match os:
             case OS.WINDOWS:
-                search_for = '.exe'
+                search_for = ".exe"
             case OS.MACOS:
-                search_for = 'darwin'
+                search_for = "darwin"
             case OS.LINUX:
-                search_for = 'linux'
+                search_for = "linux"
             case _:
                 pass
         assets = latest.get_assets()
-        pos_asset = list(filter(lambda x : search_for in x.name, list(assets)))
+        pos_asset = list(filter(lambda x: search_for in x.name, list(assets)))
         if len(pos_asset) == 0:
             raise ValueError("Operating system not supported by latest release :(")
         asset = pos_asset[0]
         r = requests.get(asset.browser_download_url)
         file_path = str(get_container_home() / asset.name)
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(r.content)
 
         # Installs update
@@ -303,7 +312,9 @@ class ContainerManagerClient:
             if msg == "BOOT_FAILURE":
                 raise RuntimeError("Container failed while booting")
             if msg == "EXCEPTION_OCCURED":
-                raise RuntimeError(f"An exception occured! Please check {get_server_log_file()} for more information")
+                raise RuntimeError(
+                    f"An exception occured! Please check {get_server_log_file()} for more information"
+                )
             raise RuntimeError(
                 f'Got Unexpected Response "{msg}" from {self.server_address}'
             )
