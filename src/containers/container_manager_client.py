@@ -8,14 +8,19 @@ import sys
 import threading
 import time
 import json
+import os as pyos
+import requests
 from os.path import abspath
 from typing import List, Tuple, Union
 if sys.platform == "win32":
     import msvcrt
 else:
     import select
+from github import Github
 
-from src.system.syspath import get_server_info_file, get_server_log_file, get_container_id_rsa
+from src.system.syspath import *
+from src.globals import VERSION
+from src.system.os import get_os, OS
 
 
 class ContainerManagerClient:
@@ -132,15 +137,18 @@ class ContainerManagerClient:
             self.update_hostkey(container_name)
 
         host, port, user = self.ssh_address(container_name)
-        subprocess.run([
-            "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
-            "-oStrictHostKeyChecking=no",
-            "-oLogLevel=ERROR",
-            "-oPasswordAuthentication=no",
-            f"-i{get_container_id_rsa(container_name)}",
-            f"-p{port}",
-            f"{user}@{host}"
-        ], shell=sys.platform == "win32")
+        subprocess.run(
+            [
+                "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
+                "-oStrictHostKeyChecking=no",
+                "-oLogLevel=ERROR",
+                "-oPasswordAuthentication=no",
+                f"-i{get_container_id_rsa(container_name)}",
+                f"-p{port}",
+                f"{user}@{host}",
+            ],
+            shell=sys.platform == "win32",
+        )
 
     def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
         """
@@ -226,7 +234,7 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"INSTALL")
         self._recv_expect(sock, 1024, b"CONT")
-        sock.send(bytes(archive_path_str, "utf-8"))
+        sock.send(bytes(absolute_archive_path, "utf-8"))
         self._recv_expect(sock, 1024, b"CONT")
         sock.send(bytes(container_name, "utf-8"))
         self._recv_expect(sock, 1024, b"OK")
@@ -281,7 +289,9 @@ class ContainerManagerClient:
             if msg == "BOOT_FAILURE":
                 raise RuntimeError("Container failed while booting")
             if msg == "EXCEPTION_OCCURED":
-                raise RuntimeError(f"An exception occured! Please check {get_server_log_file()} for more information")
+                raise RuntimeError(
+                    f"An exception occured! Please check {get_server_log_file()} for more information"
+                )
             raise RuntimeError(
                 f'Got Unexpected Response "{msg}" from {self.server_address}'
             )
