@@ -34,6 +34,7 @@ class JabberwockyCLI:
         subcmd_dict = {
             "help": self.help,
             "interact": self.interact,
+            "shell": self.interact,
             "start": self.start,
             "stop": self.stop,
             "kill": self.kill,
@@ -71,45 +72,34 @@ class JabberwockyCLI:
 
         :param cmd: The rest of command sent
         """
-        help_str = """Manages containers installed on this system.
-Usage: jabberwocky [subcommand] {args}
+        help_str = """Usage: jabberwocky [subcommand] {args}
 
-interact [container_name]
-Open the shell of the container
+Using your container:
+start [container_name] - Power on the virtual environment
+shell [container_name] - Open the shell of the container
+stop  [container_name] - Power off the virtual environment
+kill  [container_name] - Kill the virtual environment in the event of a crash
+run   [container_name] - Execute a single command in the shell.
 
-start [container_name]
-Boots a container and allows it to idle in the background
-
-stop [container_name]
-Powers off a container
-
+File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]
-Copy a file from the host to the container
+get-file  [container_name] [path_to_source] [path_to_destination]
 
-get-file [container_name] [path_to_source] [path_to_destination]
-Copy a file from the container to the host
-
+Managing your containers:
 install [path_to_archive] [name]
-Installs a container archive on the computer
-
-download [container_name] [name]
-Downloads a container to your computer
-
+    - Install a container from a tar archive.
 archive [container_name] [path_to_destination]
-Sends a container to a downloadable archive
+    - Send a container to an installable tar archive.
+delete [container_name]
+    - Delete a container from your system. (~/.containers)
+create
+    - Start the container creation process.
 
+Managing your repositories:
+download [container_name] [name]
 add-repo [URL]
 remove-repo [URL]
-Adds or a removes a repository
-
 update-repo [URL]
-Download index files for a repository
-
-delete [container_name]
-Deletes a container from the file system
-
-create
-Starts the container creation wizard
 """
         self.out_stream.write(help_str)
 
@@ -138,6 +128,7 @@ Starts the container creation wizard
             self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
         self.container_manager.start(name)
+        self.container_manager.run_command(name, ["cat", "/etc/motd"])
 
     def stop(self, cmd: List[str]) -> None:
         """
@@ -318,7 +309,7 @@ Starts the container creation wizard
 
         :param cmd: The rest of the command sent
         """
-        container_name = cmd.strip()
+        container_name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
