@@ -216,7 +216,7 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"INSTALL")
         self._recv_expect(sock, 1024, b"CONT")
-        sock.send(bytes(archive_path_str, "utf-8"))
+        sock.send(bytes(absolute_archive_path, "utf-8"))
         self._recv_expect(sock, 1024, b"CONT")
         sock.send(bytes(container_name, "utf-8"))
         self._recv_expect(sock, 1024, b"OK")
