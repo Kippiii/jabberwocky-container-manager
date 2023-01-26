@@ -217,7 +217,7 @@ update-repo [URL]
         if not comp.match(local_file):
             self.out_stream.write(f"'{local_file}' is not a valid file name")
             return
-        self.container_manager.get_file(container_name, remote_file, local_file)
+        self.container_manager.get_file(container_name, abspath(expanduser(remote_file)), abspath(expanduser(local_file)))
 
     def install(self, cmd: List[str]) -> None:
         """
