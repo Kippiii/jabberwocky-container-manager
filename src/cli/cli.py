@@ -6,6 +6,7 @@ import re
 from sys import stdin, stdout
 from typing import List
 from github.GithubException import RateLimitExceededException
+from os.path import abspath, expanduser
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
@@ -193,7 +194,7 @@ update-repo [URL]
         if not comp.match(remote_file):
             self.out_stream.write(f"'{remote_file}' is not a valid file name")
             return
-        self.container_manager.put_file(container_name, local_file, remote_file)
+        self.container_manager.put_file(container_name, abspath(expanduser(local_file)), abspath(expanduser(remote_file)))
 
     def get_file(self, cmd: List[str]) -> None:
         """
