@@ -181,6 +181,10 @@ update-repo [URL]
             return
         container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
 
+        if not re.compile(CONTAINER_NAME_REGEX).match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+
         self.container_manager.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: List[str]) -> None:
@@ -193,6 +197,10 @@ update-repo [URL]
             self.out_stream.write("Command requires three arguments\n")
             return
         container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
+
+        if not re.compile(CONTAINER_NAME_REGEX).match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
 
         self.container_manager.get_file(container_name, remote_file, local_file)
 
