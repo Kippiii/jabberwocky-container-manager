@@ -8,15 +8,12 @@ import sys
 import threading
 import time
 import json
-import os as pyos
-import requests
-from os.path import abspath
 from typing import List, Tuple, Union
 if sys.platform == "win32":
     import msvcrt
 else:
     import select
-from github import Github
+from src.system.syspath import get_full_path
 
 from src.system.syspath import *
 from src.globals import VERSION
@@ -161,7 +158,7 @@ class ContainerManagerClient:
         if not self.started(container_name):
             self.start(container_name)
 
-        absolute_local_path = abspath(local_file)
+        absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
         sock.send(b"GET-FILE")
@@ -185,7 +182,7 @@ class ContainerManagerClient:
         if not self.started(container_name):
             self.start(container_name)
 
-        absolute_local_path = abspath(local_file)
+        absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
@@ -229,7 +226,7 @@ class ContainerManagerClient:
         :param archive_path_str: The path to the archive
         :param container_name: The name of the container
         """
-        absolute_archive_path = abspath(archive_path_str)
+        absolute_archive_path = get_full_path(archive_path_str)
 
         sock = self._make_connection()
         sock.send(b"INSTALL")
