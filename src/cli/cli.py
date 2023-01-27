@@ -5,8 +5,10 @@ Defines the CLI that takes user input and dispatches the container manager
 import re
 from sys import stdin, stdout
 from typing import List
+from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
+from src.system.update import update, get_newest_supported_version
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
@@ -50,6 +52,7 @@ class JabberwockyCLI:
             "server-halt": self.server_halt,
             "ping": self.ping,
             "ssh-address": self.ssh_address,
+            "update": self.update,
         }
 
         if len(cmd) == 0:
@@ -321,3 +324,30 @@ update-repo [URL]
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
         self.out_stream.write(str(self.container_manager.ssh_address(container_name)))
+
+    def update(self, cmd: List[str]) -> None:
+        """
+        Checks for updates of the tool and installs them if needed
+
+        :param cmd: The rest of the command sent
+        """
+        try:
+            release, asset = get_newest_supported_version()
+        except RateLimitExceededException:
+            self.out_stream.write("Cannot fetch updates right now. Try again later or update manually.\n")
+            return
+
+        if not release:
+            self.out_stream.write("You already have the newest version.\n")
+
+        else:
+            self.out_stream.write("\033[93m========\nWARNING!\n========\n")
+            self.out_stream.write("UPDATING WILL HALT ALL OF YOUR CURRENTLY OPEN CONTAINERS.\n")
+            self.out_stream.write("ALL RUNNING PROCESSES WILL BE TERMINATED.\n")
+            self.out_stream.write("ALL UNSAVED DATA WILL BE LOST.\033[0m\n")
+            inp = input("Are you sure you want to continue? [y/N] ")
+
+            if inp.lower() not in ("y", "yes"):
+                self.out_stream.write("Update cancelled.")
+            else:
+                update(release, asset)
