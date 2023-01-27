@@ -182,9 +182,10 @@ class _SocketConnection:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
         else:
             host = "localhost"
+            pswd = self.manager.containers[container_name].password
             port = self.manager.containers[container_name].ex_port
             user = self.manager.containers[container_name].username
-            self.client_sock.send(f"{host}:{port}:{user}".encode("utf-8"))
+            self.client_sock.send(f"{user}:{pswd}:{host}:{port}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
         """

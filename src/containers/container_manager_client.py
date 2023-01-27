@@ -52,10 +52,21 @@ class ContainerManagerClient:
         if response == b"NO":
             return False
 
+    def view_files(self, container_name: str) -> None:
+        if not self.started(container_name):
+            self.start(container_name)
 
-    def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
+        if sys.platform == "win32":
+            user, pswd, host, port = self.ssh_address(container_name)
+            subprocess.Popen(
+                ["C:\\Program Files (x86)\WinSCP\WinSCP.exe", f"scp://{user}:{pswd}@{host}:{port}"],
+                creationflags=subprocess.DETACHED_PROCESS)
+        else:
+            raise NotImplementedError(sys.platform)
+
+    def ssh_address(self, container_name: str) -> Tuple[str, str, str, str]:
         """
-        Return the address (ip, port, username) needed to connect to a container's ssh
+        Return the address (user, passwd, host, port) needed to connect to a container's ssh
 
         :param container_name: The container whose shell is being used
         :return: The address
@@ -64,9 +75,9 @@ class ContainerManagerClient:
         sock.send(b"SSH-ADDRESS")
         self._recv_expect(sock, 1024, b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        host, port, user = sock.recv(1024).decode("utf-8").split(":")
+        user, passwd, host, port = sock.recv(1024).decode("utf-8").split(":")
         sock.close()
-        return (host, port, user)
+        return (user, passwd, host, port)
 
     def update_hostkey(self, container_name: str) -> None:
         """
@@ -131,7 +142,7 @@ class ContainerManagerClient:
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
-        host, port, user = self.ssh_address(container_name)
+        user, _, host, port = self.ssh_address(container_name)
         subprocess.run([
             "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
             "-oStrictHostKeyChecking=no",
@@ -281,7 +292,8 @@ class ContainerManagerClient:
             if msg == "BOOT_FAILURE":
                 raise RuntimeError("Container failed while booting")
             if msg == "EXCEPTION_OCCURED":
-                raise RuntimeError(f"An exception occured! Please check {get_server_log_file()} for more information")
+                raise RuntimeError(
+                    f"An exception occured! Please check {get_server_log_file()} for more information")
             raise RuntimeError(
                 f'Got Unexpected Response "{msg}" from {self.server_address}'
             )

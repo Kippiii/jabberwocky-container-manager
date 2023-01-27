@@ -31,6 +31,7 @@ class JabberwockyCLI:
         """
         subcmd_dict = {
             "help": self.help,
+            "files": self.view_files,
             "interact": self.interact,
             "shell": self.interact,
             "start": self.start,
@@ -99,6 +100,14 @@ remove-repo [URL]
 update-repo [URL]
 """
         self.out_stream.write(help_str)
+
+    def view_files(self, cmd: List[str]) -> None:
+        name = cmd[0]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
+            return
+        self.container_manager.view_files(name)
 
     def interact(self, cmd: List[str]) -> None:
         """
