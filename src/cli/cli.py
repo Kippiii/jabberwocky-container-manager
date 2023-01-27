@@ -78,6 +78,7 @@ class JabberwockyCLI:
 Using your container:
 start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
+files [container_name] - View the virtual filesystem
 stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
