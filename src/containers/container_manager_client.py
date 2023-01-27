@@ -21,6 +21,7 @@ from github import Github
 from src.system.syspath import *
 from src.globals import VERSION
 from src.system.os import get_os, OS
+from src.system.filezilla import filezilla
 
 
 class ContainerManagerClient:
@@ -61,13 +62,8 @@ class ContainerManagerClient:
         if not self.started(container_name):
             self.start(container_name)
 
-        if sys.platform == "win32":
-            user, pswd, host, port = self.ssh_address(container_name)
-            subprocess.Popen(
-                ["C:\\Program Files (x86)\WinSCP\WinSCP.exe", f"scp://{user}:{pswd}@{host}:{port}"],
-                creationflags=subprocess.DETACHED_PROCESS)
-        else:
-            raise NotImplementedError(sys.platform)
+        filezilla(*self.ssh_address(container_name))
+
 
     def ssh_address(self, container_name: str) -> Tuple[str, str, str, str]:
         """
