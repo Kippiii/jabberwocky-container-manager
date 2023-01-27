@@ -21,6 +21,7 @@ from github import Github
 from src.system.syspath import *
 from src.globals import VERSION
 from src.system.os import get_os, OS
+from src.containers.exceptions import *
 
 
 class ContainerManagerClient:
@@ -280,21 +281,8 @@ class ContainerManagerClient:
         if not match:
             sock.close()
             msg = msg.decode()
-            if msg == "UNKNOWN_REQUEST":
-                raise RuntimeError("Recieved invalid request")
-            if msg == "NO_SUCH_CONATINER":
-                raise RuntimeError("Container does not exist")
-            if msg == "CONTAINER_NOT_STARTED":
-                raise RuntimeError("Container has not been started")
-            if msg == "BOOT_FAILURE":
-                raise RuntimeError("Container failed while booting")
-            if msg == "EXCEPTION_OCCURED":
-                raise RuntimeError(
-                    f"An exception occured! Please check {get_server_log_file()} for more information"
-                )
-            raise RuntimeError(
-                f'Got Unexpected Response "{msg}" from {self.server_address}'
-            )
+            get_server_error(msg, sock)
+
         return msg
 
 

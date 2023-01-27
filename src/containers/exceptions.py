@@ -3,11 +3,14 @@ Manages the exceptions related to the containers
 """
 
 import re
+import socket
 
 from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
 from pathlib import Path
+
+from src.system.syspath import get_server_log_file
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
@@ -83,3 +86,75 @@ class ContainerAlreadyExistsError(RuntimeError):
     Raised during container installation when a
     container of the desired name already exists
     """
+
+
+class ServerError(RuntimeError):
+    """
+    Occurs when an issue happens on the server
+    """
+    def __init__(self, sock: socket.socket):
+        self.sock = sock
+        self._recv()
+
+    def _recv(self):
+        pass
+
+    def __str__(self):
+        return f"An error occured on the server. Please check {get_server_log_file()} for more information"
+
+
+class UnknownRequestError(ServerError):
+    """
+    Raised when server recieves an unknown request
+    """
+    def __str__(self):
+        return "Server recieved an unknown request"
+
+
+class ContainerNotStartedError(ServerError):
+    """
+    Raised when there is an attempt to use a container that was not started
+    """
+    def __str__(self):
+        return "Attempt to use container that is not running"
+
+
+class UnknownContainerError(ServerError):
+    """
+    Raised when container is not installed
+    """
+    def __str__(self):
+        return "Attempt to use container that is not installed"
+
+
+class BootFailureError(ServerError):
+    """
+    Raised when container fails to boot
+    """
+    def __str__(self):
+        return "The container failed to boot"
+
+
+class InvalidPathError(ServerError):
+    """
+    Raised when attempted path does not exist
+    """
+    def __str__(self):
+        return "The path does not exist"
+
+
+def get_server_error(value: str, sock: socket.socket) -> None:
+    """
+    Gets the exception related to a server error
+    """
+    mapping = {
+        "UNKNOWN_REQUEST": UnknownRequestError,
+        "CONTAINER_NOT_STARTED": ContainerNotStartedError,
+        "NO_SUCH_CONTAINER": UnknownContainerError,
+        "BOOT_FAILURE": BootFailureError,
+        "INVALID_PATH": InvalidPathError,
+        "EXCEPTION_OCCURED": ServerError,
+    }
+    if value not in mapping:
+        raise ValueError(f"Recieved unknown error from server: {value}")
+    raise mapping[value](sock)
