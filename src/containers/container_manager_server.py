@@ -125,6 +125,7 @@ class _SocketConnection:
 
         try:
             msg = self.client_sock.recv(1024)
+            self.logger.debug("Recieves %s from the client", msg)
 
             if msg == b"HALT":
                 self.manager.stop()
@@ -159,11 +160,13 @@ class _SocketConnection:
         """
         Pong!
         """
+        self.manager.logger.debug("Ponging the client")
         self.client_sock.send(b"PONG")
 
     def _started(self) -> None:
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
+        self.manager.logger.debug("Checking if container %s is started", container_name)
 
         if container_name in self.manager.containers:
             self.client_sock.send(b"YES")
@@ -179,11 +182,13 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
+            self.manager.logger.debug("Attempt to get SSH info for container %s, but it was not started", container_name)
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
         else:
             host = "localhost"
             port = self.manager.containers[container_name].ex_port
             user = self.manager.containers[container_name].username
+            self.manager.logger.debug("Container %s SSH info: host=%s, port=%s, user=%s", container_name, host, port, user)
             self.client_sock.send(f"{host}:{port}:{user}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
@@ -192,6 +197,7 @@ class _SocketConnection:
         """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
+        self.manager.logger.debug("Updating hostkey of container %s", container_name)
 
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
@@ -217,6 +223,8 @@ class _SocketConnection:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
+        self.manager.logger.debug("On container %s, running %s", container_name, ' '.join(cli))
+
         self.client_sock.send(b"BEGIN")
 
         stdin, stdout, stderr = self.manager.containers[container_name].run(
@@ -237,8 +245,10 @@ class _SocketConnection:
         """
         self.client_sock.send(b"CONT")
         container_name = self.client_sock.recv(1024).decode("utf-8")
+        self.manager.logger.debug("Attempting to start container %s", container_name)
 
         if not get_container_dir(container_name).is_dir():
+            self.manager.logger.debug("Container %s does not exist", container_name)
             self.client_sock.send("NO_SUCH_CONTAINER")
 
         elif container_name not in self.manager.containers:
@@ -248,7 +258,9 @@ class _SocketConnection:
                     container_name, logger=self.manager.logger
                 )
                 self.manager.containers[container_name].start()
-            except BootFailure:
+                self.manager.logger.debug("Container %s has been started", container_name)
+            except BootFailure as exc:
+                self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
                 self.client_sock.send(b"BOOT_FAILURE")
             else:
                 self.client_sock.send(b"OK")
@@ -261,6 +273,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
+            self.manager.logger.debug("Attempt to stop nonexistent container %s", container_name)
             self.client_sock.send("CONTAINER_NOT_STARTED")
             return
 
@@ -268,6 +281,7 @@ class _SocketConnection:
         self.manager.containers[container_name].stop()
         del self.manager.containers[container_name]
         self.client_sock.send(b"OK")
+        self.manager.logger.debug("Container %s successfully stopped", container_name)
 
     def _kill(self) -> None:
         """
@@ -278,6 +292,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
+            self.manager.logger.debug("Attempt to kill nonexistent container %s", container_name)
             self.client_sock.send("CONTAINER_NOT_STARTED")
             return
 
@@ -285,6 +300,7 @@ class _SocketConnection:
         self.manager.containers[container_name].kill()
         del self.manager.containers[container_name]
         self.client_sock.send(b"OK")
+        self.manager.logger.debug("Container %s successfully killed", container_name)
 
     def _get(self) -> None:
         """
@@ -302,10 +318,12 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
+            self.logger.debug("Attempt to get file from nonexistent container %s", container_name)
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
         else:
             self.manager.containers[container_name].get(remote_file, local_file)
             self.client_sock.send(b"OK")
+            self.manager.logger.debug("Successfully got file from %s", container_name)
 
     def _put(self) -> None:
         """
@@ -323,10 +341,12 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
+            self.logger.debug("Attempt to put file into nonexistent container %s", container_name)
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
         self.manager.containers[container_name].put(local_file, remote_file)
         self.client_sock.send(b"OK")
+        self.manager.logger.debug("Successfully put file into %s", container_name)
 
     def _install(self) -> None:
         """
@@ -343,11 +363,13 @@ class _SocketConnection:
 
         archive_path = Path(archive_path_str)
         if not archive_path.is_file():
+            self.manager.logger.debug("Attempt to install container from invalid path")
             self.client_sock.send(b"INVALID_PATH")
             return
         install_container(archive_path, container_name)
 
         self.client_sock.send(b"OK")
+        self.manager.logger.debug("Successfully installed container %s", container_name)
 
 
 class _RunCommandHandler:
