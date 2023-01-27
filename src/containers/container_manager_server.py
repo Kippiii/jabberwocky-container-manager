@@ -125,7 +125,7 @@ class _SocketConnection:
 
         try:
             msg = self.client_sock.recv(1024)
-            self.logger.debug("Recieves %s from the client", msg)
+            self.manager.logger.debug("Recieves %s from the client", msg)
 
             if msg == b"HALT":
                 self.manager.stop()
@@ -249,7 +249,7 @@ class _SocketConnection:
 
         if not get_container_dir(container_name).is_dir():
             self.manager.logger.debug("Container %s does not exist", container_name)
-            self.client_sock.send("NO_SUCH_CONTAINER")
+            self.client_sock.send(b"NO_SUCH_CONTAINER")
 
         elif container_name not in self.manager.containers:
             try:
@@ -274,7 +274,7 @@ class _SocketConnection:
 
         if container_name not in self.manager.containers:
             self.manager.logger.debug("Attempt to stop nonexistent container %s", container_name)
-            self.client_sock.send("CONTAINER_NOT_STARTED")
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
         self.manager.logger.debug("Stopping container '%s'", container_name)
@@ -293,7 +293,7 @@ class _SocketConnection:
 
         if container_name not in self.manager.containers:
             self.manager.logger.debug("Attempt to kill nonexistent container %s", container_name)
-            self.client_sock.send("CONTAINER_NOT_STARTED")
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
         self.manager.logger.debug("Killing container '%s'", container_name)
@@ -318,7 +318,7 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.logger.debug("Attempt to get file from nonexistent container %s", container_name)
+            self.manager.logger.debug("Attempt to get file from nonexistent container %s", container_name)
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
         else:
             self.manager.containers[container_name].get(remote_file, local_file)
@@ -341,7 +341,7 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.logger.debug("Attempt to put file into nonexistent container %s", container_name)
+            self.manager.logger.debug("Attempt to put file into nonexistent container %s", container_name)
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
         self.manager.containers[container_name].put(local_file, remote_file)
