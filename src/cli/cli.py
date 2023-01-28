@@ -11,8 +11,6 @@ from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
 
 CONTAINER_NAME_REGEX = r"""\w+"""
-FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
-
 
 class JabberwockyCLI:
     """
@@ -210,13 +208,7 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(local_file):
-            self.out_stream.write(f"'{local_file}' is not a valid file name")
-            return
-        if remote_file is not None and not comp.match(remote_file):
-            self.out_stream.write(f"'{remote_file}' is not a valid file name")
-            return
+
         self.container_manager.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: List[str]) -> None:
@@ -237,13 +229,7 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(remote_file):
-            self.out_stream.write(f"'{remote_file}' is not a valid file name")
-            return
-        if local_file is not None and not comp.match(local_file):
-            self.out_stream.write(f"'{local_file}' is not a valid file name")
-            return
+
         self.container_manager.get_file(container_name, remote_file, local_file)
 
     def install(self, cmd: List[str]) -> None:

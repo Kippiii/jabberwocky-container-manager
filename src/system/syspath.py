@@ -6,6 +6,11 @@ import os
 import tarfile
 from pathlib import Path
 from shutil import rmtree, which
+from os.path import abspath, expanduser
+
+
+def get_full_path(path: str):
+    return abspath(expanduser(path))
 
 
 def get_qemu_bin() -> Path:
