@@ -52,6 +52,7 @@ class JabberwockyCLI:
             "ssh-address": self.ssh_address,
             "update": self.update,
             "sftp": self.sftp,
+            "panic": self.server_panic,
         }
 
         if len(cmd) == 0:
@@ -64,7 +65,7 @@ class JabberwockyCLI:
         if command not in subcmd_dict:
             self.out_stream.write(f"Command of '{command}' is not valid\n")
             return
-        subcmd_dict[command](rest)
+        subcmd_dict[command.lower()](rest)
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -308,6 +309,14 @@ update-repo [URL]
         :param cmd: The rest of the command sent
         """
         self.container_manager.server_halt()
+
+    def server_panic(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        """
+        Tells the server to PANIC!
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.server_panic()
 
     def ping(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

@@ -271,6 +271,14 @@ class ContainerManagerClient:
         sock.send(b"HALT")
         sock.close()
 
+    def server_panic(self) -> None:
+        """
+        Tells the server to PANIC!
+        """
+        sock = self._make_connection()
+        sock.send(b"PANIC")
+        sock.close()
+
     def _make_connection(self) -> socket.socket:
         """
         Creates a connection to the server.

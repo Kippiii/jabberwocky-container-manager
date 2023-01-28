@@ -3,6 +3,7 @@ The server version of the container manager
 """
 
 import logging
+import psutil
 import os
 import time
 import json
@@ -82,13 +83,28 @@ class ContainerManagerServer:
         self.logger.debug("Stopping the server")
         self.server_sock.close()
         os.remove(get_server_info_file())
-        for _, container in self.containers.items():
-            self.logger.debug("Closing %s", container.name)
+        for name, container in self.containers.items():
+            self.logger.debug("Closing %s", name)
             try:
                 container.stop()
+                self.logger.info(f"Shut down {name}@{container.booter.pid}.")
             except (PoweroffBadExitError, SSHException):
                 container.kill()
+                self.logger.info(f"Killed {name}@{container.booter.pid}.")
 
+        self.logger.info("Server going down NOW!")
+        os.kill(os.getpid(), SIGABRT)
+
+    def panic(self) -> None:
+        """
+        Kills indiscriminately all QEMU processes on the system, then calls stop()
+        """
+        self.logger.error("PANICKING!!!")
+        for p in psutil.process_iter():
+            if "qemu-system-" in p.name().lower():
+                p.kill()
+                self.logger.error(f"KILLED {p.pid}!")
+        self.logger.info("Server going down NOW!")
         os.kill(os.getpid(), SIGABRT)
 
 
@@ -129,6 +145,8 @@ class _SocketConnection:
             if msg == b"HALT":
                 self.manager.stop()
                 return
+            if msg == b"PANIC":
+                self.manager.panic()
 
             {
                 b"UPDATE-HOSTKEY": self._update_hostkey,
