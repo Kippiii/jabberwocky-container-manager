@@ -4,6 +4,10 @@ Manages SSH connections (with containers)
 
 import logging
 import os
+from stat import S_ISDIR
+from posixpath import join as posixjoin, basename as posixbasename
+from os.path import basename, join as joindir, isdir
+from pathlib import PosixPath
 from typing import Optional, Tuple
 
 import paramiko
@@ -66,21 +70,35 @@ class SSHInterface:
     def put(self, local_file_path: str, remote_file_path: str) -> None:
         """
         Puts a file into SSH
+        Will raise a FileNotFoundError, IsADirectoryError
 
         :param local_file_path: The local file to be inserted
         :param remote_file_path: The remote path in SSH
         """
-        self.logger.debug(f"Attempting put({local_file_path}, {remote_file_path})")
+        if isdir(local_file_path):
+            raise IsADirectoryError(local_file_path)
 
+        # If destination is a directory, put file with basename(local) in said directory
+        if S_ISDIR(self.ftp_client.lstat(remote_file_path).st_mode):
+            remote_file_path = posixjoin(remote_file_path, basename(local_file_path))
+        # Attempt put
+        self.logger.debug(f"Attempting put({local_file_path}, {remote_file_path})")
         self.ftp_client.put(local_file_path, remote_file_path)
 
     def get(self, remote_file_path: str, local_file_path: str) -> None:
         """
         Gets a file from the SSH
+        Raises IsADirectoryError, FileNotFoundError
 
         :param remote_file_path: The path to file in the SSH machine
         :param local_file_path: The path to the local file
         """
+        if isdir(local_file_path):
+            local_file_path = joindir(local_file_path, posixbasename(remote_file_path))
+
+        if S_ISDIR(self.ftp_client.lstat(remote_file_path).st_mode):
+            raise IsADirectoryError(remote_file_path)
+
         self.logger.debug(f"Attempting get({local_file_path}, {remote_file_path})")
 
         self.ftp_client.get(remote_file_path, local_file_path)

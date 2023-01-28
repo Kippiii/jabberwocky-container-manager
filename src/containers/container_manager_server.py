@@ -240,7 +240,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if not get_container_dir(container_name).is_dir():
-            self.client_sock.send("NO_SUCH_CONTAINER")
+            self.client_sock.send(b"NO_SUCH_CONTAINER")
 
         elif container_name not in self.manager.containers:
             try:
@@ -262,7 +262,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.client_sock.send("CONTAINER_NOT_STARTED")
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
         self.manager.logger.debug("Stopping container '%s'", container_name)
@@ -279,7 +279,7 @@ class _SocketConnection:
         container_name = self.client_sock.recv(1024).decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.client_sock.send("CONTAINER_NOT_STARTED")
+            self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
 
         self.manager.logger.debug("Killing container '%s'", container_name)
@@ -304,8 +304,15 @@ class _SocketConnection:
 
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
-        else:
+            return
+
+        try:
             self.manager.containers[container_name].get(remote_file, local_file)
+        except FileNotFoundError:
+            self.client_sock.send(b"FILE_NOT_FOUND")
+        except IsADirectoryError:
+            self.client_sock.send(b"IS_A_DIRECTORY")
+        finally:
             self.client_sock.send(b"OK")
 
     def _put(self) -> None:
@@ -326,8 +333,14 @@ class _SocketConnection:
         if container_name not in self.manager.containers:
             self.client_sock.send(b"CONTAINER_NOT_STARTED")
             return
-        self.manager.containers[container_name].put(local_file, remote_file)
-        self.client_sock.send(b"OK")
+        try:
+            self.manager.containers[container_name].put(local_file, remote_file)
+        except FileNotFoundError:
+            self.client_sock.send(b"FILE_NOT_FOUND")
+        except IsADirectoryError:
+            self.client_sock.send(b"IS_A_DIRECTORY")
+        else:
+            self.client_sock.send(b"OK")
 
     def _install(self) -> None:
         """
