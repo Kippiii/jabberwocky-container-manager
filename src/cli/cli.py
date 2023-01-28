@@ -53,6 +53,7 @@ class JabberwockyCLI:
             "ping": self.ping,
             "ssh-address": self.ssh_address,
             "update": self.update,
+            "sftp": self.sftp,
         }
 
         if len(cmd) == 0:
@@ -78,6 +79,7 @@ class JabberwockyCLI:
 Using your container:
 start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
+sftp  [container_name] - Open an sftp shell
 files [container_name] - View the virtual filesystem
 stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
@@ -104,6 +106,14 @@ remove-repo [URL]
 update-repo [URL]
 """
         self.out_stream.write(help_str)
+
+    def sftp(self, cmd: List[str]) -> None:
+        name = cmd[0]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
+            return
+        self.container_manager.sftp(name)
 
     def view_files(self, cmd: List[str]) -> None:
         name = cmd[0]

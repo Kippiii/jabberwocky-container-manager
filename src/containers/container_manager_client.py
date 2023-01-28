@@ -21,7 +21,7 @@ from github import Github
 from src.system.syspath import *
 from src.globals import VERSION
 from src.system.os import get_os, OS
-from src.system.filezilla import filezilla
+from src.system.filezilla import filezilla, sftp
 
 
 class ContainerManagerClient:
@@ -64,6 +64,13 @@ class ContainerManagerClient:
 
         filezilla(*self.ssh_address(container_name))
 
+
+    def sftp(self, container_name: str) -> None:
+        if not self.started(container_name):
+            self.start(container_name)
+
+        user, pswd, host, port = self.ssh_address(container_name)
+        sftp(user, pswd, host, port, container_name)
 
     def ssh_address(self, container_name: str) -> Tuple[str, str, str, str]:
         """

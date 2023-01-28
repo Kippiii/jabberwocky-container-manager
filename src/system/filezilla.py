@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
-from subprocess import Popen, DETACHED_PROCESS
+import subprocess
+from src.system.syspath import get_container_id_rsa
 
 def filezilla(user: str, pswd: str, host: str, port: str):
     if sys.platform == "darwin":
@@ -17,4 +18,17 @@ def filezilla(user: str, pswd: str, host: str, port: str):
         bin = base / "bin" / "filezilla"
 
     sftp = f"sftp://{user}:{pswd}@{host}:{port}"
-    Popen([bin, sftp], creationflags=DETACHED_PROCESS)
+    subprocess.Popen([bin, sftp], creationflags=subprocess.DETACHED_PROCESS)
+
+def sftp(user: str, pswd: str, host: str, port: str, cname: str):
+    args = [
+        "C:\\Windows\\System32\\OpenSSH\\sftp.exe" if sys.platform == "win32" else "/usr/bin/sftp",
+        "-oStrictHostKeyChecking=no",
+        "-oLogLevel=ERROR",
+        "-oPasswordAuthentication=no",
+        "-i{}".format(get_container_id_rsa(cname)),
+        "-P{}".format(port),
+        "{}@{}".format(user, host)
+    ]
+
+    subprocess.run(args, shell=True)
