@@ -198,10 +198,14 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        if len(cmd) < 3:
-            self.out_stream.write("Command requires three arguments\n")
+        if len(cmd) < 2:
+            self.out_stream.write("Command requires two or three arguments\n")
             return
-        container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
+        if len(cmd) > 2:
+            container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
+        else:
+            container_name, local_file, remote_file = cmd[0], cmd[1], None
+
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -210,7 +214,7 @@ update-repo [URL]
         if not comp.match(local_file):
             self.out_stream.write(f"'{local_file}' is not a valid file name")
             return
-        if not comp.match(remote_file):
+        if remote_file is not None and not comp.match(remote_file):
             self.out_stream.write(f"'{remote_file}' is not a valid file name")
             return
         self.container_manager.put_file(container_name, local_file, remote_file)
@@ -221,10 +225,14 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        if len(cmd) < 3:
-            self.out_stream.write("Command requires three arguments\n")
+        if len(cmd) < 2:
+            self.out_stream.write("Command requires two or three arguments\n")
             return
-        container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
+        if len(cmd) > 2:
+            container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
+        else:
+            container_name, remote_file, local_file = cmd[0], cmd[1], None
+
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
@@ -233,7 +241,7 @@ update-repo [URL]
         if not comp.match(remote_file):
             self.out_stream.write(f"'{remote_file}' is not a valid file name")
             return
-        if not comp.match(local_file):
+        if local_file is not None and not comp.match(local_file):
             self.out_stream.write(f"'{local_file}' is not a valid file name")
             return
         self.container_manager.get_file(container_name, remote_file, local_file)

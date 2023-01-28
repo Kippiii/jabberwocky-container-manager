@@ -10,8 +10,9 @@ import time
 import json
 import os as pyos
 import requests
-from os.path import abspath
-from typing import List, Tuple, Union
+from os import getcwd
+from os.path import abspath, basename, join as joinpath
+from typing import List, Tuple, Union, Optional
 if sys.platform == "win32":
     import msvcrt
 else:
@@ -164,7 +165,9 @@ class ContainerManagerClient:
             shell=sys.platform == "win32",
         )
 
-    def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
+    def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:
+
+
         """
         Gets a file from a container
 
@@ -172,6 +175,9 @@ class ContainerManagerClient:
         :param remote_file: The file obtained from the container
         :param local_file: Where the file obtained from the container is placed
         """
+        if local_file in (None, "."):
+            local_file = joinpath(getcwd(), basename(remote_file))
+
         if not self.started(container_name):
             self.start(container_name)
 
@@ -188,7 +194,7 @@ class ContainerManagerClient:
         self._recv_expect(sock, 1024, b"OK")
         sock.close()
 
-    def put_file(self, container_name: str, local_file: str, remote_file: str) -> None:
+    def put_file(self, container_name: str, local_file: str, remote_file: Optional[str] = None) -> None:
         """
         Puts a file into a container
 
@@ -196,6 +202,9 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
+        if remote_file in (None, ".", "~"):
+            remote_file = basename(local_file)
+
         if not self.started(container_name):
             self.start(container_name)
 
