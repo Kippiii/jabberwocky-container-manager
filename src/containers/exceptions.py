@@ -107,24 +107,36 @@ class UnknownRequestError(ServerError):
     """
     Raised when server recieves an unknown request
     """
+    def _recv(self):
+        self.sock.send(b"CONT")
+        self.request: str = self.sock.recv(1024).decode('utf-8')
+
     def __str__(self):
-        return "Server recieved an unknown request"
+        return f"Server recieved an unknown request: {self.request}"
 
 
 class ContainerNotStartedError(ServerError):
     """
     Raised when there is an attempt to use a container that was not started
     """
+    def _recv(self):
+        self.sock.send(b"CONT")
+        self.container_name: str = self.sock.recv(1024).decode('utf-8')
+
     def __str__(self):
-        return "Attempt to use container that is not running"
+        return f"Container {self.container_name} is not running"
 
 
 class UnknownContainerError(ServerError):
     """
     Raised when container is not installed
     """
+    def _recv(self):
+        self.sock.send(b"CONT")
+        self.container_name: str = self.sock.recv(1024).decode('utf-8')
+
     def __str__(self):
-        return "Attempt to use container that is not installed"
+        return f"Container {self.container_name} is not installed"
 
 
 class BootFailureError(ServerError):
@@ -132,13 +144,17 @@ class BootFailureError(ServerError):
     Raised when container fails to boot
     """
     def __str__(self):
-        return "The container failed to boot"
+        return f"The container failed to boot. Please check {get_server_log_file()} for more information"
 
 
 class InvalidPathError(ServerError):
     """
     Raised when attempted path does not exist
     """
+    def _recv(self):
+        self.sock.send(b"CONT")
+        self.path: str = self.sock.recv(1024).decode('utf-8')
+
     def __str__(self):
         return "The path does not exist"
 
