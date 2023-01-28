@@ -11,7 +11,6 @@ if not CONTRIB_PATH.exists():
 
 if not (CONTRIB_PATH / "filezilla").exists():
     print("Downaloding Filezilla...")
-    makedirs(CONTRIB_PATH / "filezilla")
 
     if platform == "win32":
         url = "https://github.com/dmcdo/jabberwocky-contrib/blob/master/win32filezilla.zip?raw=true"
