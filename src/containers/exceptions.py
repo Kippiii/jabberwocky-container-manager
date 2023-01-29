@@ -92,9 +92,10 @@ class ServerError(RuntimeError):
     """
     Occurs when an issue happens on the server
     """
-    def __init__(self, sock: socket.socket):
+    def __init__(self, sock: "ClientServerSocket"):
         self.sock = sock
         self._recv()
+        self.sock.close()
 
     def _recv(self):
         pass
@@ -108,8 +109,8 @@ class UnknownRequestError(ServerError):
     Raised when server recieves an unknown request
     """
     def _recv(self):
-        self.sock.send(b"CONT")
-        self.request: str = self.sock.recv(1024).decode('utf-8')
+        self.sock.cont()
+        self.request: str = self.sock.recv().decode('utf-8')
 
     def __str__(self):
         return f"Server recieved an unknown request: {self.request}"
@@ -120,8 +121,8 @@ class ContainerNotStartedError(ServerError):
     Raised when there is an attempt to use a container that was not started
     """
     def _recv(self):
-        self.sock.send(b"CONT")
-        self.container_name: str = self.sock.recv(1024).decode('utf-8')
+        self.sock.cont()
+        self.container_name: str = self.sock.recv().decode('utf-8')
 
     def __str__(self):
         return f"Container {self.container_name} is not running"
@@ -132,8 +133,8 @@ class UnknownContainerError(ServerError):
     Raised when container is not installed
     """
     def _recv(self):
-        self.sock.send(b"CONT")
-        self.container_name: str = self.sock.recv(1024).decode('utf-8')
+        self.sock.cont()
+        self.container_name: str = self.sock.recv().decode('utf-8')
 
     def __str__(self):
         return f"Container {self.container_name} is not installed"
@@ -152,14 +153,14 @@ class InvalidPathError(ServerError):
     Raised when attempted path does not exist
     """
     def _recv(self):
-        self.sock.send(b"CONT")
-        self.path: str = self.sock.recv(1024).decode('utf-8')
+        self.sock.cont()
+        self.path: str = self.sock.recv().decode('utf-8')
 
     def __str__(self):
-        return "The path does not exist"
+        return f"The path {self.path} does not exist"
 
 
-def get_server_error(value: str, sock: socket.socket) -> None:
+def get_server_error(value: str, sock: "ClientServerSocket") -> None:
     """
     Gets the exception related to a server error
     """

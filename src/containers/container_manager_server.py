@@ -112,7 +112,7 @@ class _SocketConnection:
         client_addr: Tuple[str, int],
         manager: ContainerManagerServer,
     ):
-        self.sock = ContainerManagerServer(client_sock)
+        self.sock = ClientServerSocket(client_sock)
         self.client_addr = client_addr
         self.manager = manager
 
@@ -149,11 +149,11 @@ class _SocketConnection:
         except KeyError:
             self.sock.raise_unknown_request(msg)
         except (ConnectionError, OSError) as ex:
-            self.sock.raise_exception()
             self.manager.logger.exception(ex)
+            self.sock.raise_exception()
         except Exception as ex:  # pylint: disable=broad-except
-            self.sock.raise_exception()
             self.manager.logger.exception(ex)
+            self.sock.raise_exception()
         finally:
             self.sock.close()
 
@@ -232,7 +232,7 @@ class _SocketConnection:
             " ".join(cli)
         )
         _RunCommandHandler(
-            client_sock=self.client_sock,
+            client_sock=self.sock,
             client_addr=self.client_addr,
             manager=self.manager,
             stdin=stdin,
@@ -321,10 +321,11 @@ class _SocketConnection:
         if container_name not in self.manager.containers:
             self.manager.logger.debug("Attempt to get file from nonexistent container %s", container_name)
             self.sock.raise_container_not_started(container_name)
-        else:
-            self.manager.containers[container_name].get(remote_file, local_file)
-            self.sock.ok()
-            self.manager.logger.debug("Successfully got file from %s", container_name)
+            return
+
+        self.manager.containers[container_name].get(remote_file, local_file)
+        self.sock.ok()
+        self.manager.logger.debug("Successfully got file from %s", container_name)
 
     def _put(self) -> None:
         """
@@ -345,6 +346,11 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to put file into nonexistent container %s", container_name)
             self.sock.raise_container_not_started(container_name)
             return
+
+        if not Path(local_file).is_file():
+            self.manager.logger.debug("Attempt to put file that does not exist: %s", local_file)
+            self.sock.raise_invalid_path(local_file)
+
         self.manager.containers[container_name].put(local_file, remote_file)
         self.sock.ok()
         self.manager.logger.debug("Successfully put file into %s", container_name)

@@ -1,4 +1,7 @@
 import socket
+from typing import Union, List
+
+from src.containers.exceptions import get_server_error
 
 class ClientServerSocket:
     """
@@ -8,7 +11,7 @@ class ClientServerSocket:
 
     def send(self, data: Union[bytes, str]) -> None:
         if isinstance(data, str):
-            data.encode()
+            data = data.encode()
         self._sock.send(data)
 
     def recv(self, bufsize=1024) -> bytes:
@@ -23,9 +26,8 @@ class ClientServerSocket:
             match = msg in expected
 
         if not match:
-            self.close()
             msg = msg.decode()
-            get_server_error(msg, sock)
+            get_server_error(msg, self)
 
         return msg
 
