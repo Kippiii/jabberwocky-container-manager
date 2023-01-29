@@ -95,11 +95,11 @@ class ContainerManagerServer:
         self.logger.info("Server going down NOW!")
         os.kill(os.getpid(), SIGABRT)
 
-    def panic(self) -> None:
+    def panic(self, reason: Optional[str] = None) -> None:
         """
         Kills indiscriminately all QEMU processes on the system, then calls stop()
         """
-        self.logger.error("PANICKING!!!")
+        self.logger.error(f"PANICKING!!! Reason given: {reason}")
         for p in psutil.process_iter():
             if "qemu-system-" in p.name().lower():
                 p.kill()
@@ -146,7 +146,7 @@ class _SocketConnection:
                 self.manager.stop()
                 return
             if msg == b"PANIC":
-                self.manager.panic()
+                self.manager.panic("Received PANIC command.")
 
             {
                 b"UPDATE-HOSTKEY": self._update_hostkey,
