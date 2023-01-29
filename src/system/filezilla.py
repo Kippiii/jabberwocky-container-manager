@@ -1,24 +1,27 @@
 import sys
 from pathlib import Path
-import subprocess
+from subprocess import Popen, run, DETACHED_PROCESS
 from src.system.syspath import get_container_id_rsa
 
 def filezilla(user: str, pswd: str, host: str, port: str):
-    if sys.platform == "darwin":
-        raise NotImplementedError("FileZilla")
-
     if getattr(sys, 'frozen', False):
         base = Path(sys.executable).parent.parent / "contrib" / "filezilla"
     else:
         base = Path(__file__).parent.parent.parent / "contrib" / "filezilla"
 
     if sys.platform == "win32":
-        bin = base / "filezilla.exe"
+        Popen([base / "filezilla.exe", sftp], creationflags=DETACHED_PROCESS)
     elif sys.platform == "linux":
-        bin = base / "bin" / "filezilla"
-
-    sftp = f"sftp://{user}:{pswd}@{host}:{port}"
-    subprocess.Popen([bin, sftp], creationflags=subprocess.DETACHED_PROCESS)
+        Popen([base / "bin" / "filezilla", sftp])
+    elif sys.platform == "darwin":
+        Popen([
+            Path("/usr/bin/open"),
+            base / "FileZilla.app",
+            "--args",
+            sftp
+        ])
+    else:
+        raise RuntimeError(f"Unknown Platform {sys.platform}")
 
 def sftp(user: str, pswd: str, host: str, port: str, cname: str):
     args = [
@@ -31,4 +34,4 @@ def sftp(user: str, pswd: str, host: str, port: str, cname: str):
         "{}@{}".format(user, host)
     ]
 
-    subprocess.run(args, shell=True)
+    run(args, shell=True)

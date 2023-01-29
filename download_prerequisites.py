@@ -32,6 +32,13 @@ if not (CONTRIB_PATH / "filezilla").exists():
         shutil.move(extract_dest / listdir(extract_dest)[0], final_dest)
         rmdir(extract_dest)
         remove(downlaod_dest)
+    elif platform == "darwin":
+        url = "https://github.com/dmcdo/jabberwocky-contrib/blob/master/FileZilla_3.63.1_macosx-x86.app.tar.bz2?raw=true"
+        downlaod_dest = CONTRIB_PATH / "download.tar.bz2"
+        extract_dest = CONTRIB_PATH / "filezilla"
+        urlretrieve(url, downlaod_dest)
+        shutil.unpack_archive(downlaod_dest, extract_dest)
+        remove(downlaod_dest)
 
 else:
     print("Skipping Filezilla.")
