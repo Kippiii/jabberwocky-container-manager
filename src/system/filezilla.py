@@ -15,14 +15,14 @@ def filezilla(user: str, pswd: str, host: str, port: str):
     if sys.platform == "win32":
         sp.Popen([base / "filezilla.exe", args], creationflags=sp.DETACHED_PROCESS)
     elif sys.platform == "linux":
-        sp.Popen([base / "bin" / "filezilla", args])
+        sp.Popen([base / "bin" / "filezilla", args], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
     elif sys.platform == "darwin":
         sp.Popen([
             Path("/usr/bin/open"),
             base / "FileZilla.app",
             "--args",
             args
-        ])
+        ], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
     else:
         raise RuntimeError(f"Unknown Platform {sys.platform}")
 
@@ -37,7 +37,5 @@ def sftp(user: str, pswd: str, host: str, port: str, cname: str):
         "{}@{}".format(user, host)
     ]
 
-    if sys.platform == "darwin":
-        os.system(" ".join(args)) # sp.run is buggy on macOS
-    else:
-        sp.run(args, shell=True)
+    os.system(" ".join(args)) # sp.run is buggy on macOS
+
