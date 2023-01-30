@@ -22,6 +22,8 @@ from src.system.syspath import get_full_path
 from src.system.syspath import *
 from src.globals import VERSION
 from src.system.os import get_os, OS
+from src.containers.exceptions import *
+from src.system.socket import ClientServerSocket
 from src.system.filezilla import filezilla, sftp
 
 
@@ -45,14 +47,14 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"PING")
-        self._recv_expect(sock, 1024, b"PONG")
+        sock.recv_expect(b"PONG")
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
         sock.send(b"STARTED")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        response = self._recv_expect(sock, 1024, [b"YES", b"NO"])
+        response = sock.recv_expect([b"YES", b"NO"])
 
         if response == b"YES":
             return True
@@ -82,9 +84,9 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"SSH-ADDRESS")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        user, passwd, host, port = sock.recv(1024).decode("utf-8").split(":")
+        user, passwd, host, port = sock.recv().decode("utf-8").split(":")
         sock.close()
         return (user, passwd, host, port)
 
@@ -96,9 +98,9 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"UPDATE-HOSTKEY")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
 
     def start(self, container_name: str) -> None:
         """
@@ -108,9 +110,9 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"START")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def stop(self, container_name: str) -> None:
@@ -121,9 +123,9 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"STOP")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def kill(self, container_name: str) -> None:
@@ -134,9 +136,9 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"KILL")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def run_shell(self, container_name: str) -> None:
@@ -185,13 +187,13 @@ class ContainerManagerClient:
 
         sock = self._make_connection()
         sock.send(b"GET-FILE")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(remote_file, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(absolute_local_path, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def put_file(self, container_name: str, local_file: str, remote_file: Optional[str] = None) -> None:
@@ -212,13 +214,13 @@ class ContainerManagerClient:
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(absolute_local_path, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(remote_file, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def run_command(self, container_name: str, cli: List[str]) -> None:
@@ -233,16 +235,16 @@ class ContainerManagerClient:
 
         sock = self._make_connection()
         sock.send(b"RUN-COMMAND")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
 
         sock.send(bytes(str(len(cli)), "utf-8"))
         for arg in cli:
-            self._recv_expect(sock, 1024, b"CONT")
+            sock.recv_expect(b"CONT")
             sock.send(bytes(arg, "utf-8"))
 
-        self._recv_expect(sock, 1024, b"BEGIN")
+        sock.recv_expect(b"BEGIN")
         _RunCommandClient(sock)
 
     def install(self, archive_path_str: str, container_name: str) -> None:
@@ -256,11 +258,11 @@ class ContainerManagerClient:
 
         sock = self._make_connection()
         sock.send(b"INSTALL")
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(absolute_archive_path, "utf-8"))
-        self._recv_expect(sock, 1024, b"CONT")
+        sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        self._recv_expect(sock, 1024, b"OK")
+        sock.recv_expect(b"OK")
         sock.close()
 
     def server_halt(self) -> None:
@@ -279,7 +281,7 @@ class ContainerManagerClient:
         sock.send(b"PANIC")
         sock.close()
 
-    def _make_connection(self) -> socket.socket:
+    def _make_connection(self) -> ClientServerSocket:
         """
         Creates a connection to the server.
 
@@ -287,46 +289,9 @@ class ContainerManagerClient:
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(self.server_address)
-        self._recv_expect(sock, 1024, b"READY")
-        return sock
-
-    def _recv_expect(self, sock: socket.socket, bufsize: int, expected: Union[bytes, List[bytes]]) -> bytes:
-        """
-        Receives data from a socket, then checks if the data it receives is
-        equal to the expected data. If it gets the expected response, return it.
-        If not, raise an exception.
-
-        :param sock: The server socket object
-        :param bufsize: Buffer size to be passed to socket.recv
-        :param expected: The expected data
-        :return: The data received
-        """
-        msg = sock.recv(bufsize)
-
-        if type(expected) is bytes:
-            match = msg == expected
-        else:
-            match = msg in expected
-
-        if not match:
-            sock.close()
-            msg = msg.decode()
-            if msg == "UNKNOWN_REQUEST":
-                raise RuntimeError("Recieved invalid request")
-            if msg == "NO_SUCH_CONATINER":
-                raise RuntimeError("Container does not exist")
-            if msg == "CONTAINER_NOT_STARTED":
-                raise RuntimeError("Container has not been started")
-            if msg == "BOOT_FAILURE":
-                raise RuntimeError("Container failed while booting")
-            if msg == "EXCEPTION_OCCURED":
-                raise RuntimeError(
-                    f"An exception occured! Please check {get_server_log_file()} for more information"
-                )
-            raise RuntimeError(
-                f'Got Unexpected Response "{msg}" from {self.server_address}'
-            )
-        return msg
+        my_sock = ClientServerSocket(sock)
+        my_sock.recv_expect(b"READY")
+        return my_sock
 
 
 class _RunCommandClient:
@@ -337,7 +302,7 @@ class _RunCommandClient:
     :param sock: The server socket object
     """
 
-    sock: socket.socket
+    sock: ClientServerSocket
     recv_closed: bool
 
     def __init__(self, sock: socket.socket):
@@ -410,7 +375,7 @@ class _RunCommandClient:
         Receives and outputs data read from the server.
         """
         try:
-            while msg := self.sock.recv(1024):
+            while msg := self.sock.recv():
                 sys.stdout.buffer.write(msg)
                 sys.stdout.flush()
         except (ConnectionError, OSError):
