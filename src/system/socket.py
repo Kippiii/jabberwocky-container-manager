@@ -145,3 +145,8 @@ class ClientServerSocket:
         self.send(b"INVALID_PATH")
         self.recv()
         self.send(path)
+
+    def raise_is_a_directory(self, path: str):
+        self.send(b"IS_A_DIRECTORY")
+        self.recv()
+        self.send(path)

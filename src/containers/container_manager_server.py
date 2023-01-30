@@ -338,17 +338,18 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.client_sock.send(b"CONTAINER_NOT_STARTED")
+            self.manager.logger.debug("Attempt to get file from nonexistent container %s", container_name)
+            self.sock.raise_container_not_started(container_name)
             return
 
         try:
             self.manager.containers[container_name].get(remote_file, local_file)
         except FileNotFoundError:
-            self.client_sock.send(b"FILE_NOT_FOUND")
+            self.sock.raise_invalid_path(remote_file)
         except IsADirectoryError:
-            self.client_sock.send(b"IS_A_DIRECTORY")
-        finally:
-            self.client_sock.send(b"OK")
+            self.sock.raise_is_a_directory(remote_file)
+        else:
+            self.sock.ok()
 
     def _put(self) -> None:
         """
@@ -372,11 +373,11 @@ class _SocketConnection:
         try:
             self.manager.containers[container_name].put(local_file, remote_file)
         except FileNotFoundError:
-            self.client_sock.send(b"FILE_NOT_FOUND")
+            self.sock.raise_invalid_path(local_file)
         except IsADirectoryError:
-            self.client_sock.send(b"IS_A_DIRECTORY")
+            self.sock.raise_is_a_directory(local_file)
         else:
-            self.client_sock.send(b"OK")
+            self.sock.ok()
 
     def _install(self) -> None:
         """
