@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 import subprocess as sp
 from src.system.syspath import get_container_id_rsa
@@ -36,4 +37,7 @@ def sftp(user: str, pswd: str, host: str, port: str, cname: str):
         "{}@{}".format(user, host)
     ]
 
-    sp.run(args, shell=True)
+    if sys.platform == "darwin":
+        os.system(" ".join(args)) # sp.run is buggy on macOS
+    else:
+        sp.run(args, shell=True)
