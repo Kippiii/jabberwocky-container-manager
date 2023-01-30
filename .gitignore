@@ -3,3 +3,4 @@ poetry.lock
 **/__pycache__
 build
 contrib/
+.DS_STORE
