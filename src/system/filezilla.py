@@ -5,6 +5,9 @@ import subprocess as sp
 from src.system.syspath import get_container_id_rsa
 
 def filezilla(user: str, pswd: str, host: str, port: str):
+    if host == "localhost":
+        host = "127.0.0.1" # FileZilla on macOS doesn't like 'localhost'
+
     args = f"sftp://{user}:{pswd}@{host}:{port}"
 
     if getattr(sys, 'frozen', False):
