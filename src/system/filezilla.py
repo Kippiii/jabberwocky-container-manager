@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from subprocess import Popen, run, DETACHED_PROCESS
+import subprocess as sp
 from src.system.syspath import get_container_id_rsa
 
 def filezilla(user: str, pswd: str, host: str, port: str):
@@ -12,11 +12,11 @@ def filezilla(user: str, pswd: str, host: str, port: str):
         base = Path(__file__).parent.parent.parent / "contrib" / "filezilla"
 
     if sys.platform == "win32":
-        Popen([base / "filezilla.exe", args], creationflags=DETACHED_PROCESS)
+        sp.Popen([base / "filezilla.exe", args], creationflags=sp.DETACHED_PROCESS)
     elif sys.platform == "linux":
-        Popen([base / "bin" / "filezilla", args])
+        sp.Popen([base / "bin" / "filezilla", args])
     elif sys.platform == "darwin":
-        Popen([
+        sp.Popen([
             Path("/usr/bin/open"),
             base / "FileZilla.app",
             "--args",
@@ -36,4 +36,4 @@ def sftp(user: str, pswd: str, host: str, port: str, cname: str):
         "{}@{}".format(user, host)
     ]
 
-    run(args, shell=True)
+    sp.run(args, shell=True)
