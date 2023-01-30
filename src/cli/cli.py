@@ -9,6 +9,7 @@ from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
+from src.system.state import frozen
 from src.globals import VERSION
 
 CONTAINER_NAME_REGEX = r"""\w+"""
@@ -125,7 +126,15 @@ update-repo [URL]
         if not comp.match(name):
             self.out_stream.write(f"'{name}' is not a valid container name\n")
             return
-        self.container_manager.view_files(name)
+        try:
+            self.container_manager.view_files(name)
+        except (FileNotFoundError, PermissionError):
+            if frozen():
+                self.out_stream.write("Could not find a local FileZilla instance.\n")
+                self.out_stream.write("Your platform may not support this command.\n")
+            else:
+                self.out_stream.write("Could not find a local FileZilla instance.\n")
+                self.out_stream.write("You may want to run download_prerequisites.py.\n")
 
     def interact(self, cmd: List[str]) -> None:
         """

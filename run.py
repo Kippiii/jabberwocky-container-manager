@@ -10,6 +10,7 @@ from src.containers.container_manager_client import ContainerManagerClient
 from src.system.syspath import get_server_info_file
 from server import server_is_running
 from src.cli.cli import JabberwockyCLI
+from src.system.state import frozen
 
 
 def main():
@@ -18,7 +19,7 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     if not server_is_running():
-        if getattr(sys, 'frozen', False):
+        if frozen():
             target = Path(sys.executable).parent.parent / "server" / "server"
         else:
             target = f"\"{sys.executable}\" server.py"

@@ -27,7 +27,7 @@ def filezilla(user: str, pswd: str, host: str, port: str):
             args
         ], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
     else:
-        raise RuntimeError(f"Unknown Platform {sys.platform}")
+        raise FileNotFoundError()
 
 def sftp(user: str, pswd: str, host: str, port: str, cname: str):
     args = [
