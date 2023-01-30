@@ -250,7 +250,7 @@ class ContainerManagerClient:
         sock.send(b"HALT")
         sock.close()
 
-    def _make_connection(self) -> socket.socket:
+    def _make_connection(self) -> ClientServerSocket:
         """
         Creates a connection to the server.
 
