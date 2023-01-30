@@ -3,8 +3,8 @@ import shutil
 import hashlib
 from pathlib import Path
 from os import makedirs, chdir, pathsep
-from os.path import basename
-from sys import executable, platform, exit
+from os.path import basename, exists
+from sys import executable, platform, exit, argv
 from platform import machine
 
 EXE_FILE_EXTEN = ".exe" if platform == "win32" else ""
@@ -19,9 +19,15 @@ target_install = root / "installer.py"
 installer_name = f"installer-{platform}-{machine()}"
 installer_file = build / "dist" / (installer_name + EXE_FILE_EXTEN)
 
-if not (contrib / "filezilla").exists():
+ignore_missing_contrib = "--ignore-missing-contrib" in argv
+
+if ignore_missing_contrib:
+    if not exists(contrib):
+        makedirs(contrib)
+elif not (contrib / "filezilla").exists():
     print("FileZilla is missing.")
     print("Run download_prerequisies.py before building.")
+    print("OR build with --ignore-missing-contrib.")
     exit(-1)
 
 # Clean previous build
