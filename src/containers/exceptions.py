@@ -195,21 +195,3 @@ class SockIsADirectoryError(ServerError):
 
     def __str__(self):
         return f"{self.path} is a directory."
-
-
-def get_server_error(value: str, sock: "ClientServerSocket") -> None:
-    """
-    Gets the exception related to a server error
-    """
-    mapping = {
-        "UNKNOWN_REQUEST": UnknownRequestError,
-        "CONTAINER_NOT_STARTED": ContainerNotStartedError,
-        "NO_SUCH_CONTAINER": UnknownContainerError,
-        "BOOT_FAILURE": BootFailureError,
-        "INVALID_PATH": InvalidPathError,
-        "EXCEPTION_OCCURED": ServerError,
-        "IS_A_DIRECTORY": SockIsADirectoryError,
-    }
-    if value not in mapping:
-        raise ValueError(f"Recieved unknown error from server: {value}")
-    raise mapping[value](sock)

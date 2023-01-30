@@ -79,8 +79,12 @@ class SSHInterface:
             raise IsADirectoryError(local_file_path)
 
         # If destination is a directory, put file with basename(local) in said directory
-        if S_ISDIR(self.ftp_client.lstat(remote_file_path).st_mode):
-            remote_file_path = posixjoin(remote_file_path, basename(local_file_path))
+        try:
+            if S_ISDIR(self.ftp_client.lstat(remote_file_path).st_mode):
+                remote_file_path = posixjoin(remote_file_path, basename(local_file_path))
+        except FileNotFoundError:
+            pass
+
         # Attempt put
         self.logger.debug(f"Attempting put({local_file_path}, {remote_file_path})")
         self.ftp_client.put(local_file_path, remote_file_path)

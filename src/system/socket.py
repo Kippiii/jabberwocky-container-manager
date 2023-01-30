@@ -5,8 +5,7 @@ Deals with client/server socket objects
 import socket
 from typing import Union, List
 
-from src.containers.exceptions import get_server_error
-
+import src.containers.exceptions as exc
 
 class ClientServerSocket:
     """
@@ -150,3 +149,21 @@ class ClientServerSocket:
         self.send(b"IS_A_DIRECTORY")
         self.recv()
         self.send(path)
+
+
+def get_server_error(value: str, sock: ClientServerSocket) -> None:
+    """
+    Gets the exception related to a server error
+    """
+    mapping = {
+        "UNKNOWN_REQUEST": exc.UnknownRequestError,
+        "CONTAINER_NOT_STARTED": exc.ContainerNotStartedError,
+        "NO_SUCH_CONTAINER": exc.UnknownContainerError,
+        "BOOT_FAILURE": exc.BootFailureError,
+        "INVALID_PATH": exc.InvalidPathError,
+        "EXCEPTION_OCCURED": exc.ServerError,
+        "IS_A_DIRECTORY": exc.SockIsADirectoryError,
+    }
+    if value not in mapping:
+        raise ValueError(f"Recieved unknown error from server: {value}")
+    raise mapping[value](sock)

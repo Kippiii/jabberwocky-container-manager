@@ -209,7 +209,7 @@ class _SocketConnection:
             port = self.manager.containers[container_name].ex_port
             user = self.manager.containers[container_name].username
             self.manager.logger.debug(f"Container {container_name} SSH info: ({user}:{pswd}@{host}:{port})")
-            self.client_sock.send(f"{user}:{pswd}:{host}:{port}".encode("utf-8"))
+            self.sock.send(f"{user}:{pswd}:{host}:{port}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
         """
