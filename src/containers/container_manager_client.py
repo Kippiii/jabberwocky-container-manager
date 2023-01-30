@@ -45,9 +45,11 @@ class ContainerManagerClient:
         """
         Pings the server
         """
+        sys.stdout.write("Pinging server...\n")
         sock = self._make_connection()
         sock.send(b"PING")
         sock.recv_expect(b"PONG")
+        sys.stdout.write("PONG\n")
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -65,6 +67,7 @@ class ContainerManagerClient:
         if not self.started(container_name):
             self.start(container_name)
 
+        sys.stdout.write(f"Opening the file system of {container_name}")
         filezilla(*self.ssh_address(container_name))
 
 
@@ -72,6 +75,7 @@ class ContainerManagerClient:
         if not self.started(container_name):
             self.start(container_name)
 
+        sys.stdout.write(f"Starting sftp of {container_name}")
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
@@ -108,12 +112,14 @@ class ContainerManagerClient:
 
         :param container_name: The container being started
         """
+        sys.stdout.write(f"Starting container {container_name}\n")
         sock = self._make_connection()
         sock.send(b"START")
         sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write(f"The container {container_name} was successfully started!\n")
 
     def stop(self, container_name: str) -> None:
         """
@@ -121,12 +127,14 @@ class ContainerManagerClient:
 
         :param container_name: The container being stopped
         """
+        sys.stdout.write(f"Stopping container {container_name}\n")
         sock = self._make_connection()
         sock.send(b"STOP")
         sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write(f"Container {container_name} was successfully stopped!\n")
 
     def kill(self, container_name: str) -> None:
         """
@@ -134,12 +142,14 @@ class ContainerManagerClient:
 
         :param container_name: The container being stopped
         """
+        sys.stdout.write(f"Killing container {container_name}\n")
         sock = self._make_connection()
         sock.send(b"KILL")
         sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write(f"Container {container_name} was successfully killed!\n")
 
     def run_shell(self, container_name: str) -> None:
         """
@@ -153,6 +163,7 @@ class ContainerManagerClient:
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
+        sys.stdout.write(f"Opening shell of {container_name}\n")
         user, _, host, port = self.ssh_address(container_name)
         subprocess.run(
             [
@@ -168,8 +179,6 @@ class ContainerManagerClient:
         )
 
     def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:
-
-
         """
         Gets a file from a container
 
