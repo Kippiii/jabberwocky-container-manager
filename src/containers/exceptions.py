@@ -4,10 +4,12 @@ Manages the exceptions related to the containers
 
 import re
 
+from pathlib import Path
 from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
-from pathlib import Path
+
+from src.system.syspath import get_server_log_file
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
@@ -83,3 +85,114 @@ class ContainerAlreadyExistsError(RuntimeError):
     Raised during container installation when a
     container of the desired name already exists
     """
+
+
+class ServerError(RuntimeError):
+    """
+    Occurs when an issue happens on the server
+
+    :param sock: The socket connection being used
+    """
+
+    def __init__(self, sock: "ClientServerSocket"):
+        self.sock = sock
+        self._recv()
+        self.sock.close()
+
+    def _recv(self):
+        pass
+
+    def __str__(self):
+        return (
+            f"An error occured on the server. Please check {get_server_log_file()}"
+            f" for more information"
+        )
+
+
+class UnknownRequestError(ServerError):
+    """
+    Raised when server recieves an unknown request
+
+    :param request: The request sent by the client
+    """
+
+    def _recv(self):
+        self.sock.cont()
+        self.request: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"Server recieved an unknown request: {self.request}"
+
+
+class ContainerNotStartedError(ServerError):
+    """
+    Raised when there is an attempt to use a container that was not started
+
+    :param container_name: The name of the container that wasn't started
+    """
+
+    def _recv(self):
+        self.sock.cont()
+        self.container_name: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"Container {self.container_name} is not running"
+
+
+class UnknownContainerError(ServerError):
+    """
+    Raised when container is not installed
+
+    :param container_name: The name of the unknown container
+    """
+
+    def _recv(self):
+        self.sock.cont()
+        self.container_name: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"Container {self.container_name} is not installed"
+
+
+class BootFailureError(ServerError):
+    """
+    Raised when container fails to boot
+    """
+
+    def __str__(self):
+        return (
+            f"The container failed to boot. Please check {get_server_log_file()}"
+            f" for more information"
+        )
+
+
+class InvalidPathError(ServerError):
+    """
+    Raised when attempted path does not exist
+
+    :param path: The invalid path obtained by the server
+    """
+
+    def _recv(self):
+        self.sock.cont()
+        self.path: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"The path {self.path} does not exist"
+
+
+def get_server_error(value: str, sock: "ClientServerSocket") -> None:
+    """
+    Gets the exception related to a server error
+    """
+    mapping = {
+        "UNKNOWN_REQUEST": UnknownRequestError,
+        "CONTAINER_NOT_STARTED": ContainerNotStartedError,
+        "NO_SUCH_CONTAINER": UnknownContainerError,
+        "BOOT_FAILURE": BootFailureError,
+        "INVALID_PATH": InvalidPathError,
+        "EXCEPTION_OCCURED": ServerError,
+    }
+    if value not in mapping:
+        raise ValueError(f"Recieved unknown error from server: {value}")
+    raise mapping[value](sock)
