@@ -9,6 +9,7 @@ from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
+from src.globals import VERSION
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 
@@ -53,6 +54,7 @@ class JabberwockyCLI:
             "update": self.update,
             "sftp": self.sftp,
             "panic": self.server_panic,
+            "version": self.version,
         }
 
         if len(cmd) == 0:
@@ -66,6 +68,9 @@ class JabberwockyCLI:
             self.out_stream.write(f"Command of '{command}' is not valid\nUse 'jab help' to see a list of commands\n")
             return
         subcmd_dict[command.lower()](rest)
+
+    def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        self.out_stream.write(f"{VERSION}\n")
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
