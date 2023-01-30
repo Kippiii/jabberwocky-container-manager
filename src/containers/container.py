@@ -90,7 +90,7 @@ class Container:
             raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
-            "localhost",
+            "127.0.0.1",
             self.username,
             self.ex_port,
             self.password,
