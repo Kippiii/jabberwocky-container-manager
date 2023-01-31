@@ -18,7 +18,7 @@ class SpinningTask:
     target: Callable[[], None]
     args: Iterable
 
-    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = (), out_stream: TextIO = Optional[sys.stdout]):
+    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = (), out_stream: Optional[TextIO] = sys.stdout):
         self.prompt = prompt
         self.target = target
         self.args = args
