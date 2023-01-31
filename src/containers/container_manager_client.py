@@ -45,11 +45,10 @@ class ContainerManagerClient:
         """
         Pings the server
         """
-        sys.stdout.write("Pinging server...\n")
         sock = self._make_connection()
         sock.send(b"PING")
         sock.recv_expect(b"PONG")
-        sys.stdout.write("PONG\n")
+        sys.stdout.write("Pong\n")
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -194,6 +193,7 @@ class ContainerManagerClient:
 
         absolute_local_path = get_full_path(local_file)
 
+        sys.stdout.write(f"Getting {remote_file} from {container_name} to {local_file}\n")
         sock = self._make_connection()
         sock.send(b"GET-FILE")
         sock.recv_expect(b"CONT")
@@ -204,6 +204,7 @@ class ContainerManagerClient:
         sock.send(bytes(absolute_local_path, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write("File transfer successful\n")
 
     def put_file(self, container_name: str, local_file: str, remote_file: Optional[str] = None) -> None:
         """
@@ -221,6 +222,7 @@ class ContainerManagerClient:
 
         absolute_local_path = get_full_path(local_file)
 
+        sys.stdout.write(f"Putting {local_file} into {container_name} at {remote_file}\n")
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
         sock.recv_expect(b"CONT")
@@ -231,6 +233,7 @@ class ContainerManagerClient:
         sock.send(bytes(remote_file, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write("File transfer successful\n")
 
     def run_command(self, container_name: str, cli: List[str]) -> None:
         """
@@ -265,6 +268,7 @@ class ContainerManagerClient:
         """
         absolute_archive_path = get_full_path(archive_path_str)
 
+        sys.stdout.write(f"Installing {container_name} from {archive_path_str}\n")
         sock = self._make_connection()
         sock.send(b"INSTALL")
         sock.recv_expect(b"CONT")
@@ -273,11 +277,13 @@ class ContainerManagerClient:
         sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
+        sys.stdout.write(f"Successfully installed {container_name}\n")
 
     def server_halt(self) -> None:
         """
         Tells the server to halt
         """
+        sys.stdout.write("Halting server\n")
         sock = self._make_connection()
         sock.send(b"HALT")
         sock.close()
