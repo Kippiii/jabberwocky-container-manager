@@ -9,10 +9,10 @@ from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
+from src.system.state import frozen
+from src.globals import VERSION
 
 CONTAINER_NAME_REGEX = r"""\w+"""
-FILE_NAME_REGEX = r"""[^<>:;,?"*|/]+"""
-
 
 class JabberwockyCLI:
     """
@@ -33,6 +33,7 @@ class JabberwockyCLI:
         """
         subcmd_dict = {
             "help": self.help,
+            "files": self.view_files,
             "interact": self.interact,
             "shell": self.interact,
             "start": self.start,
@@ -52,6 +53,9 @@ class JabberwockyCLI:
             "ping": self.ping,
             "ssh-address": self.ssh_address,
             "update": self.update,
+            "sftp": self.sftp,
+            "panic": self.server_panic,
+            "version": self.version,
         }
 
         if len(cmd) == 0:
@@ -64,7 +68,10 @@ class JabberwockyCLI:
         if command not in subcmd_dict:
             self.out_stream.write(f"Command of '{command}' is not valid\nUse 'jab help' to see a list of commands\n")
             return
-        subcmd_dict[command](rest)
+        subcmd_dict[command.lower()](rest)
+
+    def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        self.out_stream.write(f"{VERSION}\n")
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -77,6 +84,8 @@ class JabberwockyCLI:
 Using your container:
 start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
+sftp  [container_name] - Open an sftp shell
+files [container_name] - View the virtual filesystem
 stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
@@ -102,6 +111,30 @@ remove-repo [URL]
 update-repo [URL]
 """
         self.out_stream.write(help_str)
+
+    def sftp(self, cmd: List[str]) -> None:
+        name = cmd[0]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
+            return
+        self.container_manager.sftp(name)
+
+    def view_files(self, cmd: List[str]) -> None:
+        name = cmd[0]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(name):
+            self.out_stream.write(f"'{name}' is not a valid container name\n")
+            return
+        try:
+            self.container_manager.view_files(name)
+        except (FileNotFoundError, PermissionError):
+            if frozen():
+                self.out_stream.write("Could not find a local FileZilla instance.\n")
+                self.out_stream.write("Your platform may not support this command.\n")
+            else:
+                self.out_stream.write("Could not find a local FileZilla instance.\n")
+                self.out_stream.write("You may want to run download_prerequisites.py.\n")
 
     def interact(self, cmd: List[str]) -> None:
         """
@@ -178,21 +211,19 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        if len(cmd) < 3:
-            self.out_stream.write("Command requires three arguments\n")
+        if len(cmd) < 2:
+            self.out_stream.write("Command requires two or three arguments\n")
             return
-        container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
+        if len(cmd) > 2:
+            container_name, local_file, remote_file = cmd[0], cmd[1], cmd[2]
+        else:
+            container_name, local_file, remote_file = cmd[0], cmd[1], None
+
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(local_file):
-            self.out_stream.write(f"'{local_file}' is not a valid file name")
-            return
-        if not comp.match(remote_file):
-            self.out_stream.write(f"'{remote_file}' is not a valid file name")
-            return
+
         self.container_manager.put_file(container_name, local_file, remote_file)
 
     def get_file(self, cmd: List[str]) -> None:
@@ -201,21 +232,19 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        if len(cmd) < 3:
-            self.out_stream.write("Command requires three arguments\n")
+        if len(cmd) < 2:
+            self.out_stream.write("Command requires two or three arguments\n")
             return
-        container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
+        if len(cmd) > 2:
+            container_name, remote_file, local_file = cmd[0], cmd[1], cmd[2]
+        else:
+            container_name, remote_file, local_file = cmd[0], cmd[1], None
+
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        comp = re.compile(FILE_NAME_REGEX)
-        if not comp.match(remote_file):
-            self.out_stream.write(f"'{remote_file}' is not a valid file name")
-            return
-        if not comp.match(local_file):
-            self.out_stream.write(f"'{local_file}' is not a valid file name")
-            return
+
         self.container_manager.get_file(container_name, remote_file, local_file)
 
     def install(self, cmd: List[str]) -> None:
@@ -294,6 +323,14 @@ update-repo [URL]
         :param cmd: The rest of the command sent
         """
         self.container_manager.server_halt()
+
+    def server_panic(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        """
+        Tells the server to PANIC!
+
+        :param cmd: The rest of the command sent
+        """
+        self.container_manager.server_panic()
 
     def ping(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

@@ -10,6 +10,7 @@ from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
 
 from src.system.syspath import get_server_log_file
+from src.system.socket import ClientServerSocket
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
@@ -94,7 +95,7 @@ class ServerError(RuntimeError):
     :param sock: The socket connection being used
     """
 
-    def __init__(self, sock: "ClientServerSocket"):
+    def __init__(self, sock: ClientServerSocket):
         self.sock = sock
         self._recv()
         self.sock.close()
@@ -181,18 +182,16 @@ class InvalidPathError(ServerError):
         return f"The path {self.path} does not exist"
 
 
-def get_server_error(value: str, sock: "ClientServerSocket") -> None:
+class SockIsADirectoryError(ServerError):
     """
-    Gets the exception related to a server error
+    Raised when attempted path is a directory and shouldn't be
+
+    :param path: The invalid path obtained by the server
     """
-    mapping = {
-        "UNKNOWN_REQUEST": UnknownRequestError,
-        "CONTAINER_NOT_STARTED": ContainerNotStartedError,
-        "NO_SUCH_CONTAINER": UnknownContainerError,
-        "BOOT_FAILURE": BootFailureError,
-        "INVALID_PATH": InvalidPathError,
-        "EXCEPTION_OCCURED": ServerError,
-    }
-    if value not in mapping:
-        raise ValueError(f"Recieved unknown error from server: {value}")
-    raise mapping[value](sock)
+
+    def _recv(self):
+        self.sock.cont()
+        self.path: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"{self.path} is a directory."

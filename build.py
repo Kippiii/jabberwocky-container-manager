@@ -3,14 +3,16 @@ import shutil
 import hashlib
 from pathlib import Path
 from os import makedirs, chdir, pathsep
-from os.path import basename
-from sys import executable, platform
+from os.path import basename, exists
+from sys import executable, platform, exit, argv
 from platform import machine
+from src.system.filezilla import fzpath
 
 EXE_FILE_EXTEN = ".exe" if platform == "win32" else ""
 
 root           = Path(__file__).parent.absolute()
 build          = root / "build/"
+contrib        = root / "contrib/"
 target_run     = root / "run.py"
 target_server  = root / "server.py"
 target_install = root / "installer.py"
@@ -18,6 +20,16 @@ target_install = root / "installer.py"
 installer_name = f"installer-{platform}-{machine()}"
 installer_file = build / "dist" / (installer_name + EXE_FILE_EXTEN)
 
+ignore_missing_contrib = "--ignore-missing-contrib" in argv
+
+if ignore_missing_contrib:
+    if not exists(contrib):
+        makedirs(contrib)
+elif not fzpath() or not fzpath().exists():
+    print("FileZilla is missing.")
+    print("Run download_prerequisies.py before building.")
+    print("OR build with --ignore-missing-contrib.")
+    exit(-1)
 
 # Clean previous build
 if build.is_dir():
@@ -54,6 +66,7 @@ subprocess.run([
 ], check=True)
 
 shutil.make_archive(build / "dist", "tar", build / "dist")
+shutil.make_archive(build / "contrib", "tar", contrib)
 
 subprocess.run([
     *pyinstaller,
@@ -65,6 +78,8 @@ subprocess.run([
     f"{build / 'dist.tar'}{pathsep}.",
     f"--add-data",
     f"{root / 'LICENSE'}{pathsep}.",
+    f"--add-data",
+    f"{build / 'contrib.tar'}{pathsep}.",
     *build_options,
     target_install,
 ], check=True)

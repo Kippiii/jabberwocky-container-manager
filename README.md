@@ -20,8 +20,9 @@ There is no support for cross-compiling at this time.
 ## How to Run the Tool
 
 ```sh
-poetry install # Only do on first time
+poetry install # Only do first time
 
 poetry shell
+python download_prerequisites.py # Only do first time
 python run.py
 ```

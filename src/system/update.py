@@ -1,7 +1,9 @@
 import subprocess
 import sys
+import re
 import tempfile
 import requests
+import hashlib
 from distutils.version import StrictVersion
 from github import Github
 from github.GitRelease import GitRelease
@@ -39,8 +41,15 @@ def update(release: GitRelease, asset: GitReleaseAsset):
     # Search for latest release
     ContainerManagerClient().server_halt()
 
+    sha_regex = r"installer-%s-%s%s\s+SHA256: ([a-zA-Z0-9]{64})" % (platform, machine(), EXE_FILE_EXTEN)
+    sha = re.search(sha_regex, release.body, re.MULTILINE).group(1)
+
     r = requests.get(asset.browser_download_url)
     p = Path(tempfile.gettempdir()) / asset.name
+
+    # Verify Installer
+    if hashlib.sha256(r.content).hexdigest().upper() != sha.upper():
+        raise RuntimeError("Bad Checksum!!! Try updating again later.")
 
     with open(p, "wb") as f:
         f.write(r.content)

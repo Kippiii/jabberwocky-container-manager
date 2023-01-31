@@ -10,19 +10,21 @@ import time
 import json
 import os as pyos
 import requests
-from os.path import abspath
-from typing import List, Tuple, Union
+from os import getcwd
+from os.path import abspath, basename, join as joinpath
+from typing import List, Tuple, Union, Optional
 if sys.platform == "win32":
     import msvcrt
 else:
     import select
-from github import Github
+from src.system.syspath import get_full_path
 
 from src.system.syspath import *
 from src.globals import VERSION
 from src.system.os import get_os, OS
 from src.containers.exceptions import *
 from src.system.socket import ClientServerSocket
+from src.system.filezilla import filezilla, sftp
 
 
 class ContainerManagerClient:
@@ -59,10 +61,23 @@ class ContainerManagerClient:
         if response == b"NO":
             return False
 
+    def view_files(self, container_name: str) -> None:
+        if not self.started(container_name):
+            self.start(container_name)
 
-    def ssh_address(self, container_name: str) -> Tuple[str, str, str]:
+        filezilla(*self.ssh_address(container_name))
+
+
+    def sftp(self, container_name: str) -> None:
+        if not self.started(container_name):
+            self.start(container_name)
+
+        user, pswd, host, port = self.ssh_address(container_name)
+        sftp(user, pswd, host, port, container_name)
+
+    def ssh_address(self, container_name: str) -> Tuple[str, str, str, str]:
         """
-        Return the address (ip, port, username) needed to connect to a container's ssh
+        Return the address (user, passwd, host, port) needed to connect to a container's ssh
 
         :param container_name: The container whose shell is being used
         :return: The address
@@ -71,9 +86,9 @@ class ContainerManagerClient:
         sock.send(b"SSH-ADDRESS")
         sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
-        host, port, user = sock.recv().decode("utf-8").split(":")
+        user, passwd, host, port = sock.recv().decode("utf-8").split(":")
         sock.close()
-        return (host, port, user)
+        return (user, passwd, host, port)
 
     def update_hostkey(self, container_name: str) -> None:
         """
@@ -138,7 +153,7 @@ class ContainerManagerClient:
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
-        host, port, user = self.ssh_address(container_name)
+        user, _, host, port = self.ssh_address(container_name)
         subprocess.run(
             [
                 "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
@@ -152,7 +167,9 @@ class ContainerManagerClient:
             shell=sys.platform == "win32",
         )
 
-    def get_file(self, container_name: str, remote_file: str, local_file: str) -> None:
+    def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:
+
+
         """
         Gets a file from a container
 
@@ -160,10 +177,13 @@ class ContainerManagerClient:
         :param remote_file: The file obtained from the container
         :param local_file: Where the file obtained from the container is placed
         """
+        if local_file in (None, "."):
+            local_file = joinpath(getcwd(), basename(remote_file))
+
         if not self.started(container_name):
             self.start(container_name)
 
-        absolute_local_path = abspath(local_file)
+        absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
         sock.send(b"GET-FILE")
@@ -176,7 +196,7 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         sock.close()
 
-    def put_file(self, container_name: str, local_file: str, remote_file: str) -> None:
+    def put_file(self, container_name: str, local_file: str, remote_file: Optional[str] = None) -> None:
         """
         Puts a file into a container
 
@@ -184,10 +204,13 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
+        if remote_file in (None, ".", "~"):
+            remote_file = basename(local_file)
+
         if not self.started(container_name):
             self.start(container_name)
 
-        absolute_local_path = abspath(local_file)
+        absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
@@ -231,7 +254,7 @@ class ContainerManagerClient:
         :param archive_path_str: The path to the archive
         :param container_name: The name of the container
         """
-        absolute_archive_path = abspath(archive_path_str)
+        absolute_archive_path = get_full_path(archive_path_str)
 
         sock = self._make_connection()
         sock.send(b"INSTALL")
@@ -248,6 +271,14 @@ class ContainerManagerClient:
         """
         sock = self._make_connection()
         sock.send(b"HALT")
+        sock.close()
+
+    def server_panic(self) -> None:
+        """
+        Tells the server to PANIC!
+        """
+        sock = self._make_connection()
+        sock.send(b"PANIC")
         sock.close()
 
     def _make_connection(self) -> ClientServerSocket:

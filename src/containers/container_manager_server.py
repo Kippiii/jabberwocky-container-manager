@@ -3,6 +3,7 @@ The server version of the container manager
 """
 
 import logging
+import psutil
 import os
 import time
 import json
@@ -47,7 +48,7 @@ class ContainerManagerServer:
         Listens for incoming connections. Blocking function.
         """
 
-        self.address = (socket.gethostbyname("localhost"), allocate_port(22300))
+        self.address = (socket.gethostbyname("127.0.0.1"), allocate_port(22300))
         self.logger.debug("Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
@@ -83,13 +84,28 @@ class ContainerManagerServer:
         self.logger.debug("Stopping the server")
         self.server_sock.close()
         os.remove(get_server_info_file())
-        for _, container in self.containers.items():
-            self.logger.debug("Closing %s", container.name)
+        for name, container in self.containers.items():
+            self.logger.debug("Closing %s", name)
             try:
                 container.stop()
+                self.logger.info(f"Shut down {name}@{container.booter.pid}.")
             except (PoweroffBadExitError, SSHException):
                 container.kill()
+                self.logger.info(f"Killed {name}@{container.booter.pid}.")
 
+        self.logger.info("Server going down NOW!")
+        os.kill(os.getpid(), SIGABRT)
+
+    def panic(self, reason: Optional[str] = None) -> None:
+        """
+        Kills indiscriminately all QEMU processes on the system, then calls stop()
+        """
+        self.logger.error(f"PANICKING!!! Reason given: {reason}")
+        for p in psutil.process_iter():
+            if "qemu-system-" in p.name().lower():
+                p.kill()
+                self.logger.error(f"KILLED {p.pid}!")
+        self.logger.info("Server going down NOW!")
         os.kill(os.getpid(), SIGABRT)
 
 
@@ -131,6 +147,8 @@ class _SocketConnection:
             if msg == b"HALT":
                 self.manager.stop()
                 return
+            if msg == b"PANIC":
+                self.manager.panic("Received PANIC command.")
 
             {
                 b"UPDATE-HOSTKEY": self._update_hostkey,
@@ -186,11 +204,12 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to get SSH info for container %s, but it was not started", container_name)
             self.sock.raise_container_not_started(container_name)
         else:
-            host = "localhost"
+            host = "127.0.0.1"
+            pswd = self.manager.containers[container_name].password
             port = self.manager.containers[container_name].ex_port
             user = self.manager.containers[container_name].username
-            self.manager.logger.debug("Container %s SSH info: host=%s, port=%s, user=%s", container_name, host, port, user)
-            self.sock.send(f"{host}:{port}:{user}".encode("utf-8"))
+            self.manager.logger.debug(f"Container {container_name} SSH info: ({user}:{pswd}@{host}:{port})")
+            self.sock.send(f"{user}:{pswd}:{host}:{port}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
         """
@@ -323,9 +342,14 @@ class _SocketConnection:
             self.sock.raise_container_not_started(container_name)
             return
 
-        self.manager.containers[container_name].get(remote_file, local_file)
-        self.sock.ok()
-        self.manager.logger.debug("Successfully got file from %s", container_name)
+        try:
+            self.manager.containers[container_name].get(remote_file, local_file)
+        except FileNotFoundError:
+            self.sock.raise_invalid_path(remote_file)
+        except IsADirectoryError:
+            self.sock.raise_is_a_directory(remote_file)
+        else:
+            self.sock.ok()
 
     def _put(self) -> None:
         """
@@ -346,14 +370,14 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to put file into nonexistent container %s", container_name)
             self.sock.raise_container_not_started(container_name)
             return
-
-        if not Path(local_file).is_file():
-            self.manager.logger.debug("Attempt to put file that does not exist: %s", local_file)
+        try:
+            self.manager.containers[container_name].put(local_file, remote_file)
+        except FileNotFoundError:
             self.sock.raise_invalid_path(local_file)
-
-        self.manager.containers[container_name].put(local_file, remote_file)
-        self.sock.ok()
-        self.manager.logger.debug("Successfully put file into %s", container_name)
+        except IsADirectoryError:
+            self.sock.raise_is_a_directory(local_file)
+        else:
+            self.sock.ok()
 
     def _install(self) -> None:
         """

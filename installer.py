@@ -177,9 +177,11 @@ def copy_files() -> Path:
         if install_dir.exists():
             shutil.rmtree(install_dir)
         makedirs(install_dir)
+        makedirs(install_dir / "contrib")
 
         # Copy files
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "dist.tar", install_dir)
+        shutil.unpack_archive(PYINSTALLER_DATA_PATH / "contrib.tar", install_dir / "contrib")
 
     t = LongTask("Copying files", do_copy)
     t.exec()
