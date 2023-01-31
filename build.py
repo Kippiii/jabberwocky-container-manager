@@ -6,6 +6,7 @@ from os import makedirs, chdir, pathsep
 from os.path import basename, exists
 from sys import executable, platform, exit, argv
 from platform import machine
+from src.system.filezilla import fzpath
 
 EXE_FILE_EXTEN = ".exe" if platform == "win32" else ""
 
@@ -24,7 +25,7 @@ ignore_missing_contrib = "--ignore-missing-contrib" in argv
 if ignore_missing_contrib:
     if not exists(contrib):
         makedirs(contrib)
-elif not (contrib / "filezilla").exists():
+elif not fzpath() or not fzpath().exists():
     print("FileZilla is missing.")
     print("Run download_prerequisies.py before building.")
     print("OR build with --ignore-missing-contrib.")

@@ -4,25 +4,35 @@ from pathlib import Path
 import subprocess as sp
 from src.system.syspath import get_container_id_rsa
 
-def filezilla(user: str, pswd: str, host: str, port: str):
-    if host == "localhost":
-        host = "127.0.0.1" # FileZilla doesn't like 'localhost'
-
-    args = f"sftp://{user}:{pswd}@{host}:{port}"
-
+def fzpath() -> Path | None:
     if getattr(sys, 'frozen', False):
         base = Path(sys.executable).parent.parent / "contrib" / "filezilla"
     else:
         base = Path(__file__).parent.parent.parent / "contrib" / "filezilla"
 
     if sys.platform == "win32":
-        sp.Popen([base / "filezilla.exe", args], creationflags=sp.DETACHED_PROCESS)
+        return base / "filezilla.exe"
     elif sys.platform == "linux":
-        sp.Popen([base / "bin" / "filezilla", args], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        return base / "bin" / "filezilla"
+    elif sys.platform == "darwin":
+        return base / "FileZilla.app"
+    else:
+        raise None
+
+def filezilla(user: str, pswd: str, host: str, port: str) -> None:
+    if host == "localhost":
+        host = "127.0.0.1" # FileZilla doesn't like 'localhost'
+
+    args = f"sftp://{user}:{pswd}@{host}:{port}"
+
+    if sys.platform == "win32":
+        sp.Popen([fzpath(), args], creationflags=sp.DETACHED_PROCESS)
+    elif sys.platform == "linux":
+        sp.Popen([fzpath(), args], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
     elif sys.platform == "darwin":
         sp.Popen([
             Path("/usr/bin/open"),
-            base / "FileZilla.app",
+            fzpath(),
             "--args",
             args
         ], start_new_session=True, stdout=sp.PIPE, stderr=sp.PIPE)
