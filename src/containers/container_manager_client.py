@@ -64,16 +64,10 @@ class ContainerManagerClient:
             return False
 
     def view_files(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         filezilla(*self.ssh_address(container_name))
 
 
     def sftp(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
@@ -149,9 +143,6 @@ class ContainerManagerClient:
 
         :param container_name: The container whose shell is being used
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
@@ -182,9 +173,6 @@ class ContainerManagerClient:
         if local_file in (None, "."):
             local_file = joinpath(getcwd(), basename(remote_file))
 
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
@@ -209,9 +197,6 @@ class ContainerManagerClient:
         if remote_file in (None, ".", "~"):
             remote_file = basename(local_file)
 
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
@@ -232,9 +217,6 @@ class ContainerManagerClient:
         :param container_name: The container with the command being run
         :param cmd: The command being run, as a list of arguments
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         sock = self._make_connection()
         sock.send(b"RUN-COMMAND")
         sock.recv_expect(b"CONT")
