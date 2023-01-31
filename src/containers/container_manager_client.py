@@ -41,13 +41,15 @@ class ContainerManagerClient:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
 
-    def ping(self) -> None:
+    def ping(self) -> float:
         """
         Pings the server
         """
+        t = time.time()
         sock = self._make_connection()
         sock.send(b"PING")
-        sock.recv_expect(b"PONG")
+        sock.recv_expect(b"OK")
+        return time.time() - t
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()

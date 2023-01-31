@@ -179,8 +179,8 @@ class _SocketConnection:
         """
         Pong!
         """
-        self.manager.logger.debug("Ponging the client")
-        self.sock.send(b"PONG")
+        self.manager.logger.debug("Responding to ping.")
+        self.sock.ok()
 
     def _started(self) -> None:
         self.sock.cont()

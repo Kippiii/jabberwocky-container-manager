@@ -338,7 +338,8 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.container_manager.ping()
+        t = self.container_manager.ping()
+        self.out_stream.write(f"Got OK in {t:.5f} seconds.\n")
 
     def ssh_address(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
