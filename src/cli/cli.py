@@ -200,7 +200,8 @@ update-repo [URL]
             return
         if not self.container_manager.started(name):
             self.out_stream.write(f"{name} is not started.\n")
-        self.container_manager.kill(name)
+        else:
+            self.container_manager.kill(name)
 
     def run(self, cmd: List[str]) -> None:
         """
