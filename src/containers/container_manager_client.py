@@ -196,10 +196,10 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
-        if remote_file in (None, ".", "~"):
-            remote_file = basename(local_file)
-
         absolute_local_path = get_full_path(local_file)
+
+        if remote_file in (None, ".", "~"):
+            remote_file = basename(absolute_local_path)
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
