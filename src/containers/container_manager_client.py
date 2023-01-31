@@ -44,6 +44,8 @@ class ContainerManagerClient:
     def ping(self) -> float:
         """
         Pings the server
+
+        :return: The time it took to send PING and get OK back
         """
         t = time.time()
         sock = self._make_connection()
