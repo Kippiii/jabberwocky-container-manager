@@ -242,7 +242,9 @@ update-repo [URL]
         if not self.container_manager.started(container_name):
             self.start([container_name])
 
-        self.container_manager.put_file(container_name, local_file, remote_file)
+        p = f"Copying '{local_file}' -> '{remote_file if remote_file else '~'}'"
+        t = SpinningTask(p, self.container_manager.put_file, (container_name, local_file, remote_file))
+        t.exec()
 
     def get_file(self, cmd: List[str]) -> None:
         """
@@ -265,7 +267,9 @@ update-repo [URL]
         if not self.container_manager.started(container_name):
             self.start([container_name])
 
-        self.container_manager.get_file(container_name, remote_file, local_file)
+        p = f"Copying '{remote_file}' -> '{local_file if local_file else '.'}'"
+        t = SpinningTask(p, self.container_manager.get_file, (container_name, remote_file, local_file))
+        t.exec()
 
     def install(self, cmd: List[str]) -> None:
         """
