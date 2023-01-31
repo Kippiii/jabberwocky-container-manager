@@ -1,6 +1,7 @@
+import sys
 import threading
 from time import sleep
-from typing import Optional, Callable, Iterable
+from typing import Optional, Callable, Iterable, TextIO
 
 class SpinningTask:
     """
@@ -11,17 +12,19 @@ class SpinningTask:
     :param target: The function to be executed.
     :param args: Arguments to the function.
     """
+    out_stream: TextIO
     exception: Optional[Exception] = None
     prompt : str
     target: Callable[[], None]
     args: Iterable
 
-    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = ()) -> None:
+    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = (), out_stream: TextIO = sys.stdout):
         self.prompt = prompt
         self.target = target
         self.args = args
+        self.out_stream = out_stream
 
-    def exec(self):
+    def exec(self) -> None:
         """
         Execute the target task.
         """
@@ -32,19 +35,19 @@ class SpinningTask:
         idx = 0
 
         while thread.is_alive():
-            print(f"\r{self.prompt}... {spinner[idx]} ", end="\r")
+            self.out_stream.write(f"\r{self.prompt}... {spinner[idx]}\r")
             idx = (idx + 1) % len(spinner)
             sleep(0.1)
 
         thread.join()
 
         if self.exception is not None:
-            print()
+            self.out_stream.write("\r\n")
             raise self.exception
         else:
-            print(f"\r{self.prompt}... Done!")
+            self.out_stream.write(f"\r{self.prompt}... Done!\r\n")
 
-    def _task(self):
+    def _task(self) -> None:
         """
         Executes the target. Catches any exceptions to be raised by main thread.
         """
