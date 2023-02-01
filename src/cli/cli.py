@@ -186,6 +186,7 @@ update-repo [URL]
             self.out_stream.write(f"{name} is not started.\n")
         else:
             self.container_manager.stop(name)
+            self.out_stream.write("Done.\n")
 
     def kill(self, cmd: List[str]) -> None:
         """
@@ -202,6 +203,7 @@ update-repo [URL]
             self.out_stream.write(f"{name} is not started.\n")
         else:
             self.container_manager.kill(name)
+            self.out_stream.write("Done.\n")
 
     def run(self, cmd: List[str]) -> None:
         """
@@ -285,7 +287,8 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
             return
-        self.container_manager.install(archive_path_str, container_name)
+        t = SpinningTask(f"Installing {container_name}", self.container_manager.install, (archive_path_str, container_name))
+        t.exec()
 
     def delete(self, cmd: List[str]) -> None:
         """
@@ -301,7 +304,8 @@ update-repo [URL]
         if self.container_manager.started(container_name):
             self.out_stream.write(f"Please stop {container_name} before trying to delete it.")
         else:
-            self.container_manager.delete(container_name)
+            self.out_stream.write("Command not yet supported")
+            # self.container_manager.delete(container_name)
 
     def download(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
