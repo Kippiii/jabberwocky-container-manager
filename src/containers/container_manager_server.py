@@ -39,6 +39,7 @@ class ContainerManagerServer:
     server_sock: Optional[socket.socket] = None
     containers: Dict[str, Container] = {}
     logger: logging.Logger
+    startup_mutex: threading.Lock = threading.Lock()
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -271,19 +272,30 @@ class _SocketConnection:
             self.manager.logger.debug("Container %s does not exist", container_name)
             self.sock.raise_no_such_container(container_name)
 
-        elif container_name not in self.manager.containers:
-            try:
-                self.manager.logger.debug("Starting container '%s'", container_name)
-                self.manager.containers[container_name] = Container(
-                    container_name, logger=self.manager.logger
-                )
-                self.manager.containers[container_name].start()
-                self.manager.logger.debug("Container %s has been started", container_name)
-            except BootFailure as exc:
-                self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
-                self.sock.raise_boot_error()
+        self.manager.startup_mutex.acquire()
+        try:
+            if container_name not in self.manager.containers:
+                try:
+                    self.manager.logger.debug("Starting container '%s'", container_name)
+                    self.manager.containers[container_name] = Container(
+                        container_name, logger=self.manager.logger
+                    )
+                    self.manager.containers[container_name].start()
+                    self.manager.logger.debug("Container %s has been started", container_name)
+                except BootFailure as exc:
+                    self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
+                    self.manager.containers[container_name].kill()
+                    del self.manager.containers[container_name]
+                    self.sock.raise_boot_error()
+                else:
+                    self.sock.ok()
             else:
                 self.sock.ok()
+        except Exception as exc:
+            self.manager.startup_mutex.release()
+            raise exc
+        else:
+            self.manager.startup_mutex.release()
 
     def _stop(self) -> None:
         """
