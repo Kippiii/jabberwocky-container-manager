@@ -101,9 +101,10 @@ class ContainerManagerServer:
                 self.logger.debug(f"STOP: Shut down {name} (PID={container.booter.pid}).")
             except (PoweroffBadExitError, SSHException, AttributeError):
                 try:
+                    self.logger.error(f"STOP: SHUT DOWN FAILED. Killing {name} (PID={container.booter.pid}).")
                     container.kill()
                 except (PermissionError, AttributeError) as exc:
-                    msg = f"STOP: COULD NOT KILL {container.name} (PID={container.booter.pid}). " \
+                    msg = f"STOP: COULD NOT KILL {name} (PID={container.booter.pid}). " \
                           f"Reason: {type(exc).__name__}. (The process is probably dead.)"
                     self.logger.error(msg)
                 else:
