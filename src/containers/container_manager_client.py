@@ -41,13 +41,17 @@ class ContainerManagerClient:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
 
-    def ping(self) -> None:
+    def ping(self) -> float:
         """
         Pings the server
+
+        :return: The time it took to send PING and get OK back
         """
+        t = time.time()
         sock = self._make_connection()
         sock.send(b"PING")
-        sock.recv_expect(b"PONG")
+        sock.recv_expect(b"OK")
+        return time.time() - t
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -62,16 +66,10 @@ class ContainerManagerClient:
             return False
 
     def view_files(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         filezilla(*self.ssh_address(container_name))
 
 
     def sftp(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
@@ -147,9 +145,6 @@ class ContainerManagerClient:
 
         :param container_name: The container whose shell is being used
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
@@ -180,9 +175,6 @@ class ContainerManagerClient:
         if local_file in (None, "."):
             local_file = joinpath(getcwd(), basename(remote_file))
 
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
@@ -204,13 +196,10 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
-        if remote_file in (None, ".", "~"):
-            remote_file = basename(local_file)
-
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
+
+        if remote_file in (None, ".", "~"):
+            remote_file = basename(absolute_local_path)
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
@@ -230,9 +219,6 @@ class ContainerManagerClient:
         :param container_name: The container with the command being run
         :param cmd: The command being run, as a list of arguments
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         sock = self._make_connection()
         sock.send(b"RUN-COMMAND")
         sock.recv_expect(b"CONT")
