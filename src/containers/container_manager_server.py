@@ -5,6 +5,7 @@ The server version of the container manager
 import logging
 import psutil
 import os
+import sys
 import time
 import json
 import socket
@@ -50,7 +51,7 @@ class ContainerManagerServer:
         """
 
         self.address = (socket.gethostbyname("127.0.0.1"), allocate_port(22300))
-        self.logger.debug("Starting Container Manager Server @ %s", self.address)
+        self.logger.debug("MAIN THREAD: Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
@@ -68,34 +69,48 @@ class ContainerManagerServer:
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
-                self.logger.debug("Accepted connection from %s", client_addr)
+                self.logger.debug("MAIN THREAD: Accepted connection from %s", client_addr)
                 threading.Thread(
                     target=_SocketConnection(
                         client_sock, client_addr, self
-                    ).start_connection
+                    ).start_connection, daemon=True
                 ).start()
         except (OSError, ConnectionError):
-            pass
+            self.stop()
+            self.logger.debug("MAIN THREAD: Exiting.")
+            sys.exit()
+        except Exception as ex:  # pylint: disable=broad-except
+            self.logger.exception(ex)
+            self.close_socket()
+            self.stop()
+            self.logger.debug("MAIN THREAD: Exiting.")
+            sys.exit()
+
+    def close_socket(self):
+        self.logger.debug("Closing the server socket.")
+        self.server_sock.close()
 
     def stop(self) -> None:
         """
         Stops the container manager server
         """
-
-        self.logger.debug("Stopping the server")
-        self.server_sock.close()
-        os.remove(get_server_info_file())
         for name, container in self.containers.items():
-            self.logger.debug("Closing %s", name)
+            self.logger.debug("STOP: Closing %s", name)
             try:
                 container.stop()
-                self.logger.info(f"Shut down {name}@{container.booter.pid}.")
-            except (PoweroffBadExitError, SSHException):
-                container.kill()
-                self.logger.info(f"Killed {name}@{container.booter.pid}.")
+                self.logger.debug(f"STOP: Shut down {name} (PID={container.booter.pid}).")
+            except (PoweroffBadExitError, SSHException, AttributeError):
+                try:
+                    container.kill()
+                except (PermissionError, AttributeError) as exc:
+                    msg = f"STOP: COULD NOT KILL {container.name} (PID={container.booter.pid}). " \
+                          f"Reason: {type(exc).__name__}. (The process is probably dead.)"
+                    self.logger.error(msg)
+                else:
+                    self.logger.info(f"STOP: Killed {name}@{container.booter.pid}.")
 
-        self.logger.info("Server going down NOW!")
-        os.kill(os.getpid(), SIGABRT)
+        os.remove(get_server_info_file())
+        self.logger.debug("STOP: STOP complete.")
 
     def panic(self, reason: Optional[str] = None) -> None:
         """
@@ -105,8 +120,8 @@ class ContainerManagerServer:
         for p in psutil.process_iter():
             if "qemu-system-" in p.name().lower():
                 p.kill()
-                self.logger.error(f"KILLED {p.pid}!")
-        self.logger.info("Server going down NOW!")
+                self.logger.error(f"PANIC: KILLED {p.pid}!")
+        self.logger.debug("PANIC: Server will ABORT now.")
         os.kill(os.getpid(), SIGABRT)
 
 
@@ -143,13 +158,14 @@ class _SocketConnection:
 
         try:
             msg = self.sock.recv(1024)
-            self.manager.logger.debug("Recieves %s from the client", msg)
+            self.manager.logger.debug("Recieved %s from the client", msg)
 
             if msg == b"HALT":
-                self.manager.stop()
+                self.manager.close_socket()
                 return
             if msg == b"PANIC":
                 self.manager.panic("Received PANIC command.")
+                return
 
             {
                 b"UPDATE-HOSTKEY": self._update_hostkey,
@@ -291,7 +307,7 @@ class _SocketConnection:
                     self.sock.ok()
             else:
                 self.sock.ok()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             self.manager.startup_mutex.release()
             raise exc
         else:
@@ -460,9 +476,9 @@ class _RunCommandHandler:
         self.stdout_closed = False
         self.stderr_closed = False
 
-        t_send_stdout = threading.Thread(target=self._send_stdout)
-        t_send_stderr = threading.Thread(target=self._send_stderr)
-        t_recv = threading.Thread(target=self._recv)
+        t_send_stdout = threading.Thread(target=self._send_stdout, daemon=True)
+        t_send_stderr = threading.Thread(target=self._send_stderr, daemon=True)
+        t_recv = threading.Thread(target=self._recv, daemon=True)
         t_send_stdout.start()
         t_send_stderr.start()
         t_recv.start()
