@@ -8,7 +8,6 @@ import os
 from stat import S_ISDIR
 from posixpath import join as posixjoin, basename as posixbasename
 from os.path import basename, join as joindir, isdir
-from pathlib import PosixPath
 from typing import Optional, Tuple
 
 import paramiko
