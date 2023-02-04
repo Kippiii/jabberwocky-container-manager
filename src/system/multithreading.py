@@ -28,7 +28,7 @@ class SpinningTask:
         """
         Execute the target task.
         """
-        thread = threading.Thread(target=self._task)
+        thread = threading.Thread(target=self._task, args=self.args, daemon=True)
         thread.start()
 
         spinner = ("|", "/", "-", "\\")
