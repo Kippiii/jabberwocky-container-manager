@@ -362,8 +362,19 @@ class _RunCommandClient:
         """
         try:
             while msg := self.sock.recv():
-                sys.stdout.buffer.write(msg)
-                sys.stdout.flush()
+                i = 0
+                while i < len(msg):
+                    stream = msg[i]
+                    mybyte = msg[i + 1]
+                    i += 2
+                    if stream == 1:
+                        sys.stdout.buffer.write(mybyte.to_bytes())
+                        sys.stdout.buffer.flush()
+                    elif stream == 2:
+                        sys.stderr.buffer.write(mybyte.to_bytes())
+                        sys.stderr.buffer.flush()
+                    else:
+                        raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):
             pass
         finally:

@@ -11,7 +11,7 @@ from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
 from src.system.state import frozen
 from src.globals import VERSION
-from src.system.multithreading import SpinningTask
+from src.system.multithreading import SpinningTask, InterruptibleTask
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 
@@ -221,7 +221,7 @@ update-repo [URL]
             return
         if not self.container_manager.started(container_name):
             self.start([container_name])
-        self.container_manager.run_command(container_name, command)
+        InterruptibleTask(self.container_manager.run_command, (container_name, command)).exec()
 
     def send_file(self, cmd: List[str]) -> None:
         """

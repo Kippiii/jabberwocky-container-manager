@@ -265,9 +265,7 @@ class _SocketConnection:
 
         self.sock.send(b"BEGIN")
 
-        stdin, stdout, stderr = self.manager.containers[container_name].run(
-            " ".join(cli)
-        )
+        stdin, stdout, stderr, pid = self.manager.containers[container_name].run(cli)
         _RunCommandHandler(
             client_sock=self.sock,
             client_addr=self.client_addr,
@@ -275,6 +273,8 @@ class _SocketConnection:
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
+            pid=pid,
+            container=self.manager.containers[container_name]
         ).send_and_recv()
 
     def _start(self) -> None:
@@ -448,9 +448,11 @@ class _RunCommandHandler:
     client_sock: socket.socket
     client_addr: Tuple[str, int]
 
-    stdin: Optional[ChannelStdinFile] = None
-    stdout: Optional[ChannelFile] = None
-    stderr: Optional[ChannelStderrFile] = None
+    container: Container
+    pid: int
+    stdin: ChannelStdinFile
+    stdout: ChannelFile
+    stderr: ChannelStderrFile
     stdout_closed: Optional[bool] = None
     stderr_closed: Optional[bool] = None
 
@@ -462,6 +464,8 @@ class _RunCommandHandler:
         stdin: ChannelStdinFile,
         stdout: ChannelFile,
         stderr: ChannelStderrFile,
+        pid: int,
+        container: Container,
     ):
         self.client_sock = client_sock
         self.client_addr = client_addr
@@ -469,6 +473,8 @@ class _RunCommandHandler:
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
+        self.pid = pid
+        self.container = container
 
     def send_and_recv(self):
         """
@@ -495,12 +501,12 @@ class _RunCommandHandler:
                     self.stdin.write(msg[1:size + 1])
                     msg = msg[size + 1:]
         except (ConnectionError, OSError):
-            pass
+            self.container.sshi.exec_ssh_command(["kill", "-9", str(self.pid)])
 
     def _send_stdout(self):
         try:
             while my_byte := self.stdout.read(1):
-                self.client_sock.send(my_byte)
+                self.client_sock.send(b"\x01" + my_byte)
         except (ConnectionError, OSError) as ex:
             self.manager.logger.exception(ex)
         finally:
@@ -512,7 +518,7 @@ class _RunCommandHandler:
     def _send_stderr(self):
         try:
             while my_byte := self.stderr.read(1):
-                self.client_sock.send(my_byte)
+                self.client_sock.send(b"\x02" + my_byte)
         except (ConnectionError, OSError) as ex:
             self.manager.logger.exception(ex)
         finally:
