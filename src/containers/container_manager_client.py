@@ -368,10 +368,10 @@ class _RunCommandClient:
                     mybyte = msg[i + 1]
                     i += 2
                     if stream == 1:
-                        sys.stdout.buffer.write(mybyte.to_bytes())
+                        sys.stdout.buffer.write(bytes((mybyte, )))
                         sys.stdout.buffer.flush()
                     elif stream == 2:
-                        sys.stderr.buffer.write(mybyte.to_bytes())
+                        sys.stderr.buffer.write(bytes((mybyte, )))
                         sys.stderr.buffer.flush()
                     else:
                         raise RuntimeError("recv'd bad data")
