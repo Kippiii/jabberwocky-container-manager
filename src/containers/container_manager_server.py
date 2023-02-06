@@ -41,6 +41,7 @@ class ContainerManagerServer:
     containers: Dict[str, Container] = {}
     logger: logging.Logger
     startup_mutex: threading.Lock = threading.Lock()
+    halt_event: threading.Event = threading.Event()
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -66,6 +67,15 @@ class ContainerManagerServer:
         with open(get_server_info_file(), "w", encoding="utf-8") as f:
             json.dump(server_info, f)
 
+        threading.Thread(target=self._listen, daemon=True).start()
+        self.halt_event.wait()
+        self.logger.debug("MAIN THREAD: HALT event reached. Stopping.")
+        self.server_sock.close()
+        self.stop()
+        self.logger.debug("MAIN THREAD: Exiting NOW.")
+        sys.exit()
+
+    def _listen(self):
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
@@ -75,20 +85,9 @@ class ContainerManagerServer:
                         client_sock, client_addr, self
                     ).start_connection, daemon=True
                 ).start()
-        except (OSError, ConnectionError):
-            self.stop()
-            self.logger.debug("MAIN THREAD: Exiting.")
-            sys.exit()
         except Exception as ex:  # pylint: disable=broad-except
             self.logger.exception(ex)
-            self.close_socket()
-            self.stop()
-            self.logger.debug("MAIN THREAD: Exiting.")
-            sys.exit()
-
-    def close_socket(self):
-        self.logger.debug("Closing the server socket.")
-        self.server_sock.close()
+            self.halt_event.set()
 
     def stop(self) -> None:
         """
@@ -162,7 +161,7 @@ class _SocketConnection:
             self.manager.logger.debug("Recieved %s from the client", msg)
 
             if msg == b"HALT":
-                self.manager.close_socket()
+                self.manager.halt_event.set()
                 return
             if msg == b"PANIC":
                 self.manager.panic("Received PANIC command.")
