@@ -453,8 +453,7 @@ class _RunCommandHandler:
     stdin: ChannelStdinFile
     stdout: ChannelFile
     stderr: ChannelStderrFile
-    stdout_closed: Optional[bool] = None
-    stderr_closed: Optional[bool] = None
+    mutex: threading.Lock = threading.Lock()
 
     def __init__(
         self,
@@ -480,18 +479,23 @@ class _RunCommandHandler:
         """
         Sends output, receives input. Blocking function.
         """
-        self.stdout_closed = False
-        self.stderr_closed = False
-
         t_send_stdout = threading.Thread(target=self._send_stdout, daemon=True)
         t_send_stderr = threading.Thread(target=self._send_stderr, daemon=True)
+        t_send_null = threading.Thread(target=self._send_null, daemon=True)
         t_recv = threading.Thread(target=self._recv, daemon=True)
         t_send_stdout.start()
         t_send_stderr.start()
         t_recv.start()
-        t_send_stdout.join()
-        t_send_stderr.join()
-        t_recv.join()
+        t_send_null.start()
+
+        while True:
+            if not (t_recv.is_alive() and t_send_null.is_alive()):
+                break
+            if not (t_send_stdout.is_alive() or t_send_stderr.is_alive()):
+                break
+            time.sleep(1)
+        self.client_sock.close()
+        self.container.sshi.exec_ssh_command(["kill", "-9", str(self.pid)])
 
     def _recv(self):
         try:
@@ -501,28 +505,35 @@ class _RunCommandHandler:
                     self.stdin.write(msg[1:size + 1])
                     msg = msg[size + 1:]
         except (ConnectionError, OSError):
-            self.container.sshi.exec_ssh_command(["kill", "-9", str(self.pid)])
+            pass
 
     def _send_stdout(self):
         try:
             while my_byte := self.stdout.read(1):
+                self.mutex.acquire()
                 self.client_sock.send(b"\x01" + my_byte)
+                self.mutex.release()
         except (ConnectionError, OSError) as ex:
-            self.manager.logger.exception(ex)
-        finally:
-            self.stdout_closed = True
-            if self.stderr_closed:
-                time.sleep(0.25)
-                self.client_sock.close()
+            if self.mutex.locked():
+                self.mutex.release()
 
     def _send_stderr(self):
         try:
             while my_byte := self.stderr.read(1):
+                self.mutex.acquire()
                 self.client_sock.send(b"\x02" + my_byte)
+                self.mutex.release()
         except (ConnectionError, OSError) as ex:
-            self.manager.logger.exception(ex)
-        finally:
-            self.stderr_closed = True
-            if self.stdout_closed:
-                time.sleep(0.25)
-                self.client_sock.close()
+            if self.mutex.locked():
+                self.mutex.release()
+
+    def _send_null(self):
+        try:
+            while True:
+                self.mutex.acquire()
+                self.client_sock.send(b"\x00\x00")
+                self.mutex.release()
+                time.sleep(1)
+        except (ConnectionError, OSError) as ex:
+            if self.mutex.locked():
+                self.mutex.release()
