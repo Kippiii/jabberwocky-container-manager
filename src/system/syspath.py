@@ -64,6 +64,13 @@ def get_server_log_file() -> Path:
     """
     return get_container_home() / "server.log"
 
+def get_repo_file() -> Path:
+    """
+    Returns the path to the repo json file
+
+    :return: The path to the repo json file
+    """
+    return get_container_home() / "repo.json"
 
 def get_container_dir(container_name: str) -> Path:
     """
