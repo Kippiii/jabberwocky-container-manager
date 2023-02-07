@@ -22,9 +22,9 @@ class RepoManager:
                 'archives': self.archives,
             }
 
-        def save_repos(self) -> None:
+        def save_archives(self) -> None:
             """
-            Saves all of the repo list into the object
+            Saves all of the archives listed into the object
             """
             resp = requests.get(self.url)
             if not resp.ok:
@@ -77,7 +77,8 @@ class RepoManager:
         """
         for repo in self.repos:
             if repo.url == repo_url:
-                self.save_repos()
+                self.save_archives()
+                self.save()
                 return
         raise ValueError(f"{repo_url} does not exist. Please add it using add_repo")
 
@@ -86,5 +87,17 @@ class RepoManager:
         Adds a repo to the list
 
         :param repo_url: The url of the repo to add
+        """
+        repo: _Repo = _Repo(repo_url, [])
+        repo.save_archives()
+        self.repos.append(repo)
+        self.save()
+
+    def download(self, archive_str: str, container_name: str) -> None:
+        """
+        Downloads an archive and installs it with the given container name
+
+        :param archive_str: The name of the archive to be installed
+        :param container_name: THe name that will be given to the container
         """
         # TODO
