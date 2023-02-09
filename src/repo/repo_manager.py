@@ -3,9 +3,9 @@ import requests
 from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Optional
-from sys import stdout
+from sys import stdout, stdin
 
-from src.repo.syspath import get_repo_file, get_container_dir
+from src.system.syspath import get_repo_file, get_container_dir
 
 class RepoManager:
     """
@@ -37,7 +37,7 @@ class RepoManager:
 
     def __init__(self) -> None:
         repo_json_path: Path = get_repo_file()
-        repos: List[_Repo] = []
+        self.repos: List[RepoManager._Repo] = []
 
         if not repo_json_path.exists():
             with open(str(repo_json_path), 'w') as file:
@@ -58,7 +58,7 @@ class RepoManager:
                     raise ValueError("'url' string missing from a repo in list")
                 if "archives" not in repo_dict or not isinstance(repo_dict['archives'], list):
                     raise ValueError(f"'archives' list missing from repo with url: {repo_dict['url']}")
-                self.repos.append(_Repo(repo_dict['url'], [str(x) for x in repo_dict['archives']]))
+                self.repos.append(RepoManager._Repo(repo_dict['url'], [str(x) for x in repo_dict['archives']]))
 
     def save(self) -> None:
         """
@@ -78,7 +78,7 @@ class RepoManager:
         """
         for repo in self.repos:
             if repo.url == repo_url:
-                self.save_archives()
+                repo.save_archives()
                 self.save()
                 return
         raise ValueError(f"{repo_url} does not exist. Please add it using add_repo")
@@ -96,7 +96,7 @@ class RepoManager:
 
         :param repo_url: The url of the repo to add
         """
-        repo: _Repo = _Repo(repo_url, [])
+        repo: RepoManager._Repo = RepoManager._Repo(repo_url, [])
         repo.save_archives()
         self.repos.append(repo)
         self.save()
@@ -114,16 +114,17 @@ class RepoManager:
                 stdout.write("Archive not found in repo\n")
                 continue
             value: str = ""
-            while value[0] not in ['y', 'Y', 'n', 'N']:
+            while len(value) == 0 or value[0] not in ['y', 'Y', 'n', 'N']:
                 stdout.write("Archive found, should we download: [y, n]: ")
-                value = stdout.read()
+                stdout.flush()
+                value = stdin.readline()
             if value[0] in ['n', 'N']:
                 stdout.write("Skipping...\n")
                 continue
             stdout.write("Downloading...\n")
 
             r = requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}")
-            p: Path = get_container_dir() / "archive_str"
+            p: Path = get_container_dir() / archive_str
             with open(p, "wb") as f:
                 f.write(r.contents)
             

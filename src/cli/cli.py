@@ -297,8 +297,9 @@ update-repo [URL]
             return
         
         download_path: Path = self.repo_manager.download(archive_name)
-        self.container_manager.install(str(download_path), container_name)
-        download_path.unlink()
+        if download_path is not None:
+            self.container_manager.install(str(download_path), container_name)
+            download_path.unlink()
 
     def archive(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
