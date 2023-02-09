@@ -307,7 +307,18 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        container_name: str = cmd[0]
+        path_to_destination: str = cmd[1]
+
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+
+        self.container_manager.archvie(container_name, path_to_destination)
 
     def add_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

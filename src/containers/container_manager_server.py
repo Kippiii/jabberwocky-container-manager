@@ -402,6 +402,12 @@ class _SocketConnection:
         self.sock.ok()
         self.manager.logger.debug("Successfully installed container %s", container_name)
 
+    def _archive(self) -> None:
+        """
+        Archives a container onto the disk
+        """
+        # TODO
+
 
 class _RunCommandHandler:
     """

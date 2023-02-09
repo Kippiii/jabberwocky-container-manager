@@ -265,6 +265,20 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         sock.close()
 
+    def archive(self, container_name: str, path_to_destination: str) -> None:
+        """
+        Archives a container onto the disk
+
+        :param container_name: The name of the container
+        :param path_to_destination: Path where archive will be saved
+        """
+        absolute_path = get_full_path(path_to_destination)
+
+        sock = self._make_connection()
+        sock.send(b"ARCHIVE")
+        sock.recv_expect(b"CONT")
+        # TODO
+
     def server_halt(self) -> None:
         """
         Tells the server to halt
