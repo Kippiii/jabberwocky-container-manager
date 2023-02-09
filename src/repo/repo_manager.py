@@ -2,9 +2,10 @@ import json
 import requests
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
+from sys import stdout
 
-from src.repo.syspath import get_repo_file
+from src.repo.syspath import get_repo_file, get_container_dir
 
 class RepoManager:
     """
@@ -93,11 +94,33 @@ class RepoManager:
         self.repos.append(repo)
         self.save()
 
-    def download(self, archive_str: str, container_name: str) -> None:
+    def download(self, archive_str: str) -> Optional[Path]:
         """
-        Downloads an archive and installs it with the given container name
+        Downloads an archive from a repo
 
         :param archive_str: The name of the archive to be installed
-        :param container_name: THe name that will be given to the container
+        :return: The path to the downloaded file
         """
-        # TODO
+        for repo in self.repos:
+            stdout.write(f"Checking {repo.url}...\n")
+            if archive_str not in repo.archives:
+                stdout.write("Archive not found in repo\n")
+                continue
+            value: str = ""
+            while value[0] not in ['y', 'Y', 'n', 'N']:
+                stdout.write("Archive found, should we download: [y, n]: ")
+                value = stdout.read()
+            if value[0] in ['n', 'N']:
+                stdout.write("Skipping...\n")
+                continue
+            stdout.write("Downloading...\n")
+
+            r = requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}")
+            p: Path = get_container_dir() / "archive_str"
+            with open(p, "wb") as f:
+                f.write(r.contents)
+            
+            return p
+
+        stdout.write("Could not find archive from repos\n")
+        return None
