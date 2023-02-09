@@ -5,12 +5,14 @@ Defines the CLI that takes user input and dispatches the container manager
 import re
 from sys import stdin, stdout
 from typing import List
+from pathlib import Path
 from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
 from src.system.state import frozen
 from src.globals import VERSION
+from src.repo.repo_manager import RepoManager
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 
@@ -20,12 +22,14 @@ class JabberwockyCLI:
     """
 
     container_manager: ContainerManagerClient
+    repo_manager: RepoManager
     out_stream = stdout
     in_stream = stdin
 
     def __init__(self, in_stream=stdin, out_stream=stdout) -> None:
         self.in_stream = in_stream
         self.out_stream = out_stream
+        self.repo_manager = RepoManager()
 
     def parse_cmd(self, cmd: List[str]) -> None:
         """
@@ -282,7 +286,19 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        archive_name: str = cmd[0]
+        container_name: str = cmd[1]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        
+        download_path: Path = self.repo_manager.download(archive_name)
+        self.container_manager.install(str(download_path), container_name)
+        download_path.unlink()
 
     def archive(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -298,7 +314,11 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) != 1:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        repo_url: str = cmd[0]
+        self.repo_manager.add_repo(repo_url)
 
     def update_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -306,7 +326,14 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) > 1:
+            self.out_stream.write("Command requires zero or one argument\n")
+            return
+        if len(cmd) == 1:
+            repo_url: str = cmd[0]
+            self.repo_manager.update_repo(repo_url)
+            return
+        self.repo_manager.update_all()
 
     def create(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

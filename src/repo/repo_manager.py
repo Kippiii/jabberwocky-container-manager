@@ -83,6 +83,13 @@ class RepoManager:
                 return
         raise ValueError(f"{repo_url} does not exist. Please add it using add_repo")
 
+    def update_all(self) -> None:
+        """
+        Updates all repos
+        """
+        for repo in self.repos:
+            self.update_repo(repo.url)
+
     def add_repo(self, repo_url: str) -> None:
         """
         Adds a repo to the list
@@ -120,6 +127,7 @@ class RepoManager:
             with open(p, "wb") as f:
                 f.write(r.contents)
             
+            stdout.write("Successfully downloaded archive")
             return p
 
         stdout.write("Could not find archive from repos\n")
