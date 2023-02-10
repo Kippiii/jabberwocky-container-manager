@@ -16,6 +16,25 @@ PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
 
 
+class InvalidConfigError(Exception):
+    """
+    Raised when a bad container config is read.
+    """
+
+
+class InvalidManifestError(InvalidConfigError):
+    """
+    Raised during container construction when a
+    manifest object has invalid or missing data.
+    """
+
+
+class ManifestVersionIsNoneError(InvalidConfigError):
+    """
+    Raised when the manifest version of a manifest/config is not specified.
+    """
+
+
 class BootFailure(Exception):
     """
     Raised when pexpect fails to boot
