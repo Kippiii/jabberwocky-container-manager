@@ -50,6 +50,7 @@ class JabberwockyCLI:
             "delete": self.delete,
             "download": self.download,
             "archive": self.archive,
+            "upload": self.upload,
             "add-repo": self.add_repo,
             "update-repo": self.update_repo,
             "create": self.create,
@@ -319,6 +320,33 @@ update-repo [URL]
             return
 
         self.container_manager.archive(container_name, path_to_destination)
+
+    def upload(self, cmd: List[str]) -> None:
+        """
+        Upload a container to a repo
+
+        :param cmd: The rest of the command sent
+        """
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        container_name: str = cmd[0]
+        repo_url: str = cmd[1]
+
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+
+        stdout.write("Username: ")
+        username: str = stdin.readline()
+        stdout.write("Password: ")
+        password: str = stdin.readline()
+
+        save_path: Path = Path(f"{container_manager}.tar.gz")
+        self.container_manager.archive(container_name, str(save_path))
+        self.repo_manager.upload(save_path, repo_url, username, password)
+        save_path.unlink()
 
     def add_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

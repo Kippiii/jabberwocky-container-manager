@@ -133,3 +133,20 @@ class RepoManager:
 
         stdout.write("Could not find archive from repos\n")
         return None
+
+    def upload(self, save_path: Path, repo_url: str, username: str, password: str) -> None:
+        """
+        Uploads an archive to a repo
+
+        :param save_path: The path to the archive
+        :param repo_url: The url to the repo for upload
+        """
+        data: dict = {
+            "username": username,
+            "password": password,
+        }
+        files: dict = {
+            "file": open(str(save_path), 'rb'),
+        }
+
+        r = requests.get(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", json=data, files=files)
