@@ -78,7 +78,7 @@ class ContainerConfig:
         self.memory = manifest["memory"]
         self.hddmaxsize = manifest["hddmaxsize"]
         self.hostname = manifest.get("hostname") or "debian"
-        self.portfwd = manifest.get("portfwd") or {}
+        self.portfwd = manifest.get("portfwd") or []
         self.password = manifest["password"]
 
     def to_dict(self) -> Dict[str, Any]:
