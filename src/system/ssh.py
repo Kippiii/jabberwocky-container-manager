@@ -3,11 +3,11 @@ Manages SSH connections (with containers)
 """
 
 import logging
+import shlex
 import os
 from stat import S_ISDIR
 from posixpath import join as posixjoin, basename as posixbasename
 from os.path import basename, join as joindir, isdir
-from pathlib import PosixPath
 from typing import Optional, Tuple
 
 import paramiko
@@ -109,20 +109,17 @@ class SSHInterface:
 
     def exec_ssh_command(
         self, cli: list
-    ) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
+    ) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile, int]:
         """
         Executes a command in the SSH
 
         :param cli: The command run in the SSH as an array
         """
-        self.logger.debug(f"Exec {cli} @ {self.container_name}")
-        return self.ssh_client.exec_command(" ".join(cli))
-
-    def exec_ssh_shell(self) -> None:
-        """
-        Executes a shell in the SSH
-        """
-        raise NotImplementedError()
+        command = "echo $$ && exec " + " ".join(map(shlex.quote, cli))
+        self.logger.debug(f"Exec \"{command}\" -> {self.container_name}")
+        stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        pid = int(stdout.readline())
+        return stdin, stdout, stderr, pid
 
     def send_poweroff(self) -> None:
         """

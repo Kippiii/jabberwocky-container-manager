@@ -3,6 +3,22 @@ import threading
 from time import sleep
 from typing import Optional, Callable, Iterable, TextIO
 
+
+class InterruptibleTask:
+    target: Callable[[], None]
+    args: Iterable
+
+    def __init__(self, target: Callable[[], None], args: Iterable = ()):
+        self.target = target
+        self.args = args
+
+    def exec(self) -> None:
+        thread = threading.Thread(target=self.target, args=self.args, daemon=True)
+        thread.start()
+        while thread.is_alive():
+            sleep(0.2)
+
+
 class SpinningTask:
     """
     Perform a task that takes a long time. Provides a progress spinner.
@@ -28,7 +44,7 @@ class SpinningTask:
         """
         Execute the target task.
         """
-        thread = threading.Thread(target=self._task)
+        thread = threading.Thread(target=self._task, daemon=True)
         thread.start()
 
         spinner = ("|", "/", "-", "\\")

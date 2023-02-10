@@ -309,6 +309,7 @@ class _RunCommandClient:
         Sends data read from stdin to the sever. POSIX only.
         """
         try:
+            last_send = time.time()
             while not self.recv_closed:
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                     buffer = bytes(sys.stdin.readline(), "utf-8")
@@ -316,7 +317,8 @@ class _RunCommandClient:
                         msg = buffer[:255]
                         self.sock.send(bytes([len(msg)]) + msg)
                         buffer = buffer[255:]
-                else:
+                    last_send = time.time()
+                elif time.time() - last_send > 1:
                     self.sock.send(b"\x00")
                 time.sleep(0.1)
         except (ConnectionError, OSError):
@@ -362,8 +364,21 @@ class _RunCommandClient:
         """
         try:
             while msg := self.sock.recv():
-                sys.stdout.buffer.write(msg)
-                sys.stdout.flush()
+                i = 0
+                while i < len(msg):
+                    stream = msg[i]
+                    mybyte = msg[i + 1]
+                    i += 2
+                    if stream == 0:
+                        pass
+                    elif stream == 1:
+                        sys.stdout.buffer.write(bytes((mybyte, )))
+                        sys.stdout.buffer.flush()
+                    elif stream == 2:
+                        sys.stderr.buffer.write(bytes((mybyte, )))
+                        sys.stderr.buffer.flush()
+                    else:
+                        raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):
             pass
         finally:
