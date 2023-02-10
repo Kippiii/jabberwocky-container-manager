@@ -121,6 +121,7 @@ class ContainerManagerServer:
             if "qemu-system-" in p.name().lower():
                 p.kill()
                 self.logger.error(f"PANIC: KILLED {p.pid}!")
+        os.remove(get_server_info_file())
         self.logger.debug("PANIC: Server will ABORT now.")
         os.kill(os.getpid(), SIGABRT)
 
