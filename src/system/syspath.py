@@ -136,3 +136,17 @@ def delete_container(container_name: Path) -> None:
         raise FileNotFoundError(str(container_path))
 
     rmtree(str(container_path))
+
+
+def archive_container(container_name: str, path_to_destination: Path) -> None:
+    """
+    Saves a container as an archive
+
+    :param container_name: The name of the container being archived
+    :param path_to_destination: The path where the archive will be saved
+    """
+    if path_to_destination.is_file():
+        raise FileExistsError(str(path_to_destination))
+    with tarfile.open(str(path_to_destination), "w:gz") as tar:
+        tar.add(str(get_container_config(container_name)), arcname="config.json")
+        tar.add(str(get_container_dir(container_name) / "hdd.qcow2"), arcname="hdd.qcow2")

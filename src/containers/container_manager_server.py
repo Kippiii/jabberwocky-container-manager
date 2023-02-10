@@ -19,7 +19,7 @@ from paramiko import SSHException
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
-from src.system.syspath import get_container_dir, get_server_info_file, install_container
+from src.system.syspath import get_container_dir, get_server_info_file, install_container, archive_container
 from src.system.socket import ClientServerSocket
 
 
@@ -162,6 +162,7 @@ class _SocketConnection:
                 b"PING": self._ping,
                 b"INSTALL": self._install,
                 b"STARTED": self._started,
+                b"ARCHIVE": self._archive,
             }[msg]()
 
         except KeyError:
@@ -406,7 +407,23 @@ class _SocketConnection:
         """
         Archives a container onto the disk
         """
-        # TODO
+        self.sock.cont()
+        container_name = self.sock.recv().decode('utf-8')
+        self.sock.cont()
+        path_to_destination: Path = Path(self.sock.recv().decode('utf-8'))
+
+        if not get_container_dir(container_name).is_dir():
+            self.manager.logger.debug("Container %s does not exist", container_name)
+            self.sock.raise_no_such_container(container_name)
+        if container_name in self.manager.containers:
+            pass # TODO Container needs to stop
+
+        try:
+            archive_container(container_name, path_to_destination)
+        except FileExistsError:
+            self.sock.raise_invalid_path(str(path_to_destination))
+        else:
+            self.sock.ok()
 
 
 class _RunCommandHandler:

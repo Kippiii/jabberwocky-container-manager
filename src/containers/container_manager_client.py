@@ -277,7 +277,11 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"ARCHIVE")
         sock.recv_expect(b"CONT")
-        # TODO
+        sock.send(bytes(container_name, 'utf-8'))
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(absolute_path, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
 
     def server_halt(self) -> None:
         """

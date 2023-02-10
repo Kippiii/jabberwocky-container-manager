@@ -179,7 +179,7 @@ class InvalidPathError(ServerError):
         self.path: str = self.sock.recv().decode("utf-8")
 
     def __str__(self):
-        return f"The path {self.path} does not exist"
+        return f"The path {self.path} is invalid"
 
 
 class SockIsADirectoryError(ServerError):

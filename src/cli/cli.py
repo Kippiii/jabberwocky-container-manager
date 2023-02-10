@@ -318,7 +318,7 @@ update-repo [URL]
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
 
-        self.container_manager.archvie(container_name, path_to_destination)
+        self.container_manager.archive(container_name, path_to_destination)
 
     def add_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
