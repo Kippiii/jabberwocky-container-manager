@@ -27,10 +27,17 @@ class RepoManager:
             """
             Saves all of the archives listed into the object
             """
-            resp = requests.get(self.url)
+            try:
+                resp = requests.get(self.url)
+            except requests.exceptions.RequestException as exc:
+                raise ValueError(f"Could not connect to {self.url}") with exc
+
             if not resp.ok:
                 raise Exception(f"Got status code {resp.status_code} from {self.url}")
-            data = resp.json()
+            try:
+                data = resp.json()
+            except json.JSONDecodeError as exc:
+                raise ValueError("Web server gave invalid response")
             if "archives" not in data or not isinstance(data['archives'], list):
                 raise ValueError("Got invalid data from server")
             self.archives = [str(x) for x in data['archives']]
@@ -122,12 +129,14 @@ class RepoManager:
                 stdout.write("Skipping...\n")
                 continue
             stdout.write("Downloading...\n")
-
-            with requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}", stream=True) as r:
-                p: Path = get_container_home() / archive_str
-                with open(p, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=32*1024*1024):
-                        f.write(chunk)
+            try:
+                with requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}", stream=True) as r:
+                    p: Path = get_container_home() / archive_str
+                    with open(p, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=32*1024*1024):
+                            f.write(chunk)
+            except requests.exceptions.RequestException as exc:
+                raise ValueError(f"Could not connect to server {repo.url}") with exc
             
             stdout.write("Successfully downloaded archive\n")
             return p
@@ -150,4 +159,7 @@ class RepoManager:
             "file": open(str(save_path), 'rb'),
         }
 
-        r = requests.get(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", json=data, files=files)
+        try:
+            r = requests.post(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", json=data, files=files)
+        except requests.exceptions.RequestException as exc:
+            raise ValueError(f"Could not connect to server {repo.url}") with exc
