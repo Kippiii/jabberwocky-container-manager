@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 from sys import stdout, stdin
 
-from src.system.syspath import get_repo_file, get_container_dir
+from src.system.syspath import get_repo_file, get_container_dir, get_container_home
 
 class RepoManager:
     """
@@ -123,12 +123,13 @@ class RepoManager:
                 continue
             stdout.write("Downloading...\n")
 
-            r = requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}")
-            p: Path = get_container_dir() / archive_str
-            with open(p, "wb") as f:
-                f.write(r.contents)
+            with requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}", stream=True) as r:
+                p: Path = get_container_home() / archive_str
+                with open(p, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=32*1024*1024):
+                        f.write(chunk)
             
-            stdout.write("Successfully downloaded archive")
+            stdout.write("Successfully downloaded archive\n")
             return p
 
         stdout.write("Could not find archive from repos\n")
