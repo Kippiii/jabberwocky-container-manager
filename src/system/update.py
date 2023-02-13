@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import re
+import os
 import tempfile
 import requests
 import hashlib
@@ -53,7 +54,12 @@ def update(release: GitRelease, asset: GitReleaseAsset):
 
     with open(p, "wb") as f:
         f.write(r.content)
-    if platform != "win32":
-        subprocess.run(["chmod", "+x", p], shell=False)
 
-    subprocess.run([p], shell=sys.platform == "win32")
+    if platform == "win32":
+        subprocess.Popen([p], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        sys.exit(0)
+    else:
+        subprocess.run(["chmod", "+x", p], shell=False)
+        os.execl(p, p)
+
+    raise RuntimeError("This state should not be possible.")
