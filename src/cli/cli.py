@@ -6,6 +6,7 @@ import re
 from sys import stdin, stdout
 from typing import List
 from pathlib import Path
+from getpass import getpass
 from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
@@ -340,10 +341,9 @@ update-repo [URL]
 
         stdout.write("Username: ")
         username: str = stdin.readline()
-        stdout.write("Password: ")
-        password: str = stdin.readline()
+        password: str = getpass("Password: ", stream=stdin)
 
-        save_path: Path = Path(f"{container_manager}.tar.gz")
+        save_path: Path = Path(f"{container_name}.tar.gz")
         self.container_manager.archive(container_name, str(save_path))
         self.repo_manager.upload(save_path, repo_url, username, password)
         save_path.unlink()
