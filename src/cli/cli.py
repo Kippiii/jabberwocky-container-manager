@@ -45,6 +45,7 @@ class JabberwockyCLI:
             "get-file": self.get_file,
             "install": self.install,
             "delete": self.delete,
+            "rename": self.rename,
             "download": self.download,
             "archive": self.archive,
             "add-repo": self.add_repo,
@@ -307,6 +308,31 @@ update-repo [URL]
             self.out_stream.write(f"Please stop {container_name} before trying to delete it.")
         else:
             self.container_manager.delete(container_name)
+
+    def rename(self, cmd: List[str]) -> None:
+        """
+        Renames a container on the file system
+
+        :param cmd: The rest of the command sent
+        """
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        
+        old_name, new_name = cmd[0], cmd[1]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(old_name):
+            self.out_stream.write(f"'{old_name}' is not a valid container name.\n")
+            return
+        if not comp.match(new_name):
+            self.out_stream.write(f"'{new_name}' is not a valid container name.\n")
+            return
+
+        if self.container_manager.started(old_name):
+            self.out_stream.write(f"Please stop '{old_name}' before trying to rename it.\n")
+            return
+
+        self.container_manager.rename(old_name, new_name)
 
     def download(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

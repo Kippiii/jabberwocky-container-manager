@@ -181,6 +181,7 @@ class _SocketConnection:
                 b"PING": self._ping,
                 b"INSTALL": self._install,
                 b"DELETE": self._delete,
+                b"RENAME": self._rename,
                 b"STARTED": self._started,
             }[msg]()
 
@@ -451,6 +452,27 @@ class _SocketConnection:
 
         self.sock.ok()
         self.manager.logger.debug("Successfully deleted container %s", container_name)
+    
+    def _rename(self) -> None:
+        """
+        Renames a container on the file system
+        """
+        self.sock.cont()
+        old_name: str = self.sock.recv().decode('utf-8')
+        self.sock.cont()
+        new_name: str = self.sock.recv().decode('utf-8')
+
+        self.manager.logger.debug("Renaming container '%s' to '%s'", old_name, new_name)
+
+        if not get_container_dir(old_name).is_dir():
+            self.manager.logger.debug("Attempt to rename container that does not exist")
+            self.sock.raise_no_such_container(old_name)
+            return
+
+        os.rename(str(get_container_dir(old_name)), str(get_container_dir(new_name)))
+
+        self.sock.ok()
+        self.manager.logger.debug("Successfully renamed container")
 
 
 class _RunCommandHandler:

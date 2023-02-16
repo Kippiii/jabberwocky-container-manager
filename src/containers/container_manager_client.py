@@ -264,6 +264,22 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         sock.close()
 
+    def rename(self, old_name: str, new_name: str) -> None:
+        """
+        Renames a container on the file system
+
+        :param old_name: The old name of the container
+        :param new_name: The name that the container will be renamed to
+        """
+        sock = self._make_connection()
+        sock.send(b"RENAME")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(old_name, 'utf-8'))
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(new_name, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
+
     def server_halt(self) -> None:
         """
         Tells the server to halt
