@@ -340,8 +340,9 @@ update-repo [URL]
             return
 
         stdout.write("Username: ")
+        stdout.flush()
         username: str = stdin.readline()
-        password: str = getpass("Password: ", stream=stdin)
+        password: str = getpass("Password: ")
 
         save_path: Path = Path(f"{container_name}.tar.gz")
         self.container_manager.archive(container_name, str(save_path))
