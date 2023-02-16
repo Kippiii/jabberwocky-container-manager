@@ -297,15 +297,16 @@ update-repo [URL]
         :param cmd: The rest of the command sent
         """
         container_name = cmd[0]
+
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
             return
+
         if self.container_manager.started(container_name):
             self.out_stream.write(f"Please stop {container_name} before trying to delete it.")
         else:
-            self.out_stream.write("Command not yet supported")
-            # self.container_manager.delete(container_name)
+            self.container_manager.delete(container_name)
 
     def download(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

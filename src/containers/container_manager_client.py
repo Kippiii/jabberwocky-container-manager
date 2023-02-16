@@ -251,6 +251,19 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         sock.close()
 
+    def delete(self, container_name: str) -> None:
+        """
+        Deletes a container from the file system
+
+        :param container_name: The name of the container to delete
+        """
+        sock = self._make_connection()
+        sock.send(b"DELETE")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(container_name, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
+
     def server_halt(self) -> None:
         """
         Tells the server to halt
