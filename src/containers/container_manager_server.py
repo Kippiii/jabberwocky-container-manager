@@ -410,7 +410,7 @@ class _SocketConnection:
         self.sock.cont()
         container_name = self.sock.recv().decode('utf-8')
         self.sock.cont()
-        path_to_destination: Path = Path(self.sock.recv().decode('utf-8'))
+        path_to_destination: str = self.sock.recv().decode('utf-8')
 
         if not get_container_dir(container_name).is_dir():
             self.manager.logger.debug("Container %s does not exist", container_name)

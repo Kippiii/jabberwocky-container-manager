@@ -6,7 +6,7 @@ import os
 import tarfile
 from pathlib import Path
 from shutil import rmtree, which
-from os.path import abspath, expanduser
+from os.path import abspath, expanduser, isfile, isdir, join
 
 
 def get_full_path(path: str):
@@ -138,15 +138,20 @@ def delete_container(container_name: Path) -> None:
     rmtree(str(container_path))
 
 
-def archive_container(container_name: str, path_to_destination: Path) -> None:
+def archive_container(container_name: str, path_to_destination: str) -> None:
     """
     Saves a container as an archive
 
     :param container_name: The name of the container being archived
     :param path_to_destination: The path where the archive will be saved
     """
-    if path_to_destination.is_file():
+    if isdir(path_to_destination):
+        path_to_destination = join(path_to_destination, f"{container_name}.tar.gz")
+    if isfile(path_to_destination):
         raise FileExistsError(str(path_to_destination))
-    with tarfile.open(str(path_to_destination), "w:gz") as tar:
-        tar.add(str(get_container_config(container_name)), arcname="config.json")
-        tar.add(str(get_container_dir(container_name) / "hdd.qcow2"), arcname="hdd.qcow2")
+    if not str(path_to_destination).endswith(".tar.gz"):
+        path_to_destination += ".tar.gz"
+
+    with tarfile.open(path_to_destination, "w:gz") as tar:
+        tar.add(get_container_config(container_name), arcname="config.json")
+        tar.add(get_container_dir(container_name) / "hdd.qcow2", arcname="hdd.qcow2")
