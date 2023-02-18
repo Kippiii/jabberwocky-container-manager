@@ -5,8 +5,10 @@ The server version of the container manager
 import logging
 import psutil
 import os
+import sys
 import time
 import json
+import shutil
 import socket
 import threading
 from typing import Dict, Optional, Tuple
@@ -40,6 +42,8 @@ class ContainerManagerServer:
     server_sock: Optional[socket.socket] = None
     containers: Dict[str, Container] = {}
     logger: logging.Logger
+    startup_mutex: threading.Lock = threading.Lock()
+    halt_event: threading.Event = threading.Event()
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -50,7 +54,7 @@ class ContainerManagerServer:
         """
 
         self.address = (socket.gethostbyname("127.0.0.1"), allocate_port(22300))
-        self.logger.debug("Starting Container Manager Server @ %s", self.address)
+        self.logger.debug("MAIN THREAD: Starting Container Manager Server @ %s", self.address)
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
@@ -65,37 +69,50 @@ class ContainerManagerServer:
         with open(get_server_info_file(), "w", encoding="utf-8") as f:
             json.dump(server_info, f)
 
+        threading.Thread(target=self._listen, daemon=True).start()
+        self.halt_event.wait()
+        self.logger.debug("MAIN THREAD: HALT event reached. Stopping.")
+        self.server_sock.close()
+        self.stop()
+        self.logger.debug("MAIN THREAD: Exiting NOW.")
+        sys.exit()
+
+    def _listen(self):
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
-                self.logger.debug("Accepted connection from %s", client_addr)
+                self.logger.debug("MAIN THREAD: Accepted connection from %s", client_addr)
                 threading.Thread(
                     target=_SocketConnection(
                         client_sock, client_addr, self
-                    ).start_connection
+                    ).start_connection, daemon=True
                 ).start()
-        except (OSError, ConnectionError):
-            pass
+        except Exception as ex:  # pylint: disable=broad-except
+            self.logger.exception(ex)
+            self.halt_event.set()
 
     def stop(self) -> None:
         """
         Stops the container manager server
         """
-
-        self.logger.debug("Stopping the server")
-        self.server_sock.close()
-        os.remove(get_server_info_file())
         for name, container in self.containers.items():
-            self.logger.debug("Closing %s", name)
+            self.logger.debug("STOP: Closing %s", name)
             try:
                 container.stop()
-                self.logger.info(f"Shut down {name}@{container.booter.pid}.")
-            except (PoweroffBadExitError, SSHException):
-                container.kill()
-                self.logger.info(f"Killed {name}@{container.booter.pid}.")
+                self.logger.debug(f"STOP: Poweroff'd {name} (PID={container.booter.pid}).")
+            except (PoweroffBadExitError, SSHException, AttributeError):
+                try:
+                    self.logger.error(f"STOP: POWEROFF FAILED. Killing {name} (PID={container.booter.pid}).")
+                    container.kill()
+                except (PermissionError, AttributeError) as exc:
+                    msg = f"STOP: COULD NOT KILL {name} (PID={container.booter.pid}). " \
+                          f"Reason: {type(exc).__name__}. (The process is probably dead.)"
+                    self.logger.error(msg)
+                else:
+                    self.logger.info(f"STOP: Killed {name}@{container.booter.pid}.")
 
-        self.logger.info("Server going down NOW!")
-        os.kill(os.getpid(), SIGABRT)
+        os.remove(get_server_info_file())
+        self.logger.debug("STOP: STOP complete.")
 
     def panic(self, reason: Optional[str] = None) -> None:
         """
@@ -105,8 +122,9 @@ class ContainerManagerServer:
         for p in psutil.process_iter():
             if "qemu-system-" in p.name().lower():
                 p.kill()
-                self.logger.error(f"KILLED {p.pid}!")
-        self.logger.info("Server going down NOW!")
+                self.logger.error(f"PANIC: KILLED {p.pid}!")
+        os.remove(get_server_info_file())
+        self.logger.debug("PANIC: Server will ABORT now.")
         os.kill(os.getpid(), SIGABRT)
 
 
@@ -143,13 +161,14 @@ class _SocketConnection:
 
         try:
             msg = self.sock.recv(1024)
-            self.manager.logger.debug("Recieves %s from the client", msg)
+            self.manager.logger.debug("Recieved %s from the client", msg)
 
             if msg == b"HALT":
-                self.manager.stop()
+                self.manager.halt_event.set()
                 return
             if msg == b"PANIC":
                 self.manager.panic("Received PANIC command.")
+                return
 
             {
                 b"UPDATE-HOSTKEY": self._update_hostkey,
@@ -162,6 +181,8 @@ class _SocketConnection:
                 b"KILL": self._kill,
                 b"PING": self._ping,
                 b"INSTALL": self._install,
+                b"DELETE": self._delete,
+                b"RENAME": self._rename,
                 b"STARTED": self._started,
                 b"ARCHIVE": self._archive,
             }[msg]()
@@ -181,8 +202,8 @@ class _SocketConnection:
         """
         Pong!
         """
-        self.manager.logger.debug("Ponging the client")
-        self.sock.send(b"PONG")
+        self.manager.logger.debug("Responding to ping.")
+        self.sock.ok()
 
     def _started(self) -> None:
         self.sock.cont()
@@ -249,9 +270,7 @@ class _SocketConnection:
 
         self.sock.send(b"BEGIN")
 
-        stdin, stdout, stderr = self.manager.containers[container_name].run(
-            " ".join(cli)
-        )
+        stdin, stdout, stderr, pid = self.manager.containers[container_name].run(cli)
         _RunCommandHandler(
             client_sock=self.sock,
             client_addr=self.client_addr,
@@ -259,6 +278,8 @@ class _SocketConnection:
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
+            pid=pid,
+            container=self.manager.containers[container_name]
         ).send_and_recv()
 
     def _start(self) -> None:
@@ -273,19 +294,30 @@ class _SocketConnection:
             self.manager.logger.debug("Container %s does not exist", container_name)
             self.sock.raise_no_such_container(container_name)
 
-        elif container_name not in self.manager.containers:
-            try:
-                self.manager.logger.debug("Starting container '%s'", container_name)
-                self.manager.containers[container_name] = Container(
-                    container_name, logger=self.manager.logger
-                )
-                self.manager.containers[container_name].start()
-                self.manager.logger.debug("Container %s has been started", container_name)
-            except BootFailure as exc:
-                self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
-                self.sock.raise_boot_error()
+        self.manager.startup_mutex.acquire()
+        try:
+            if container_name not in self.manager.containers:
+                try:
+                    self.manager.logger.debug("Starting container '%s'", container_name)
+                    self.manager.containers[container_name] = Container(
+                        container_name, logger=self.manager.logger
+                    )
+                    self.manager.containers[container_name].start()
+                    self.manager.logger.debug("Container %s has been started", container_name)
+                except BootFailure as exc:
+                    self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
+                    self.manager.containers[container_name].kill()
+                    del self.manager.containers[container_name]
+                    self.sock.raise_boot_error()
+                else:
+                    self.sock.ok()
             else:
                 self.sock.ok()
+        except Exception as exc:  # pylint: disable=broad-except
+            self.manager.startup_mutex.release()
+            raise exc
+        else:
+            self.manager.startup_mutex.release()
 
     def _stop(self) -> None:
         """
@@ -426,6 +458,46 @@ class _SocketConnection:
         else:
             self.sock.ok()
 
+    def _delete(self) -> None:
+        """
+        Deletes a container from the file system
+        """
+        self.sock.cont()
+        container_name: str = self.sock.recv().decode('utf-8')
+
+        self.manager.logger.debug("Deleting container %s", container_name)
+
+        if not get_container_dir(container_name).is_dir():
+            self.manager.logger.debug("Attempt to delete container that does not exist")
+            self.sock.raise_no_such_container(container_name)
+            return
+
+        shutil.rmtree(get_container_dir(container_name))
+
+        self.sock.ok()
+        self.manager.logger.debug("Successfully deleted container %s", container_name)
+    
+    def _rename(self) -> None:
+        """
+        Renames a container on the file system
+        """
+        self.sock.cont()
+        old_name: str = self.sock.recv().decode('utf-8')
+        self.sock.cont()
+        new_name: str = self.sock.recv().decode('utf-8')
+
+        self.manager.logger.debug("Renaming container '%s' to '%s'", old_name, new_name)
+
+        if not get_container_dir(old_name).is_dir():
+            self.manager.logger.debug("Attempt to rename container that does not exist")
+            self.sock.raise_no_such_container(old_name)
+            return
+
+        os.rename(str(get_container_dir(old_name)), str(get_container_dir(new_name)))
+
+        self.sock.ok()
+        self.manager.logger.debug("Successfully renamed container")
+
 
 class _RunCommandHandler:
     """
@@ -443,11 +515,12 @@ class _RunCommandHandler:
     client_sock: socket.socket
     client_addr: Tuple[str, int]
 
-    stdin: Optional[ChannelStdinFile] = None
-    stdout: Optional[ChannelFile] = None
-    stderr: Optional[ChannelStderrFile] = None
-    stdout_closed: Optional[bool] = None
-    stderr_closed: Optional[bool] = None
+    container: Container
+    pid: int
+    stdin: ChannelStdinFile
+    stdout: ChannelFile
+    stderr: ChannelStderrFile
+    mutex: threading.Lock = threading.Lock()
 
     def __init__(
         self,
@@ -457,6 +530,8 @@ class _RunCommandHandler:
         stdin: ChannelStdinFile,
         stdout: ChannelFile,
         stderr: ChannelStderrFile,
+        pid: int,
+        container: Container,
     ):
         self.client_sock = client_sock
         self.client_addr = client_addr
@@ -464,23 +539,30 @@ class _RunCommandHandler:
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
+        self.pid = pid
+        self.container = container
 
     def send_and_recv(self):
         """
         Sends output, receives input. Blocking function.
         """
-        self.stdout_closed = False
-        self.stderr_closed = False
-
-        t_send_stdout = threading.Thread(target=self._send_stdout)
-        t_send_stderr = threading.Thread(target=self._send_stderr)
-        t_recv = threading.Thread(target=self._recv)
+        t_send_stdout = threading.Thread(target=self._send_stdout, daemon=True)
+        t_send_stderr = threading.Thread(target=self._send_stderr, daemon=True)
+        t_send_null = threading.Thread(target=self._send_null, daemon=True)
+        t_recv = threading.Thread(target=self._recv, daemon=True)
         t_send_stdout.start()
         t_send_stderr.start()
         t_recv.start()
-        t_send_stdout.join()
-        t_send_stderr.join()
-        t_recv.join()
+        t_send_null.start()
+
+        while True:
+            if not (t_recv.is_alive() and t_send_null.is_alive()):
+                break
+            if not (t_send_stdout.is_alive() or t_send_stderr.is_alive()):
+                break
+            time.sleep(1)
+        self.client_sock.close()
+        self.container.sshi.exec_ssh_command(["kill", "-9", str(self.pid)])
 
     def _recv(self):
         try:
@@ -495,23 +577,30 @@ class _RunCommandHandler:
     def _send_stdout(self):
         try:
             while my_byte := self.stdout.read(1):
-                self.client_sock.send(my_byte)
+                self.mutex.acquire()
+                self.client_sock.send(b"\x01" + my_byte)
+                self.mutex.release()
         except (ConnectionError, OSError) as ex:
-            self.manager.logger.exception(ex)
-        finally:
-            self.stdout_closed = True
-            if self.stderr_closed:
-                time.sleep(0.25)
-                self.client_sock.close()
+            if self.mutex.locked():
+                self.mutex.release()
 
     def _send_stderr(self):
         try:
             while my_byte := self.stderr.read(1):
-                self.client_sock.send(my_byte)
+                self.mutex.acquire()
+                self.client_sock.send(b"\x02" + my_byte)
+                self.mutex.release()
         except (ConnectionError, OSError) as ex:
-            self.manager.logger.exception(ex)
-        finally:
-            self.stderr_closed = True
-            if self.stdout_closed:
-                time.sleep(0.25)
-                self.client_sock.close()
+            if self.mutex.locked():
+                self.mutex.release()
+
+    def _send_null(self):
+        try:
+            while True:
+                self.mutex.acquire()
+                self.client_sock.send(b"\x00\x00")
+                self.mutex.release()
+                time.sleep(1)
+        except (ConnectionError, OSError) as ex:
+            if self.mutex.locked():
+                self.mutex.release()

@@ -15,6 +15,8 @@ from os import makedirs, chdir, environ, pathsep
 from server import server_is_running
 if platform == "win32":
     import winreg
+from src.system.multithreading import SpinningTask
+from src.system.state import frozen
 
 PYINSTALLER_DATA_PATH = Path(__file__).absolute().parent
 
@@ -28,58 +30,6 @@ def abort() -> None:
     print("If this is an error, please report an issue at https://github.com/Kippiii/jabberwocky")
     getpass("Press Enter to exit. ")
     exit(1)
-
-
-class LongTask:
-    """
-    Perform a task that takes a long time. Provides a progress spinner.
-
-    :param exception: Exception raised by thread, if any.
-    :param prompt: The prompt showed to the user while the task is being performed.
-    :param target: The function to be executed.
-    :param args: Arguments to the function.
-    """
-    exception: Optional[Exception] = None
-    prompt : str
-    target: Callable[[], None]
-    args: Iterable
-
-    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = ()) -> None:
-        self.prompt = prompt
-        self.target = target
-        self.args = args
-
-    def exec(self):
-        """
-        Execute the target task.
-        """
-        thread = threading.Thread(target=self._task)
-        thread.start()
-
-        spinner = ("|", "/", "-", "\\")
-        idx = 0
-
-        while thread.is_alive():
-            print(f"\r{self.prompt}... {spinner[idx]}", end="\r")
-            idx = (idx + 1) % len(spinner)
-            sleep(0.1)
-
-        thread.join()
-
-        if self.exception is not None:
-            print()
-            raise self.exception
-        else:
-            print(f"\r{self.prompt}... Done!")
-
-    def _task(self):
-        """
-        Executes the target. Catches any exceptions to be raised by main thread.
-        """
-        try:
-            self.target(*self.args)
-        except Exception as ex:  # pylint: disable=broad-except
-            self.exception = ex
 
 
 def install_qemu() -> None:
@@ -100,7 +50,7 @@ def install_qemu() -> None:
             installer_file = Path(tempfile.gettempdir()) / "qemu-setup.exe"
             checksum_file = Path(tempfile.gettempdir()) / "qemu-setup.sha512"
 
-            t = LongTask("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
+            t = SpinningTask("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
             t.exec()
 
             def verify():
@@ -110,7 +60,7 @@ def install_qemu() -> None:
                     hash = hashlib.sha512(bytes).hexdigest()
                     assert hash.upper() == chksm.read().split()[0].upper()
 
-            t = LongTask("Verifying QEMU installer", verify)
+            t = SpinningTask("Verifying QEMU installer", verify)
             t.exec()
 
             print("Please complete the QEMU installation.")
@@ -183,7 +133,7 @@ def copy_files() -> Path:
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "dist.tar", install_dir)
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "contrib.tar", install_dir / "contrib")
 
-    t = LongTask("Copying files", do_copy)
+    t = SpinningTask("Copying files", do_copy)
     t.exec()
 
     return install_dir
@@ -222,7 +172,7 @@ def update_PATH(install_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    if not getattr(sys, 'frozen', False):
+    if not frozen():
         print("The installer cannot be run unless it is built with PyInstaller.")
         print("See the README for building instructions.")
         abort()

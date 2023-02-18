@@ -7,7 +7,7 @@ import logging
 from io import BytesIO
 from pathlib import Path
 from signal import SIGABRT
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from pexpect import ExceptionPexpect, popen_spawn
@@ -100,19 +100,13 @@ class Container:
         self.sshi.open_all()
         self.sshi.update_hostkey()
 
-    def shell(self) -> None:
-        """
-        Starts a shell for the container
-        """
-        self.sshi.exec_ssh_shell()
-
-    def run(self, cmd: str) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
+    def run(self, cmd: List[str]) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile, int]:
         """
         Runs a command in the container
 
         :param cmd: The command run in the container
         """
-        return self.sshi.exec_ssh_command([cmd])
+        return self.sshi.exec_ssh_command(cmd)
 
     def get(self, remote_file_path: str, local_file_path: str):
         """

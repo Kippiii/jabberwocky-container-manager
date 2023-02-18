@@ -41,13 +41,17 @@ class ContainerManagerClient:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
 
-    def ping(self) -> None:
+    def ping(self) -> float:
         """
         Pings the server
+
+        :return: The time it took to send PING and get OK back
         """
+        t = time.time()
         sock = self._make_connection()
         sock.send(b"PING")
-        sock.recv_expect(b"PONG")
+        sock.recv_expect(b"OK")
+        return time.time() - t
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -62,16 +66,10 @@ class ContainerManagerClient:
             return False
 
     def view_files(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         filezilla(*self.ssh_address(container_name))
 
 
     def sftp(self, container_name: str) -> None:
-        if not self.started(container_name):
-            self.start(container_name)
-
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
@@ -147,9 +145,6 @@ class ContainerManagerClient:
 
         :param container_name: The container whose shell is being used
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         if not get_container_id_rsa(container_name).is_file():
             self.update_hostkey(container_name)
 
@@ -180,9 +175,6 @@ class ContainerManagerClient:
         if local_file in (None, "."):
             local_file = joinpath(getcwd(), basename(remote_file))
 
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
 
         sock = self._make_connection()
@@ -204,13 +196,10 @@ class ContainerManagerClient:
         :param local_file: The file being put into the container
         :param remote_file: Where the file will be placed in the container
         """
-        if remote_file in (None, ".", "~"):
-            remote_file = basename(local_file)
-
-        if not self.started(container_name):
-            self.start(container_name)
-
         absolute_local_path = get_full_path(local_file)
+
+        if remote_file in (None, ".", "~"):
+            remote_file = basename(absolute_local_path)
 
         sock = self._make_connection()
         sock.send(b"PUT-FILE")
@@ -230,9 +219,6 @@ class ContainerManagerClient:
         :param container_name: The container with the command being run
         :param cmd: The command being run, as a list of arguments
         """
-        if not self.started(container_name):
-            self.start(container_name)
-
         sock = self._make_connection()
         sock.send(b"RUN-COMMAND")
         sock.recv_expect(b"CONT")
@@ -280,6 +266,33 @@ class ContainerManagerClient:
         sock.send(bytes(container_name, 'utf-8'))
         sock.recv_expect(b"CONT")
         sock.send(bytes(absolute_path, 'utf-8'))
+
+    def delete(self, container_name: str) -> None:
+        """
+        Deletes a container from the file system
+
+        :param container_name: The name of the container to delete
+        """
+        sock = self._make_connection()
+        sock.send(b"DELETE")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(container_name, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
+
+    def rename(self, old_name: str, new_name: str) -> None:
+        """
+        Renames a container on the file system
+
+        :param old_name: The old name of the container
+        :param new_name: The name that the container will be renamed to
+        """
+        sock = self._make_connection()
+        sock.send(b"RENAME")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(old_name, 'utf-8'))
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(new_name, 'utf-8'))
         sock.recv_expect(b"OK")
         sock.close()
 
@@ -341,6 +354,7 @@ class _RunCommandClient:
         Sends data read from stdin to the sever. POSIX only.
         """
         try:
+            last_send = time.time()
             while not self.recv_closed:
                 if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
                     buffer = bytes(sys.stdin.readline(), "utf-8")
@@ -348,7 +362,8 @@ class _RunCommandClient:
                         msg = buffer[:255]
                         self.sock.send(bytes([len(msg)]) + msg)
                         buffer = buffer[255:]
-                else:
+                    last_send = time.time()
+                elif time.time() - last_send > 1:
                     self.sock.send(b"\x00")
                 time.sleep(0.1)
         except (ConnectionError, OSError):
@@ -394,8 +409,21 @@ class _RunCommandClient:
         """
         try:
             while msg := self.sock.recv():
-                sys.stdout.buffer.write(msg)
-                sys.stdout.flush()
+                i = 0
+                while i < len(msg):
+                    stream = msg[i]
+                    mybyte = msg[i + 1]
+                    i += 2
+                    if stream == 0:
+                        pass
+                    elif stream == 1:
+                        sys.stdout.buffer.write(bytes((mybyte, )))
+                        sys.stdout.buffer.flush()
+                    elif stream == 2:
+                        sys.stderr.buffer.write(bytes((mybyte, )))
+                        sys.stderr.buffer.flush()
+                    else:
+                        raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):
             pass
         finally:
