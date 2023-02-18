@@ -3,6 +3,7 @@ Defines the CLI that takes user input and dispatches the container manager
 """
 
 import re
+import os
 from sys import stdin, stdout
 from typing import List
 from pathlib import Path
@@ -309,11 +310,12 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        if len(cmd) != 2:
-            self.out_stream.write("Command requires two arguments\n")
+        if len(cmd) == 0:
+            self.out_stream.write("Command requires at leas one argument\n")
             return
+
         container_name: str = cmd[0]
-        path_to_destination: str = cmd[1]
+        path_to_destination: str = cmd[1] if len(cmd) > 1 else os.getcwd()
 
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
