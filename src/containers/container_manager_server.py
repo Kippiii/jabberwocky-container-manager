@@ -19,7 +19,8 @@ from paramiko import SSHException
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
-from src.system.syspath import get_container_dir, get_server_info_file, install_container, archive_container
+from src.containers.container_extras import install_container, archive_container
+from src.system.syspath import get_container_dir, get_server_info_file
 from src.system.socket import ClientServerSocket
 
 
