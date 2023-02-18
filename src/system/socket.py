@@ -129,6 +129,11 @@ class ClientServerSocket:
         self.recv()
         self.send(container_name)
 
+    def raise_container_started_cannot_modify(self, container_name: str) -> None:
+        self.send(b"CONTAINER_STARTED_CANNOT_MODIFY")
+        self.recv()
+        self.send(container_name)
+
     def raise_boot_error(self) -> None:
         """
         Notifies the client that a container failed to boot
@@ -159,6 +164,7 @@ def get_server_error(value: str, sock: ClientServerSocket) -> None:
         "UNKNOWN_REQUEST": exc.UnknownRequestError,
         "CONTAINER_NOT_STARTED": exc.ContainerNotStartedError,
         "NO_SUCH_CONTAINER": exc.UnknownContainerError,
+        "CONTAINER_STARTED_CANNOT_MODIFY": exc.ContainerStartedCannotModify,
         "BOOT_FAILURE": exc.BootFailureError,
         "INVALID_PATH": exc.InvalidPathError,
         "EXCEPTION_OCCURED": exc.ServerError,

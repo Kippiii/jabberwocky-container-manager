@@ -448,8 +448,11 @@ class _SocketConnection:
         if not get_container_dir(container_name).is_dir():
             self.manager.logger.debug("Container %s does not exist", container_name)
             self.sock.raise_no_such_container(container_name)
+            return
         if container_name in self.manager.containers:
-            pass # TODO Container needs to stop
+            self.manager.logger.debug("Attempt to archive started container")
+            self.sock.raise_container_started_cannot_modify(container_name)
+            return
 
         try:
             archive_container(container_name, path_to_destination)
@@ -471,12 +474,16 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to delete container that does not exist")
             self.sock.raise_no_such_container(container_name)
             return
+        if container_name in self.manager.containers:
+            self.manager.logger.debug("Attempt to delete started container")
+            self.sock.raise_container_started_cannot_modify(container_name)
+            return
 
         shutil.rmtree(get_container_dir(container_name))
 
         self.sock.ok()
         self.manager.logger.debug("Successfully deleted container %s", container_name)
-    
+
     def _rename(self) -> None:
         """
         Renames a container on the file system
@@ -492,6 +499,11 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to rename container that does not exist")
             self.sock.raise_no_such_container(old_name)
             return
+        if old_name in self.manager.containers:
+            self.manager.logger.debug("Attempt to rename started container")
+            self.sock.raise_container_started_cannot_modify(old_name)
+            return
+
 
         os.rename(str(get_container_dir(old_name)), str(get_container_dir(new_name)))
 
