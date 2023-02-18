@@ -42,11 +42,9 @@ def archive_container(container_name: str, path_to_destination: Union[str, Path]
         path_to_destination = str(path_to_destination)
 
     if isdir(path_to_destination):
-        path_to_destination = join(path_to_destination, f"{container_name}.tar.gz")
+        raise IsADirectoryError(str(path_to_destination))
     if isfile(path_to_destination):
         raise FileExistsError(str(path_to_destination))
-    if not str(path_to_destination).endswith(".tar.gz"):
-        path_to_destination += ".tar.gz"
 
     with tarfile.open(path_to_destination, "w:gz") as tar:
         tar.add(get_container_config(container_name), arcname="config.json")
