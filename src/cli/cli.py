@@ -54,6 +54,7 @@ class JabberwockyCLI:
             "rename": self.rename,
             "download": self.download,
             "archive": self.archive,
+            "export": self.archive,
             "upload": self.upload,
             "add-repo": self.add_repo,
             "update-repo": self.update_repo,
