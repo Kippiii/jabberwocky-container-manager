@@ -296,7 +296,7 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
             return
-        t = SpinningTask(f"Installing {container_name}", self.container_manager.install, (archive_path_str, container_name))
+        t = SpinningTask(f"Installing {container_name}. This may take several minutes", self.container_manager.install, (archive_path_str, container_name))
         t.exec()
 
     def delete(self, cmd: List[str]) -> None:
@@ -382,7 +382,7 @@ update-repo [URL]
             return
 
         t = SpinningTask(
-            f"Exporting {container_name}. This will take several minutes",
+            f"Exporting {container_name}. This will take a long time",
             self.container_manager.archive, (container_name, path_to_destination))
         t.exec()
 
