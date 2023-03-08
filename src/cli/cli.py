@@ -82,9 +82,13 @@ class JabberwockyCLI:
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
 
     def build(self, cmd: List[str]) -> None:
-        wd = Path(cmd[0]) if cmd else Path.cwd()
-        compress = "--nocompression" not in cmd
+        if "--uncompressed" in cmd:
+            cmd.remove("--uncompressed")
+            compress = False
+        else:
+            compress = True
 
+        wd = Path(cmd[0]) if cmd else Path.cwd()
         builder.do_debootstrap(wd)
         SpinningTask(f"Exporting build to archive", builder.do_export, (wd, compress), self.out_stream).exec()
 
