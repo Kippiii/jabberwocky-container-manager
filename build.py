@@ -67,6 +67,7 @@ subprocess.run([
 
 shutil.make_archive(build / "dist", "tar", build / "dist")
 shutil.make_archive(build / "contrib", "tar", contrib)
+shutil.make_archive(build / "scripts", "tar", root / "scripts")
 
 subprocess.run([
     *pyinstaller,
@@ -80,6 +81,8 @@ subprocess.run([
     f"{root / 'LICENSE'}{pathsep}.",
     f"--add-data",
     f"{build / 'contrib.tar'}{pathsep}.",
+    f"--add-data",
+    f"{build / 'scripts.tar'}{pathsep}.",
     *build_options,
     target_install,
 ], check=True)

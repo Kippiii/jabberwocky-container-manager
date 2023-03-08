@@ -128,10 +128,12 @@ def copy_files() -> Path:
             shutil.rmtree(install_dir)
         makedirs(install_dir)
         makedirs(install_dir / "contrib")
+        makedirs(install_dir / "scripts")
 
         # Copy files
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "dist.tar", install_dir)
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "contrib.tar", install_dir / "contrib")
+        shutil.unpack_archive(PYINSTALLER_DATA_PATH / "scripts.tar", install_dir / "scripts")
 
     t = SpinningTask("Copying files", do_copy)
     t.exec()
