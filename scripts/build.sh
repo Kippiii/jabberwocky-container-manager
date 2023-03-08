@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-if [ $# -lt 6 ]; then
+if [ $# -lt 8 ]; then
     echo "FATAL ERROR: Insufficient arguments."
     exit 255
 fi
