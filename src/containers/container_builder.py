@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import tarfile
+import random
 import subprocess
 from pathlib import Path
 from shutil import which
@@ -11,16 +12,18 @@ from src.system.multithreading import SpinningTask
 from src.containers.container_manifest import ContainerManifest
 from typing import List
 
-DEFAULT_MANIFEST = {
-    "manifest": MANIFEST_VERSION,
-    "arch": "x86_64",
-    "memory": 500,
-    "hddmaxsize": 10,
-    "hostname": "debian",
-    "portfwd": [],
-    "aptpkgs": [],
-    "scriptorder": [],
-}
+def generate_default_manifest():
+    return {
+        "manifest": MANIFEST_VERSION,
+        "arch": "x86_64",
+        "memory": 500,
+        "hddmaxsize": 10,
+        "hostname": "debian",
+        "portfwd": [],
+        "aptpkgs": [],
+        "scriptorder": [],
+        "password": ''.join([chr(random.choice(range(65, 90))) for _ in range(30)]),
+    }
 
 
 def make_skeleton(wd: Path) -> None:
@@ -33,7 +36,7 @@ def make_skeleton(wd: Path) -> None:
     os.makedirs(wd / "build")
     os.makedirs(wd / "build" / "temp")
     with open(wd / "manifest.json", 'w') as f:
-        json.dump(DEFAULT_MANIFEST, f, indent=4)
+        json.dump(generate_default_manifest(), f, indent=4)
 
 
 def is_supported_platform() -> bool:

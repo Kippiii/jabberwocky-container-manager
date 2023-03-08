@@ -1,5 +1,4 @@
 import re
-import random
 from typing import Dict, List, Any
 from src.containers.exceptions import InvalidManifestError
 from src.containers.container_config import ContainerConfig
@@ -11,9 +10,6 @@ class ContainerManifest(ContainerConfig):
 
     def __init__(self, manifest: dict):
         manifest_errors = []
-        if "password" not in manifest:
-            manifest = manifest.copy()
-            manifest["password"] = ContainerManifest._random_password()
 
         try:
             super().__init__(manifest)
@@ -54,6 +50,3 @@ class ContainerManifest(ContainerConfig):
 
     def config(self) -> ContainerConfig:
         return super()
-
-    def _random_password() -> str:
-        return ''.join([chr(random.choice(range(65, 90))) for _ in range(30)])
