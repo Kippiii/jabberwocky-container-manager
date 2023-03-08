@@ -52,5 +52,8 @@ class ContainerManifest(ContainerConfig):
         manifest["scriptorder"] = self.scriptorder
         return manifest
 
+    def config(self) -> ContainerConfig:
+        return super()
+
     def _random_password() -> str:
         return ''.join([chr(random.choice(range(65, 90))) for _ in range(30)])

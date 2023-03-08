@@ -3,14 +3,23 @@ Manages the file system used by the container manager
 """
 
 import os
+import sys
 import tarfile
 from pathlib import Path
 from shutil import rmtree, which
 from os.path import abspath, expanduser
+from src.system.state import frozen
 
 
 def get_full_path(path: str):
     return abspath(expanduser(path))
+
+
+def get_scripts_path() -> Path:
+    if frozen():
+        return Path(sys.executable).parent.parent / "scripts"
+    else:
+        return Path(__file__).parent.parent.parent / "scripts"
 
 
 def get_qemu_bin() -> Path:
