@@ -26,7 +26,7 @@ class ContainerManifest(ContainerConfig):
             manifest_errors.append("'aptpkgs' must be a list.")
         else:
             for pkg in aptpkgs:
-                if pkg is not str or not re.fullmatch(r"[a-zA-Z0-9\-]", pkg):
+                if type(pkg) is not str or not re.fullmatch(r"[a-zA-Z0-9\-]+", pkg):
                     manifest_errors.append(f"Invalid package name '{pkg}'.")
 
         if "scriptorder" not in manifest:

@@ -31,7 +31,6 @@ def make_skeleton(wd: Path) -> None:
     os.makedirs(wd / "scripts")
     os.makedirs(wd / "packages")
     os.makedirs(wd / "build")
-    os.makedirs(wd / "build" / "dist")
     os.makedirs(wd / "build" / "temp")
     with open(wd / "manifest.json", 'w') as f:
         json.dump(DEFAULT_MANIFEST, f, indent=4)
@@ -47,7 +46,6 @@ def is_skeleton(wd: Path) -> bool:
         (wd / "resources").is_dir(),
         (wd / "scripts").is_dir(),
         (wd / "packages").is_dir(),
-        (wd / "build" / "dist").is_dir(),
         (wd / "build" / "temp").is_dir(),
         (wd / "manifest.json").is_file(),
     ])
@@ -62,13 +60,23 @@ def missing_required_tools() -> List[str]:
         missing.append("debootstrap")
     if not which("chroot"):
         missing.append("chroot")
-    if not which("virt-resize"):
+    if not which("virt-resize") or not which("virt-make-fs"):
         missing.append("guestfs-tools")
 
     return missing
 
 
-def do_debootstrap(wd: Path, manifest: ContainerManifest) -> None:
+def do_debootstrap(wd: Path) -> None:
+    if not is_supported_platform():
+        raise OSError(f"{sys.platform} does not support building.")
+    if not is_skeleton(wd):
+        raise RuntimeError(f"Provided path '{wd}' is not an init'd directory.")
+    if missing := missing_required_tools():
+        raise RuntimeError(f"The following tools are required but are not installed: {', '.join(missing)}")
+
+    with open(wd / "manifest.json", "r") as jfp:
+        manifest = ContainerManifest(json.load(jfp))
+
     p = subprocess.run([
         which("bash"),
         get_scripts_path() / "build.sh",
@@ -79,24 +87,24 @@ def do_debootstrap(wd: Path, manifest: ContainerManifest) -> None:
         manifest.password,
         manifest.hostname,
         f"{manifest.hddmaxsize}G",
-        " ".join(manifest.aptpkgs),
+        ",".join(manifest.aptpkgs),
     ])
 
     if p.returncode != 0:
         sys.exit(p.returncode)
 
 
-def do_export(wd: Path, manifest: ContainerManifest, name: str, compress=True) -> None:
-    archive_fname = f"{name}.tar" + ".gz" * compress
+def do_export(wd: Path, compress=True) -> None:
+    with open(wd / "manifest.json", "r") as jfp:
+        manifest = ContainerManifest(json.load(jfp))
+
+    archive_fname = f"jcontainer.tar" + ".gz" * compress
 
     with open(wd / "build" / "temp" / "config.json", "w") as config:
         json.dump(manifest.config().to_dict(), config)
 
-    def archive():
-        with tarfile.open(wd / archive_fname, "w:gz" if compress else "w") as tar:
-            tar.add(wd / "build" / "temp" / "config.json", arcname="config.json")
-            tar.add(wd / "build" / "temp" / "hdd.qcow2", arcname="hdd.qcow2")
-            tar.add(wd / "build" / "temp" / "vmlinuz", arcname="vmlinuz")
-            tar.add(wd / "build" / "temp" / "initrd.img", arcname="initrd.img")
-
-    SpinningTask(f"Sending to archive {wd / archive_fname}", archive).exec()
+    with tarfile.open(wd / "build" / archive_fname, "w:gz" if compress else "w") as tar:
+        tar.add(wd / "build" / "temp" / "config.json", arcname="config.json")
+        tar.add(wd / "build" / "temp" / "hdd.qcow2", arcname="hdd.qcow2")
+        tar.add(wd / "build" / "temp" / "vmlinuz", arcname="vmlinuz")
+        tar.add(wd / "build" / "temp" / "initrd.img", arcname="initrd.img")

@@ -3,11 +3,13 @@ Defines the CLI that takes user input and dispatches the container manager
 """
 
 import re
+from pathlib import Path
 from sys import stdin, stdout
 from typing import List
 from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
+import src.containers.container_builder as builder
 from src.system.update import update, get_newest_supported_version
 from src.system.state import frozen
 from src.globals import VERSION
@@ -57,6 +59,8 @@ class JabberwockyCLI:
             "sftp": self.sftp,
             "panic": self.server_panic,
             "version": self.version,
+            "build-init": self.build_init,
+            "build": self.build,
         }
 
         if len(cmd) == 0:
@@ -73,6 +77,16 @@ class JabberwockyCLI:
 
     def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         self.out_stream.write(f"{VERSION}\n")
+
+    def build_init(self, cmd: List[str]) -> None:
+        builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
+
+    def build(self, cmd: List[str]) -> None:
+        wd = Path(cmd[0]) if cmd else Path.cwd()
+        compress = "--nocompression" not in cmd
+
+        builder.do_debootstrap(wd)
+        SpinningTask(f"Exporting build to archive", builder.do_export, (wd, compress), self.out_stream).exec()
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
