@@ -40,7 +40,7 @@ echo "root:$vpassword" | sudo chroot $rootfs chpasswd
 
 # System configuration
 cat << EOF | sudo tee $rootfs/etc/fstab
-/dev/sda1 / ext2 errors=remount-ro,acl 0 1
+/dev/sda1 / ext2 errors=remount-ro,noatime 0 1
 EOF
 
 cat << EOF | sudo tee "$rootfs/etc/network/interfaces"
@@ -94,4 +94,4 @@ sudo chown $(whoami) $result $vmlinuz $initrd
 sudo chgrp $(whoami) $result $vmlinuz $initrd
 
 
-# qemu-system-x86_64 -kernel vmlinuz-5.10.0-20-amd64 -initrd initrd.img-5.10.0-20-amd64 -append 'console=ttyS0 root=/dev/sda1' -serial mon:stdio -nographic -m 1G -drive file=hdd.qcow2,format=qcow2 -net nic -net user,hostfwd=tcp::12350-:22
+# qemu-system-x86_64 -kernel vmlinuz -initrd initrd.img -append 'console=ttyS0 root=/dev/sda1' -serial mon:stdio -nographic -m 1G -drive file=hdd.qcow2,format=qcow2 -net nic -net user,hostfwd=tcp::12350-:22
