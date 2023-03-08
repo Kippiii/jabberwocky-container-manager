@@ -38,6 +38,8 @@ sudo debootstrap \
 # Set root password
 echo "root:$vpassword" | sudo chroot $rootfs chpasswd
 
+sudo chroot $rootfs mkdir /root/.ssh
+
 # System configuration
 cat << EOF | sudo tee $rootfs/etc/fstab
 /dev/sda1 / ext2 errors=remount-ro,noatime 0 1
