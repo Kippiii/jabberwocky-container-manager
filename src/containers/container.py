@@ -77,8 +77,6 @@ class Container(ContainerConfig):
         try:
             self.booter.sendline(self.username)
             self.booter.expect("Password: ")
-            self.booter.sendline(self.password)
-            self.booter.expect(f"{self.hostname}:~#")
         except ExceptionPexpect as exc:
             my_exc = gen_boot_exception(exc, self.logging_file_path)
             raise my_exc from exc
@@ -153,12 +151,18 @@ class Container(ContainerConfig):
 
         return [
             qemu_system,
+            "-kernel",
+            "vmlinuz",
+            "-initrd",
+            "initrd.img",
+            "-append",
+            "console=ttyS0 root=/dev/sda1",
             "-monitor",
             "null",
             "-net",
             "nic",
             "-serial",
-            "stdio",
+            "mon:stdio",
             "-nographic",
             "-m",
             "{}M".format(self.memory),
