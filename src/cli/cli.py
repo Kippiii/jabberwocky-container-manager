@@ -3,14 +3,18 @@ Defines the CLI that takes user input and dispatches the container manager
 """
 
 import re
+import os
 from sys import stdin, stdout
 from typing import List
+from pathlib import Path
+from getpass import getpass
 from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
 from src.system.update import update, get_newest_supported_version
 from src.system.state import frozen
 from src.globals import VERSION
+from src.repo.repo_manager import RepoManager
 from src.system.multithreading import SpinningTask, InterruptibleTask
 
 CONTAINER_NAME_REGEX = r"""\w+"""
@@ -21,12 +25,14 @@ class JabberwockyCLI:
     """
 
     container_manager: ContainerManagerClient
+    repo_manager: RepoManager
     out_stream = stdout
     in_stream = stdin
 
     def __init__(self, in_stream=stdin, out_stream=stdout) -> None:
         self.in_stream = in_stream
         self.out_stream = out_stream
+        self.repo_manager = RepoManager()
 
     def parse_cmd(self, cmd: List[str]) -> None:
         """
@@ -48,6 +54,8 @@ class JabberwockyCLI:
             "rename": self.rename,
             "download": self.download,
             "archive": self.archive,
+            "export": self.archive,
+            "upload": self.upload,
             "add-repo": self.add_repo,
             "update-repo": self.update_repo,
             "create": self.create,
@@ -288,7 +296,7 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
             return
-        t = SpinningTask(f"Installing {container_name}", self.container_manager.install, (archive_path_str, container_name))
+        t = SpinningTask(f"Installing {container_name}. This may take several minutes", self.container_manager.install, (archive_path_str, container_name))
         t.exec()
 
     def delete(self, cmd: List[str]) -> None:
@@ -340,7 +348,20 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        archive_name: str = cmd[0]
+        container_name: str = cmd[1]
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+        
+        download_path: Path = self.repo_manager.download(archive_name)
+        if download_path is not None:
+            self.container_manager.install(str(download_path), container_name)
+            download_path.unlink()
 
     def archive(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -348,7 +369,49 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) == 0:
+            self.out_stream.write("Command requires at leas one argument\n")
+            return
+
+        container_name: str = cmd[0]
+        path_to_destination: str = cmd[1] if len(cmd) > 1 else os.getcwd()
+
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+
+        t = SpinningTask(
+            f"Exporting {container_name}. This will take a long time",
+            self.container_manager.archive, (container_name, path_to_destination))
+        t.exec()
+
+    def upload(self, cmd: List[str]) -> None:
+        """
+        Upload a container to a repo
+
+        :param cmd: The rest of the command sent
+        """
+        if len(cmd) != 2:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        container_name: str = cmd[0]
+        repo_url: str = cmd[1]
+
+        comp = re.compile(CONTAINER_NAME_REGEX)
+        if not comp.match(container_name):
+            self.out_stream.write(f"'{container_name}' is not a valid container name\n")
+            return
+
+        stdout.write("Username: ")
+        stdout.flush()
+        username: str = stdin.readline()
+        password: str = getpass("Password: ")
+
+        save_path: Path = Path(f"{container_name}.tar.gz")
+        self.container_manager.archive(container_name, str(save_path))
+        self.repo_manager.upload(save_path, repo_url, username, password)
+        save_path.unlink()
 
     def add_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -356,7 +419,11 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) != 1:
+            self.out_stream.write("Command requires two arguments\n")
+            return
+        repo_url: str = cmd[0]
+        self.repo_manager.add_repo(repo_url)
 
     def update_repo(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -364,7 +431,14 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        self.out_stream.write("Command not yet supported")
+        if len(cmd) > 1:
+            self.out_stream.write("Command requires zero or one argument\n")
+            return
+        if len(cmd) == 1:
+            repo_url: str = cmd[0]
+            self.repo_manager.update_repo(repo_url)
+            return
+        self.repo_manager.update_all()
 
     def create(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """

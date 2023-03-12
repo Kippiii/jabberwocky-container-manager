@@ -3,9 +3,8 @@ Manages the file system used by the container manager
 """
 
 import os
-import tarfile
 from pathlib import Path
-from shutil import rmtree, which
+from shutil import which
 from os.path import abspath, expanduser
 
 
@@ -64,6 +63,13 @@ def get_server_log_file() -> Path:
     """
     return get_container_home() / "server.log"
 
+def get_repo_file() -> Path:
+    """
+    Returns the path to the repo json file
+
+    :return: The path to the repo json file
+    """
+    return get_container_home() / "repo.json"
 
 def get_container_dir(container_name: str) -> Path:
     """
@@ -103,29 +109,3 @@ def get_container_id_rsa(container_name: str) -> Path:
     :return: The path to the container's private key
     """
     return get_container_dir(container_name) / "id_rsa"
-
-
-def install_container(archive_path: Path, container_name: str) -> None:
-    """
-    Installs a container from an archive
-
-    :param archive_path: The path to the archive
-    """
-    if not tarfile.is_tarfile(str(archive_path)):
-        raise TypeError(f"'{archive_path}' is not a tar archive")
-    with tarfile.open(str(archive_path)) as tar:
-        tar.extractall(path=get_container_dir(container_name))
-        # TODO Sanity check this extraction
-
-
-def delete_container(container_name: Path) -> None:
-    """
-    Deletes a currently installed container
-
-    :param container_name: The container being deleted
-    """
-    container_path = Path(get_container_dir(container_name))
-    if not container_path.is_dir():
-        raise FileNotFoundError(str(container_path))
-
-    rmtree(str(container_path))

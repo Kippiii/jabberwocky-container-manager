@@ -140,6 +140,20 @@ class ContainerNotStartedError(ServerError):
         return f"Container {self.container_name} is not running"
 
 
+class ContainerStartedCannotModify(ServerError):
+    """
+    Raised when there is an attempt to modify container that was started
+
+    :param container_name: The name of the container
+    """
+    def _recv(self):
+        self.sock.cont()
+        self.container_name: str = self.sock.recv().decode("utf-8")
+
+    def __str__(self):
+        return f"Cannot modify {self.container_name} while it is running. Stop it before attempting this action again."
+
+
 class UnknownContainerError(ServerError):
     """
     Raised when container is not installed
@@ -179,7 +193,7 @@ class InvalidPathError(ServerError):
         self.path: str = self.sock.recv().decode("utf-8")
 
     def __str__(self):
-        return f"The path {self.path} does not exist"
+        return f"The path {self.path} is invalid"
 
 
 class SockIsADirectoryError(ServerError):

@@ -21,7 +21,8 @@ from paramiko import SSHException
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
 from src.containers.exceptions import BootFailure, PoweroffBadExitError
-from src.system.syspath import get_container_dir, get_server_info_file, install_container
+from src.containers.container_extras import install_container, archive_container
+from src.system.syspath import get_container_dir, get_server_info_file
 from src.system.socket import ClientServerSocket
 
 
@@ -183,6 +184,7 @@ class _SocketConnection:
                 b"DELETE": self._delete,
                 b"RENAME": self._rename,
                 b"STARTED": self._started,
+                b"ARCHIVE": self._archive,
             }[msg]()
 
         except KeyError:
@@ -434,6 +436,31 @@ class _SocketConnection:
         self.sock.ok()
         self.manager.logger.debug("Successfully installed container %s", container_name)
 
+    def _archive(self) -> None:
+        """
+        Archives a container onto the disk
+        """
+        self.sock.cont()
+        container_name = self.sock.recv().decode('utf-8')
+        self.sock.cont()
+        path_to_destination: str = self.sock.recv().decode('utf-8')
+
+        if not get_container_dir(container_name).is_dir():
+            self.manager.logger.debug("Container %s does not exist", container_name)
+            self.sock.raise_no_such_container(container_name)
+            return
+        if container_name in self.manager.containers:
+            self.manager.logger.debug("Attempt to archive started container")
+            self.sock.raise_container_started_cannot_modify(container_name)
+            return
+
+        try:
+            archive_container(container_name, path_to_destination)
+        except FileExistsError:
+            self.sock.raise_invalid_path(str(path_to_destination))
+        else:
+            self.sock.ok()
+
     def _delete(self) -> None:
         """
         Deletes a container from the file system
@@ -447,12 +474,16 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to delete container that does not exist")
             self.sock.raise_no_such_container(container_name)
             return
+        if container_name in self.manager.containers:
+            self.manager.logger.debug("Attempt to delete started container")
+            self.sock.raise_container_started_cannot_modify(container_name)
+            return
 
         shutil.rmtree(get_container_dir(container_name))
 
         self.sock.ok()
         self.manager.logger.debug("Successfully deleted container %s", container_name)
-    
+
     def _rename(self) -> None:
         """
         Renames a container on the file system
@@ -468,6 +499,11 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to rename container that does not exist")
             self.sock.raise_no_such_container(old_name)
             return
+        if old_name in self.manager.containers:
+            self.manager.logger.debug("Attempt to rename started container")
+            self.sock.raise_container_started_cannot_modify(old_name)
+            return
+
 
         os.rename(str(get_container_dir(old_name)), str(get_container_dir(new_name)))
 
