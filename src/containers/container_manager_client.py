@@ -36,10 +36,11 @@ class ContainerManagerClient:
 
     server_address: Tuple[str, int]
 
-    def __init__(self):
+    def __init__(self, out_stream=sys.stdout):
         with open(get_server_info_file(), "r", encoding="utf-8") as f:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
+        self.out_stream = out_stream
 
     def ping(self) -> float:
         """
@@ -237,7 +238,7 @@ class ContainerManagerClient:
             sock.send(bytes(arg, "utf-8"))
 
         sock.recv_expect(b"BEGIN")
-        _RunCommandClient(sock)
+        _RunCommandClient(sock, self.out_stream)
 
     def install(self, archive_path_str: str, container_name: str) -> None:
         """
@@ -350,9 +351,10 @@ class _RunCommandClient:
     sock: ClientServerSocket
     recv_closed: bool
 
-    def __init__(self, sock: socket.socket):
+    def __init__(self, sock: socket.socket, stream = sys.stdout):
         self.sock = sock
         self.recv_closed = False
+        self.stream = stream
 
         t_recv = threading.Thread(target=self._recv)
         t_send = threading.Thread(
@@ -431,11 +433,11 @@ class _RunCommandClient:
                     if stream == 0:
                         pass
                     elif stream == 1:
-                        sys.stdout.buffer.write(bytes((mybyte, )))
-                        sys.stdout.buffer.flush()
+                        self.stream.write(bytes((mybyte, )).decode('utf-8'))
+                        self.stream.flush()
                     elif stream == 2:
-                        sys.stderr.buffer.write(bytes((mybyte, )))
-                        sys.stderr.buffer.flush()
+                        self.stream.write(bytes((mybyte, )).decode('utf-8'))
+                        self.stream.flush()
                     else:
                         raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):

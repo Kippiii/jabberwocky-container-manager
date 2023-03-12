@@ -34,6 +34,7 @@ class JabberwockyCLI:
         self.in_stream = in_stream
         self.out_stream = out_stream
         self.repo_manager = RepoManager()
+        self.container_manager = ContainerManagerClient(out_stream)
 
     def parse_cmd(self, cmd: List[str]) -> None:
         """
