@@ -29,9 +29,9 @@ class InvalidManifestError(InvalidConfigError):
     """
 
 
-class ManifestVersionIsNoneError(InvalidConfigError):
+class UnsupportedLegacyConfigError(InvalidConfigError):
     """
-    Raised when the manifest version of a manifest/config is not specified.
+    Raised when there is an attempt to convert an unsupported legacy config JSON
     """
 
 

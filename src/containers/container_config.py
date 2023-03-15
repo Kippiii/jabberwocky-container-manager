@@ -1,7 +1,15 @@
 import re
 from typing import Dict, Any, List
 from src.globals import MANIFEST_VERSION, SUPPORTED_ARCHS
-from src.containers.exceptions import ManifestVersionIsNoneError, InvalidConfigError
+from src.containers.exceptions import UnsupportedLegacyConfigError, InvalidConfigError
+
+_LEGACY_CT_CONFIG = {
+    "arch": "x86_64",
+    "arguments": {
+        "m": "500M",
+        "drive": "file=hdd.qcow2,format=qcow2"
+    }
+}
 
 
 class ContainerConfig:
@@ -12,10 +20,11 @@ class ContainerConfig:
     username: str = "root"
     password: str
     portfwd: List[List[int]]
+    legacy: bool
 
     def __init__(self, manifest: dict):
         if (version := manifest.get("manifest")) is None:
-            raise ManifestVersionIsNoneError()
+            manifest = ContainerConfig._convert_legacy(manifest)
         elif version not in range(0, MANIFEST_VERSION + 1):
             raise InvalidConfigError(f"Unknown manifest version {version.__repr__()}")
 
@@ -80,6 +89,25 @@ class ContainerConfig:
         self.hostname = manifest.get("hostname") or "debian"
         self.portfwd = manifest.get("portfwd") or []
         self.password = manifest["password"]
+        self.legacy = manifest.get("legacy") if type(manifest.get("legacy")) is bool else False
+
+
+    def _convert_legacy(manifest: dict) -> dict:
+        if manifest == _LEGACY_CT_CONFIG:
+            return {
+                "manifest": 0,
+                "arch": "x86_64",
+                "memory": 500,
+                "hddmaxsize": 25,
+                "hostname": "debian",
+                "portfwd": [],
+                "username": "root",
+                "password": "root",
+                "legacy": True,
+            }
+
+        raise UnsupportedLegacyConfigError()
+
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -90,9 +118,8 @@ class ContainerConfig:
             "hostname": self.hostname,
             "portfwd": self.portfwd,
             "username": self.username,
-            "password": self.password
+            "password": self.password,
         }
 
     def load_legacy_config(config: Dict[str, Any]) -> "ContainerConfig":
         raise NotImplementedError()
-

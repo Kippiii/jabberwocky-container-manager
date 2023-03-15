@@ -149,8 +149,9 @@ class Container(ContainerConfig):
             "x86_64": [
                 "-serial",
                 "mon:stdio",
-                "-append",
-                "console=ttyS0 root=/dev/sda1",
+                *(["-append",
+                   "console=ttyS0 root=/dev/sda1"]
+                  if not self.legacy else []),
             ],
             "aarch64": [
                 "-M",
@@ -168,13 +169,12 @@ class Container(ContainerConfig):
         hostfwds.append(f"hostfwd=tcp::{self.ex_port}-:22")
         hostfwd = "user," + ",".join(hostfwds)
 
+        kernel = ["-kernel", "vmlinuz", "-initrd", "initrd.img"] if not self.legacy else []
+
         return [
             qemu_system,
             *arch_specific_args,
-            "-kernel",
-            "vmlinuz",
-            "-initrd",
-            "initrd.img",
+            *kernel,
             "-monitor",
             "null",
             "-net",
