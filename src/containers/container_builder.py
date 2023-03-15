@@ -91,17 +91,14 @@ def do_debootstrap(wd: Path) -> None:
     p = subprocess.run([
         which("bash"),
         get_scripts_path() / "build.sh",
-        wd / "build" / "temp" / "rootfs",
-        wd / "build" / "temp" / "hdd.qcow2",
-        wd / "build" / "temp" / "vmlinuz",
-        wd / "build" / "temp" / "initrd.img",
+        wd,
         manifest.password,
         manifest.hostname,
         f"{manifest.hddmaxsize}G",
         ",".join(manifest.aptpkgs),
         _sys_arch_to_debian_arch(machine()),
         _sys_arch_to_debian_arch(manifest.arch),
-        wd / "packages"
+        " ".join(_full_script_order(wd, manifest))
     ])
 
     if p.returncode != 0:
@@ -133,3 +130,16 @@ def _sys_arch_to_debian_arch(arch: str):
         return "arm64"
 
     return "UNKNOWN"
+
+
+def _full_script_order(wd: Path, manifest: ContainerManifest) -> List[str]:
+    allscripts = os.listdir(wd / "scripts")
+
+    if any(" " in x for x in allscripts):
+        raise("Script file names cannot contain spaces.")
+
+    if len(missing := set(manifest.scriptorder).difference(allscripts)):
+        raise RuntimeError(f"The following scripts were specified in scriptorder but were not found in the scripts directory: {missing}")
+
+    return manifest.scriptorder + list(set(allscripts).difference(manifest.scriptorder))
+

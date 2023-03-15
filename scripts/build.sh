@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
 set -eu
 
-if [ $# -lt 11 ]; then
+if [ $# -lt 8 ]; then
     echo "FATAL ERROR: Insufficient arguments."
     exit 1
 fi
 
-rootfs=$1
-result=$2
-vmlinuz=$3
-initrd=$4
-vpassword=$5
-vhostname=$6
-vhddsize=$7
-vinclude=$8
-hostarch=$9
-guestarch=${10}
-packagedir=${11}
-# scriptdir=${12}
+wd=$1
+vpassword=$2
+vhostname=$3
+vhddsize=$4
+vinclude=$5
+hostarch=$6
+guestarch=$7
+scriptfullorder=$8
+
+rootfs=$wd/build/temp/rootfs
+result=$wd/build/temp/hdd.qcow2
+vmlinuz=$wd/build/temp/vmlinuz
+initrd=$wd/build/temp/initrd.img
+packagedir=$wd/packages
+resourcesdir=$wd/resources
+scriptdir=$wd/scripts
 
 if  [[ $hostarch != $guestarch ]]; then
     foreign="--foreign"
@@ -95,6 +99,10 @@ $vhostname
 EOF
 
 
+# Copy resources into home
+sudo cp -r $resourcesdir/* $rootfs/root/
+
+
 # Install provided .deb packages if applicable
 if [[ -n $(ls $packagedir/*.deb) ]]; then
     sudo mkdir -p $rootfs/_packages
@@ -105,9 +113,25 @@ if [[ -n $(ls $packagedir/*.deb) ]]; then
 apt install /_packages/*.deb -y
 EOF
 
-    sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh
+    sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh 2> $wd/build/package_errors.txt || true
     sudo rm -r $rootfs/_packages
 fi
+
+
+# Run User Scripts
+cat << EOF | sudo tee $rootfs/_runscript.sh
+#!/bin/bash
+cd /root
+chmod +x /_script
+/_script
+EOF
+
+for sname in ${scriptfullorder[@]}; do
+    sudo cp $scriptdir/$sname $rootfs/_script
+    sudo chroot $rootfs /bin/bash /_runscript.sh $sname || echo $sname > $wd/build/failed_scripts.txt
+    sudo rm $rootfs/_script
+done
+sudo rm $rootfs/_runscript.sh
 
 
 # Retrieve kernel image and initrd image
