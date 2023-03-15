@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-if [ $# -lt 10 ]; then
+if [ $# -lt 11 ]; then
     echo "FATAL ERROR: Insufficient arguments."
     exit 1
 fi
@@ -16,6 +16,8 @@ vhddsize=$7
 vinclude=$8
 hostarch=$9
 guestarch=${10}
+packagedir=${11}
+# scriptdir=${12}
 
 if  [[ $hostarch != $guestarch ]]; then
     foreign="--foreign"
@@ -91,6 +93,22 @@ EOF
 cat << EOF | sudo tee "$rootfs/etc/hostname"
 $vhostname
 EOF
+
+
+# Install provided .deb packages if applicable
+if [[ -n $(ls $packagedir/*.deb) ]]; then
+    sudo mkdir -p $rootfs/_packages
+    sudo cp $packagedir/*.deb $rootfs/_packages
+
+    cat << EOF | sudo tee $rootfs/_packages/_install_packages.sh
+#!/bin/bash
+apt install /_packages/*.deb -y
+EOF
+
+    sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh
+    sudo rm -r $rootfs/_packages
+fi
+
 
 # Retrieve kernel image and initrd image
 sudo cp $rootfs/boot/vmlinuz-5.10.0-20-$guestarch $vmlinuz

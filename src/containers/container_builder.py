@@ -101,6 +101,7 @@ def do_debootstrap(wd: Path) -> None:
         ",".join(manifest.aptpkgs),
         _sys_arch_to_debian_arch(machine()),
         _sys_arch_to_debian_arch(manifest.arch),
+        wd / "packages"
     ])
 
     if p.returncode != 0:
