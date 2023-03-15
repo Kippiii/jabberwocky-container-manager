@@ -42,9 +42,11 @@ class RepoManager:
                 raise ValueError("Got invalid data from server")
             self.archives = [str(x) for x in data['archives']]
 
-    def __init__(self) -> None:
+    def __init__(self, out_stream=stdout, in_stream=stdin) -> None:
         repo_json_path: Path = get_repo_file()
         self.repos: List[RepoManager._Repo] = []
+        self.out_stream = out_stream
+        self.in_stream = in_stream
 
         if not repo_json_path.exists():
             with open(str(repo_json_path), 'w') as file:
@@ -116,19 +118,20 @@ class RepoManager:
         :return: The path to the downloaded file
         """
         for repo in self.repos:
-            stdout.write(f"Checking {repo.url}...\n")
+            self.out_stream.write(f"Checking {repo.url}...\n")
             if archive_str not in repo.archives:
-                stdout.write("Archive not found in repo\n")
+                self.out_stream.write("Archive not found in repo\n")
                 continue
             value: str = ""
             while len(value) == 0 or value[0] not in ['y', 'Y', 'n', 'N']:
-                stdout.write("Archive found, should we download: [y, n]: ")
-                stdout.flush()
-                value = stdin.readline()
+                print(value)
+                self.out_stream.write("Archive found, should we download: [y, n]: ")
+                self.out_stream.flush()
+                value = self.in_stream.readline()
             if value[0] in ['n', 'N']:
-                stdout.write("Skipping...\n")
+                self.out_stream.write("Skipping...\n")
                 continue
-            stdout.write("Downloading...\n")
+            self.out_stream.write("Downloading...\n")
             try:
                 with requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}", stream=True) as r:
                     p: Path = get_container_home() / archive_str
@@ -138,10 +141,10 @@ class RepoManager:
             except requests.exceptions.RequestException as exc:
                 raise ValueError(f"Could not connect to server {repo.url}") from exc
             
-            stdout.write("Successfully downloaded archive\n")
+            self.out_stream.write("Successfully downloaded archive\n")
             return p
 
-        stdout.write("Could not find archive from repos\n")
+        self.out_stream.write("Could not find archive from repos\n")
         return None
 
     def upload(self, save_path: Path, repo_url: str, username: str, password: str) -> None:

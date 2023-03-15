@@ -33,7 +33,7 @@ class JabberwockyCLI:
     def __init__(self, in_stream=stdin, out_stream=stdout) -> None:
         self.in_stream = in_stream
         self.out_stream = out_stream
-        self.repo_manager = RepoManager()
+        self.repo_manager = RepoManager(in_stream=in_stream, out_stream=out_stream)
         self.container_manager = ContainerManagerClient(out_stream)
 
     def parse_cmd(self, cmd: List[str]) -> None:
@@ -438,8 +438,8 @@ update-repo [URL]
 
         stdout.write("Username: ")
         stdout.flush()
-        username: str = stdin.readline()
-        password: str = getpass("Password: ")
+        username: str = self.out_stream.readline()
+        password: str = getpass("Password: ", stream=self.in_stream)
 
         save_path: Path = Path(f"{container_name}.tar.gz")
         self.container_manager.archive(container_name, str(save_path))
