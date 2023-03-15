@@ -6,6 +6,7 @@ import random
 import subprocess
 from pathlib import Path
 from shutil import which
+from platform import machine
 from src.globals import MANIFEST_VERSION
 from src.system.syspath import get_scripts_path
 from src.system.multithreading import SpinningTask
@@ -80,6 +81,11 @@ def do_debootstrap(wd: Path) -> None:
     with open(wd / "manifest.json", "r") as jfp:
         manifest = ContainerManifest(json.load(jfp))
 
+    if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
+        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
+            raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
+                               f" Try `update-binfmts --enable qemu-{manifest.arch}`")
+
     p = subprocess.run([
         which("bash"),
         get_scripts_path() / "build.sh",
@@ -91,6 +97,8 @@ def do_debootstrap(wd: Path) -> None:
         manifest.hostname,
         f"{manifest.hddmaxsize}G",
         ",".join(manifest.aptpkgs),
+        _sys_arch_to_debian_arch(machine()),
+        _sys_arch_to_debian_arch(manifest.arch),
     ])
 
     if p.returncode != 0:
@@ -111,3 +119,14 @@ def do_export(wd: Path, compress=True) -> None:
         tar.add(wd / "build" / "temp" / "hdd.qcow2", arcname="hdd.qcow2")
         tar.add(wd / "build" / "temp" / "vmlinuz", arcname="vmlinuz")
         tar.add(wd / "build" / "temp" / "initrd.img", arcname="initrd.img")
+
+
+def _sys_arch_to_debian_arch(arch: str):
+    arch = arch.lower()
+
+    if arch in ("amd64", "x86_64"):
+        return "amd64"
+    if arch in ("arm64", "aarch64"):
+        return "arm64"
+
+    return "UNKNOWN"

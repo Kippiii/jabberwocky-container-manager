@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -eu
 
-if [ $# -lt 8 ]; then
+if [ $# -lt 10 ]; then
     echo "FATAL ERROR: Insufficient arguments."
-    exit 255
+    exit 1
 fi
 
 rootfs=$1
@@ -14,11 +14,28 @@ vpassword=$5
 vhostname=$6
 vhddsize=$7
 vinclude=$8
+hostarch=$9
+guestarch=${10}
+
+if  [[ $hostarch != $guestarch ]]; then
+    foreign="--foreign"
+else
+    foreign=""
+fi
+
+if [[ $guestarch == "amd64" ]]; then
+    networkdevice="ens3"
+elif [[ $guestarch == "arm64" ]]; then
+    networkdevice="enp0s1"
+else
+    echo "FATAL ERROR: Unknown architecture: $guestarch"
+    exit 1
+fi
 
 
 # Acquire root privileges & set up environment
 echo "Temporary superuser privileges are required to continue."
-echo "If you wish to review the contents of this script it is available in plain text at $(dirname -- $0)/$(basename -- $0)"
+echo "If you wish to review the contents of this script it is available in plain text at $0"
 sudo echo
 
 set -eux
@@ -29,11 +46,17 @@ set -eux
 
 # Initial debootstrap
 sudo debootstrap \
-    --include=linux-image-5.10.0-20-amd64,openssh-server,$vinclude \
+    --arch=$guestarch $foreign \
+    --include=linux-image-5.10.0-20-$guestarch,openssh-server,$vinclude \
     --components=main,contrib,non-free \
     bullseye \
     $rootfs \
     http://deb.debian.org/debian/;
+
+if [[ $hostarch != $guestarch ]]; then
+    sudo chroot $rootfs /debootstrap/debootstrap --second-stage
+fi
+
 
 # Set root password
 echo "root:$vpassword" | sudo chroot $rootfs chpasswd
@@ -53,8 +76,8 @@ auto lo
 iface lo inet loopback
 
 # The primary network interface
-allow-hotplug ens3
-iface ens3 inet dhcp
+allow-hotplug $networkdevice
+iface $networkdevice inet dhcp
 EOF
 
 cat << EOF | sudo tee -a "$rootfs/etc/ssh/sshd_config"
@@ -70,8 +93,8 @@ $vhostname
 EOF
 
 # Retrieve kernel image and initrd image
-sudo cp $rootfs/boot/vmlinuz-5.10.0-20-amd64 $vmlinuz
-sudo cp $rootfs/boot/initrd.img-5.10.0-20-amd64 $initrd
+sudo cp $rootfs/boot/vmlinuz-5.10.0-20-$guestarch $vmlinuz
+sudo cp $rootfs/boot/initrd.img-5.10.0-20-$guestarch $initrd
 
 
 # Generate virtual hard disk
@@ -97,3 +120,4 @@ sudo chgrp $(whoami) $result $vmlinuz $initrd
 
 
 # qemu-system-x86_64 -kernel vmlinuz -initrd initrd.img -append 'console=ttyS0 root=/dev/sda1' -serial mon:stdio -nographic -m 1G -drive file=hdd.qcow2,format=qcow2 -net nic -net user,hostfwd=tcp::12350-:22
+# qemu-system-aarch64 -M virt -cpu cortex-a53 -nographic -smp 1 -kernel vmlinuz -initrd initrd.img -append "console=ttyAMA0 root=/dev/vda1" -drive file=hdd.qcow2,format=qcow2 -m 1G -net nic -net user,hostfwd=tcp::12350-:22

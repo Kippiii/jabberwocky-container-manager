@@ -145,24 +145,40 @@ class Container(ContainerConfig):
             syspath.get_qemu_bin(), f'qemu-system-{self.arch}'
         )
 
+        arch_specific_args = {
+            "x86_64": [
+                "-serial",
+                "mon:stdio",
+                "-append",
+                "console=ttyS0 root=/dev/sda1",
+            ],
+            "aarch64": [
+                "-M",
+                "virt",
+                "-cpu",
+                "cortex-a53",
+                "-smp",
+                "1",
+                "-append",
+                "console=ttyAMA0 root=/dev/vda1",
+            ],
+        }[self.arch]
+
         hostfwds = [f"hostfwd=tcp::{hport}-:{vport}" for vport, hport in self.portfwd]
         hostfwds.append(f"hostfwd=tcp::{self.ex_port}-:22")
         hostfwd = "user," + ",".join(hostfwds)
 
         return [
             qemu_system,
+            *arch_specific_args,
             "-kernel",
             "vmlinuz",
             "-initrd",
             "initrd.img",
-            "-append",
-            "console=ttyS0 root=/dev/sda1",
             "-monitor",
             "null",
             "-net",
             "nic",
-            "-serial",
-            "mon:stdio",
             "-nographic",
             "-m",
             "{}M".format(self.memory),
