@@ -60,6 +60,8 @@ def missing_required_tools() -> List[str]:
 
     if not which("sudo"):
         missing.append("sudo")
+    if not which("bash"):
+        missing.append("bash")
     if not which("debootstrap"):
         missing.append("debootstrap")
     if not which("chroot"):
