@@ -69,6 +69,8 @@ class JabberwockyCLI:
             "version": self.version,
             "build-init": self.build_init,
             "build": self.build,
+            "list": self.list,
+            "ls": self.list,
         }
 
         if len(cmd) == 0:
@@ -85,6 +87,9 @@ class JabberwockyCLI:
 
     def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         self.out_stream.write(f"{VERSION}\n")
+
+    def list(self, cmd: List[str]) -> None:
+        print("    ".join(self.container_manager.list()))
 
     def build_init(self, cmd: List[str]) -> None:
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
@@ -109,6 +114,7 @@ class JabberwockyCLI:
         help_str = """Usage: jabberwocky [subcommand] {args}
 
 Using your container:
+ls                     - List your installed containers
 start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
 sftp  [container_name] - Open an sftp shell
