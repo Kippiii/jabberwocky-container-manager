@@ -11,7 +11,7 @@ from src.globals import MANIFEST_VERSION
 from src.system.syspath import get_scripts_path
 from src.system.multithreading import SpinningTask
 from src.containers.container_manifest import ContainerManifest
-from typing import List
+from typing import List, TextIO
 
 def generate_default_manifest():
     return {
@@ -72,7 +72,7 @@ def missing_required_tools() -> List[str]:
     return missing
 
 
-def do_debootstrap(wd: Path) -> None:
+def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> None:
     if not is_supported_platform():
         raise OSError(f"{sys.platform} does not support building.")
     if not is_skeleton(wd):
@@ -99,7 +99,7 @@ def do_debootstrap(wd: Path) -> None:
         _sys_arch_to_debian_arch(machine()),
         _sys_arch_to_debian_arch(manifest.arch),
         " ".join(_full_script_order(wd, manifest))
-    ])
+    ], stdin=stdin, stdout=stdout, stderr=stderr)
 
     if p.returncode != 0:
         sys.exit(p.returncode)

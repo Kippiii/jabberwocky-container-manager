@@ -97,7 +97,7 @@ class JabberwockyCLI:
             compress = True
 
         wd = Path(cmd[0]) if cmd else Path.cwd()
-        builder.do_debootstrap(wd)
+        builder.do_debootstrap(wd, self.in_stream, self.out_stream, self.out_stream)
         SpinningTask(f"Exporting build to archive", builder.do_export, (wd, compress), self.out_stream).exec()
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
