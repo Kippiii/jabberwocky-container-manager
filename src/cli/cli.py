@@ -71,6 +71,7 @@ class JabberwockyCLI:
             "build": self.build,
             "list": self.list,
             "ls": self.list,
+            "clean": self.clean,
         }
 
         if len(cmd) == 0:
@@ -93,6 +94,9 @@ class JabberwockyCLI:
 
     def build_init(self, cmd: List[str]) -> None:
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
+
+    def clean(self, cmd: List[str]) -> None:
+        builder.clean(Path(cmd[0]) if cmd else Path.cwd())
 
     def build(self, cmd: List[str]) -> None:
         if "--uncompressed" in cmd:
@@ -126,6 +130,7 @@ run   [container_name] - Execute a single command in the shell.
 Container Building:
 build-init (directory)? - Prepare a directory for building.
 build      (directory)? - Build a container.
+clean      (directory)? - Delete temporary files.
 
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]

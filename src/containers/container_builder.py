@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import tarfile
+import shutil
 import random
 import subprocess
 from pathlib import Path
@@ -39,6 +40,12 @@ def make_skeleton(wd: Path) -> None:
     with open(wd / "manifest.json", 'w') as f:
         json.dump(generate_default_manifest(), f, indent=4)
 
+
+def clean(wd: Path) -> None:
+    if not is_skeleton(wd):
+        raise RuntimeError(f"Provided path '{wd}' is not an init'd directory.")
+    shutil.rmtree(wd / "build" / "temp")
+    os.mkdir(wd / "build" / "temp")
 
 def is_supported_platform() -> bool:
     return sys.platform == "linux"
