@@ -117,6 +117,10 @@ stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
 
+Container Building:
+build-init (directory)? - Prepare a directory for building.
+build      (directory)? - Build a container.
+
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]
 get-file  [container_name] [path_to_source] [path_to_destination]
