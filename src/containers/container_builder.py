@@ -86,7 +86,7 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
     if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
         if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
             raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
-                               f" Try `update-binfmts --enable qemu-{manifest.arch}`")
+                               f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
 
     p = subprocess.run([
         which("bash"),
