@@ -31,8 +31,16 @@ fi
 
 if [[ $guestarch == "amd64" ]]; then
     networkdevice="ens3"
+    kernel_suffix="5.10.0-20-amd64"
 elif [[ $guestarch == "arm64" ]]; then
     networkdevice="enp0s1"
+    kernel_suffix="5.10.0-20-arm64"
+elif [[ $guestarch == "mipsel" ]]; then
+    networkdevice="enp0s11"
+    kernel_suffix="5.10.0-20-4kc-malta"
+# elif [[ $guestarch == "mips64el" ]]; then
+#     networkdevice="enp0s11"
+#     kernel_suffix="5.10.0-20-5kc-malta"
 else
     echo "FATAL ERROR: Unknown architecture: $guestarch"
     exit 1
@@ -53,7 +61,7 @@ set -eux
 # Initial debootstrap
 sudo debootstrap \
     --arch=$guestarch $foreign \
-    --include=linux-image-5.10.0-20-$guestarch,openssh-server,$vinclude \
+    --include=linux-image-$kernel_suffix,openssh-server,$vinclude \
     --components=main,contrib,non-free \
     bullseye \
     $rootfs \
@@ -100,7 +108,9 @@ EOF
 
 
 # Copy resources into home
-sudo cp -r $resourcesdir/* $rootfs/root/
+if [[ -n $(ls $resourcesdir) ]]; then
+    sudo cp -r $resourcesdir/* $rootfs/root/
+fi
 
 
 # Install provided .deb packages if applicable
@@ -119,24 +129,26 @@ fi
 
 
 # Run User Scripts
-cat << EOF | sudo tee $rootfs/_runscript.sh
+if [[ -n $(ls $scriptdir) ]]; then
+    cat << EOF | sudo tee $rootfs/_runscript.sh
 #!/bin/bash
 cd /root
 chmod +x /_script
 /_script
 EOF
 
-for sname in ${scriptfullorder[@]}; do
-    sudo cp $scriptdir/$sname $rootfs/_script
-    sudo chroot $rootfs /bin/bash /_runscript.sh $sname || echo $sname > $wd/build/failed_scripts.txt
-    sudo rm $rootfs/_script
-done
-sudo rm $rootfs/_runscript.sh
+    for sname in ${scriptfullorder[@]}; do
+        sudo cp $scriptdir/$sname $rootfs/_script
+        sudo chroot $rootfs /bin/bash /_runscript.sh $sname || echo $sname > $wd/build/failed_scripts.txt
+        sudo rm $rootfs/_script
+    done
+    sudo rm $rootfs/_runscript.sh
+fi
 
 
 # Retrieve kernel image and initrd image
-sudo cp $rootfs/boot/vmlinuz-5.10.0-20-$guestarch $vmlinuz
-sudo cp $rootfs/boot/initrd.img-5.10.0-20-$guestarch $initrd
+sudo cp $rootfs/boot/vmlinuz-$kernel_suffix $vmlinuz
+sudo cp $rootfs/boot/initrd.img-$kernel_suffix $initrd
 
 
 # Generate virtual hard disk
@@ -159,7 +171,3 @@ sudo rm -rf $rootfs
 # Finalize
 sudo chown $(whoami) $result $vmlinuz $initrd
 sudo chgrp $(whoami) $result $vmlinuz $initrd
-
-
-# qemu-system-x86_64 -kernel vmlinuz -initrd initrd.img -append 'console=ttyS0 root=/dev/sda1' -serial mon:stdio -nographic -m 1G -drive file=hdd.qcow2,format=qcow2 -net nic -net user,hostfwd=tcp::12350-:22
-# qemu-system-aarch64 -M virt -cpu cortex-a53 -nographic -smp 1 -kernel vmlinuz -initrd initrd.img -append "console=ttyAMA0 root=/dev/vda1" -drive file=hdd.qcow2,format=qcow2 -m 1G -net nic -net user,hostfwd=tcp::12350-:22

@@ -163,6 +163,12 @@ class Container(ContainerConfig):
                 "-append",
                 "console=ttyAMA0 root=/dev/vda1",
             ],
+            "mipsel": [
+                "-M",
+                "malta",
+                "-append",
+                "rootwait root=/dev/sda1"
+            ],
         }[self.arch]
 
         hostfwds = [f"hostfwd=tcp::{hport}-:{vport}" for vport, hport in self.portfwd]

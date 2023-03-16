@@ -128,6 +128,10 @@ def _sys_arch_to_debian_arch(arch: str):
         return "amd64"
     if arch in ("arm64", "aarch64"):
         return "arm64"
+    if arch in ("mipsel", ):
+        return "mipsel"
+    # if arch in ("mips64el", ):
+    #     return "mips64el"
 
     return "UNKNOWN"
 
