@@ -10,7 +10,7 @@ wd=$1
 vpassword=$2
 vhostname=$3
 vhddsize=$4
-vinclude=$5
+aptpkgs=$5
 hostarch=$6
 guestarch=$7
 scriptfullorder=$8
@@ -61,7 +61,7 @@ set -eux
 # Initial debootstrap
 sudo debootstrap \
     --arch=$guestarch $foreign \
-    --include=linux-image-$kernel_suffix,openssh-server,$vinclude \
+    --include=linux-image-$kernel_suffix,openssh-server \
     --components=main,contrib,non-free \
     bullseye \
     $rootfs \
@@ -71,6 +71,10 @@ if [[ $hostarch != $guestarch ]]; then
     sudo chroot $rootfs /debootstrap/debootstrap --second-stage
 fi
 
+# Install aptpkgs
+if [[ -n $aptpkgs ]]; then
+    sudo chroot $rootfs apt -y install $aptpkgs
+fi
 
 # Set root password
 echo "root:$vpassword" | sudo chroot $rootfs chpasswd

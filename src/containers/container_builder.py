@@ -22,7 +22,7 @@ def generate_default_manifest():
         "hddmaxsize": 10,
         "hostname": "debian",
         "portfwd": [],
-        "aptpkgs": [],
+        "aptpkgs": "",
         "scriptorder": [],
         "password": ''.join([chr(random.choice(range(65, 90))) for _ in range(30)]),
     }
@@ -102,7 +102,7 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
         manifest.password,
         manifest.hostname,
         f"{manifest.hddmaxsize}G",
-        ",".join(manifest.aptpkgs),
+        manifest.aptpkgs,
         _sys_arch_to_debian_arch(machine()),
         _sys_arch_to_debian_arch(manifest.arch),
         " ".join(_full_script_order(wd, manifest))
