@@ -152,14 +152,14 @@ class ContainerManagerClient:
         subprocess.run(
             [
                 "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
+                "-oNoHostAuthenticationForLocalhost=yes",
                 "-oStrictHostKeyChecking=no",
                 "-oLogLevel=ERROR",
                 "-oPasswordAuthentication=no",
                 f"-i{get_container_id_rsa(container_name)}",
                 f"-p{port}",
                 f"{user}@{host}",
-            ],
-            shell=sys.platform == "win32",
+            ]
         )
 
     def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:

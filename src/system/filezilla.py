@@ -42,6 +42,7 @@ def filezilla(user: str, pswd: str, host: str, port: str) -> None:
 def sftp(user: str, pswd: str, host: str, port: str, cname: str):
     args = [
         "C:\\Windows\\System32\\OpenSSH\\sftp.exe" if sys.platform == "win32" else "/usr/bin/sftp",
+        "-oNoHostAuthenticationForLocalhost=yes",
         "-oStrictHostKeyChecking=no",
         "-oLogLevel=ERROR",
         "-oPasswordAuthentication=no",

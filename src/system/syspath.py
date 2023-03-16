@@ -34,19 +34,6 @@ def get_qemu_bin() -> Path:
     raise OSError(f'Unsupported platform "{os.name}"')
 
 
-def get_dev_null() -> Path:
-    """
-    Returns the path to the null directory
-
-    :return: The path to null
-    """
-    if os.name == "nt":
-        return Path("NUL")
-    if os.name == "posix":
-        return Path("/dev/null")
-    raise OSError(f'Unsupported platform "{os.name}"')
-
-
 def get_container_home() -> Path:
     """
     Returns the path to the containers folder
