@@ -11,7 +11,7 @@ import json
 import os as pyos
 import requests
 from os import getcwd
-from os.path import abspath, basename, join as joinpath
+from os.path import abspath, basename, join as joinpath, isfile, isdir
 from typing import List, Tuple, Union, Optional
 if sys.platform == "win32":
     import msvcrt
@@ -248,6 +248,59 @@ class ContainerManagerClient:
         sock.send(bytes(absolute_archive_path, "utf-8"))
         sock.recv_expect(b"CONT")
         sock.send(bytes(container_name, "utf-8"))
+        sock.recv_expect(b"OK")
+        sock.close()
+
+    def archive(self, container_name: str, path_to_destination: str) -> None:
+        """
+        Archives a container onto the disk
+
+        :param container_name: The name of the container
+        :param path_to_destination: Path where archive will be saved
+        """
+        absolute_path = get_full_path(path_to_destination)
+        if isdir(absolute_path):
+            absolute_path = joinpath(absolute_path, f"{container_name}.tar.gz")
+        if isfile(absolute_path):
+            raise FileExistsError(f"{absolute_path} already exists.")
+        if not absolute_path.endswith(".tar.gz"):
+            absolute_path += ".tar.gz"
+
+        sock = self._make_connection()
+        sock.send(b"ARCHIVE")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(container_name, 'utf-8'))
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(absolute_path, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
+
+    def delete(self, container_name: str) -> None:
+        """
+        Deletes a container from the file system
+
+        :param container_name: The name of the container to delete
+        """
+        sock = self._make_connection()
+        sock.send(b"DELETE")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(container_name, 'utf-8'))
+        sock.recv_expect(b"OK")
+        sock.close()
+
+    def rename(self, old_name: str, new_name: str) -> None:
+        """
+        Renames a container on the file system
+
+        :param old_name: The old name of the container
+        :param new_name: The name that the container will be renamed to
+        """
+        sock = self._make_connection()
+        sock.send(b"RENAME")
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(old_name, 'utf-8'))
+        sock.recv_expect(b"CONT")
+        sock.send(bytes(new_name, 'utf-8'))
         sock.recv_expect(b"OK")
         sock.close()
 
