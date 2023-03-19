@@ -143,7 +143,7 @@ EOF
 
     for sname in ${scriptfullorder[@]}; do
         sudo cp $scriptdir/$sname $rootfs/_script
-        sudo chroot $rootfs /bin/bash /_runscript.sh $sname || echo $sname > $wd/build/failed_scripts.txt
+        sudo chroot $rootfs /bin/bash /_runscript.sh || echo $sname > $wd/build/failed_scripts.txt
         sudo rm $rootfs/_script
     done
     sudo rm $rootfs/_runscript.sh
@@ -156,7 +156,6 @@ sudo cp $rootfs/boot/initrd.img-$kernel_suffix $initrd
 
 
 # Generate virtual hard disk
-echo "Creating filesystem..."
 sudo virt-make-fs \
     --format=qcow2 \
     --partition=mbr \
