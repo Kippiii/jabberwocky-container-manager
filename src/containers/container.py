@@ -153,6 +153,8 @@ class Container(ContainerConfig):
                 "mon:stdio",
                 "-smp",
                 str(max_smp(self.smp)),
+                "-m",
+                f"{max_mem(self.memory)}M",
                 *(["-append",
                    "console=ttyS0 root=/dev/sda1"]
                   if not self.legacy else []),
@@ -164,6 +166,8 @@ class Container(ContainerConfig):
                 "cortex-a53",
                 "-smp",
                 str(max_smp(self.smp)),
+                "-m",
+                f"{max_mem(self.memory)}M",
                 "-append",
                 "console=ttyAMA0 root=/dev/vda1",
             ],
@@ -172,6 +176,8 @@ class Container(ContainerConfig):
                 "malta",
                 "-smp",
                 "1",
+                "-m",
+                f"{min(self.memory, 2048)}M", # Max for mipsel
                 "-append",
                 "rootwait root=/dev/sda1"
             ],
@@ -192,8 +198,6 @@ class Container(ContainerConfig):
             "-net",
             "nic",
             "-nographic",
-            "-m",
-            "{}M".format(max_mem(self.memory)),
             "-drive",
             "file=hdd.qcow2,format=qcow2",
             "-net",
