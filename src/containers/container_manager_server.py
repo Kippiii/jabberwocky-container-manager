@@ -20,7 +20,7 @@ from paramiko import SSHException
 
 from src.containers.container import Container
 from src.containers.port_allocation import allocate_port
-from src.containers.exceptions import BootFailure, PoweroffBadExitError
+from src.containers.exceptions import BootFailure, PoweroffTimeoutExceededError
 from src.containers.container_extras import install_container, archive_container
 from src.system.syspath import get_container_dir, get_server_info_file
 from src.system.socket import ClientServerSocket
@@ -100,7 +100,7 @@ class ContainerManagerServer:
             try:
                 container.stop()
                 self.logger.debug(f"STOP: Poweroff'd {name} (PID={container.booter.pid}).")
-            except (PoweroffBadExitError, SSHException, AttributeError):
+            except (PoweroffTimeoutExceededError, SSHException, AttributeError):
                 try:
                     self.logger.error(f"STOP: POWEROFF FAILED. Killing {name} (PID={container.booter.pid}).")
                     container.kill()
@@ -351,10 +351,18 @@ class _SocketConnection:
             return
 
         self.manager.logger.debug("Killing container '%s'", container_name)
-        self.manager.containers[container_name].kill()
-        del self.manager.containers[container_name]
-        self.sock.ok()
-        self.manager.logger.debug("Container %s successfully killed", container_name)
+
+        try:
+            self.manager.containers[container_name].kill()
+        except OSError:
+            self.manager.logger.debug("Attempted to kill %s (PID=%d), but the process is no longer accessible.",
+                                      container_name, self.manager.containers[container_name].booter.pid)
+        else:
+            self.manager.logger.debug("Container %s successfully killed", container_name)
+        finally:
+            del self.manager.containers[container_name]
+            self.sock.ok()
+
 
     def _get(self) -> None:
         """

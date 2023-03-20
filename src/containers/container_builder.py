@@ -18,6 +18,7 @@ def generate_default_manifest():
     return {
         "manifest": MANIFEST_VERSION,
         "arch": "x86_64",
+        "smp": 4,
         "memory": 500,
         "hddmaxsize": 10,
         "hostname": "debian",

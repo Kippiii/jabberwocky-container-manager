@@ -4,6 +4,8 @@ Manages the individual container objects
 
 import json
 import logging
+from os import cpu_count
+from math import floor
 from io import BytesIO
 from pathlib import Path
 from signal import SIGABRT
@@ -122,7 +124,7 @@ class Container(ContainerConfig):
         """
         Stops the container
         """
-        self.sshi.send_poweroff()
+        self.sshi.send_poweroff(self.booter.pid)
         self.sshi.close_all()
         self.logging_file.close()
 
@@ -141,6 +143,9 @@ class Container(ContainerConfig):
 
         :return: The cmd command to start qemu
         """
+        def max_smp(smp: int) -> str:
+            return str(min(smp, floor(0.75 * cpu_count())))
+
         qemu_system = Path.joinpath(
             syspath.get_qemu_bin(), f'qemu-system-{self.arch}'
         )
@@ -166,6 +171,8 @@ class Container(ContainerConfig):
             "mipsel": [
                 "-M",
                 "malta",
+                "-smp",
+                str(self.smp),
                 "-append",
                 "rootwait root=/dev/sda1"
             ],
@@ -181,6 +188,8 @@ class Container(ContainerConfig):
             qemu_system,
             *arch_specific_args,
             *kernel,
+            "-smp",
+            max_smp(self.smp),
             "-monitor",
             "null",
             "-net",

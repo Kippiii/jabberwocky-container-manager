@@ -88,7 +88,7 @@ def gen_boot_exception(exc: ExceptionPexpect, log_file_path: Path) -> BootFailur
     return BootFailure(log_file_path)
 
 
-class PoweroffBadExitError(RuntimeError):
+class PoweroffTimeoutExceededError(RuntimeError):
     """
     Raised when poweroff fails
     """
