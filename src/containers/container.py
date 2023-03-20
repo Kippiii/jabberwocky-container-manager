@@ -77,12 +77,6 @@ class Container(ContainerConfig):
                 break
         else:
             raise PortAllocationError
-        try:
-            self.booter.sendline(self.username)
-            self.booter.expect("Password: ")
-        except ExceptionPexpect as exc:
-            my_exc = gen_boot_exception(exc, self.logging_file_path)
-            raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
             "127.0.0.1",
