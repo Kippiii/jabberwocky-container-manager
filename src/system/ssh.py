@@ -7,6 +7,7 @@ import time
 import psutil
 import shlex
 import os
+import signal
 from stat import S_ISDIR
 from posixpath import join as posixjoin, basename as posixbasename
 from os.path import basename, join as joindir, isdir
@@ -132,13 +133,16 @@ class SSHInterface:
         _, stdout, _ = self.ssh_client.exec_command("poweroff")
         stdout.channel.recv_exit_status()
 
-        for _ in range(10): # Max timeout: 10 seconds
+        for _ in range(15): # Max timeout: 15 seconds
             if psutil.pid_exists(pid):
+                if os.name != "nt" and psutil.Process(pid).status() == "zombie":
+                    os.kill(pid, signal.SIGKILL)
+                    break
                 time.sleep(1)
             else:
                 break
         else:
-            raise PoweroffTimeoutExceededError()
+            raise PoweroffTimeoutExceededError(f"PID={pid}")
 
     def close_all(self) -> None:
         """
