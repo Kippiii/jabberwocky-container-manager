@@ -105,7 +105,7 @@ class ContainerConfig:
                 "manifest": 0,
                 "arch": "x86_64",
                 "smp": 4,
-                "memory": 500,
+                "memory": 2500,
                 "hddmaxsize": 25,
                 "hostname": "debian",
                 "portfwd": [],

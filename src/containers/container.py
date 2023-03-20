@@ -3,6 +3,7 @@ Manages the individual container objects
 """
 
 import json
+import psutil
 import logging
 from os import cpu_count
 from math import floor
@@ -143,8 +144,10 @@ class Container(ContainerConfig):
 
         :return: The cmd command to start qemu
         """
-        def max_smp(smp: int) -> str:
-            return str(min(smp, floor(0.75 * cpu_count())))
+        def max_smp(smp: int) -> int:
+            return min(smp, floor(0.75 * cpu_count()))
+        def max_mem(mem: int) -> int:
+            return min(1000000 * mem, 0.75 * psutil.virtual_memory().total) // 1000000
 
         qemu_system = Path.joinpath(
             syspath.get_qemu_bin(), f'qemu-system-{self.arch}'
@@ -154,6 +157,8 @@ class Container(ContainerConfig):
             "x86_64": [
                 "-serial",
                 "mon:stdio",
+                "-smp",
+                str(max_smp(self.smp)),
                 *(["-append",
                    "console=ttyS0 root=/dev/sda1"]
                   if not self.legacy else []),
@@ -164,7 +169,7 @@ class Container(ContainerConfig):
                 "-cpu",
                 "cortex-a53",
                 "-smp",
-                "1",
+                str(max_smp(self.smp)),
                 "-append",
                 "console=ttyAMA0 root=/dev/vda1",
             ],
@@ -172,7 +177,7 @@ class Container(ContainerConfig):
                 "-M",
                 "malta",
                 "-smp",
-                str(self.smp),
+                "1",
                 "-append",
                 "rootwait root=/dev/sda1"
             ],
@@ -188,15 +193,13 @@ class Container(ContainerConfig):
             qemu_system,
             *arch_specific_args,
             *kernel,
-            "-smp",
-            max_smp(self.smp),
             "-monitor",
             "null",
             "-net",
             "nic",
             "-nographic",
             "-m",
-            "{}M".format(self.memory),
+            "{}M".format(max_mem(self.memory)),
             "-drive",
             "file=hdd.qcow2,format=qcow2",
             "-net",
