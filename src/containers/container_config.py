@@ -96,7 +96,7 @@ class ContainerConfig:
         self.hostname = manifest.get("hostname") or "debian"
         self.portfwd = manifest.get("portfwd") or []
         self.password = manifest["password"]
-        self.legacy = manifest.get("legacy") if type(manifest.get("legacy")) is bool else False
+        self.legacy = manifest.get("__legacy") if type(manifest.get("__legacy")) is bool else False
 
 
     def _convert_legacy(manifest: dict) -> dict:
@@ -111,7 +111,7 @@ class ContainerConfig:
                 "portfwd": [],
                 "username": "root",
                 "password": "root",
-                "legacy": True,
+                "__legacy": True,
             }
 
         raise UnsupportedLegacyConfigError()
@@ -121,12 +121,14 @@ class ContainerConfig:
         return {
             "manifest": MANIFEST_VERSION,
             "arch": self.arch,
+            "smp": self.smp,
             "memory": self.memory,
             "hddmaxsize": self.hddmaxsize,
             "hostname": self.hostname,
             "portfwd": self.portfwd,
             "username": self.username,
             "password": self.password,
+            **({"__legacy": True} if self.legacy else {}),
         }
 
     def load_legacy_config(config: Dict[str, Any]) -> "ContainerConfig":
