@@ -7,6 +7,7 @@ from src.containers.container_config import ContainerConfig
 class ContainerManifest(ContainerConfig):
     aptpkgs: Union[str, List[str]]
     scriptorder: List[str]
+    release: str
 
     def __init__(self, manifest: dict):
         manifest_errors = []
@@ -35,6 +36,9 @@ class ContainerManifest(ContainerConfig):
                 if type(fname) is not str:
                     manifest_errors.append(f"Invalid file name '{fname}'.")
 
+        if manifest.get("release") not in (None, "bullseye", "bookworm"):
+            manifest_errors.append("'release' must be either bullseye or bookworm.")
+
         # Raise errors if applicable
         if manifest_errors:
             raise InvalidManifestError("\n".join(manifest_errors))
@@ -42,11 +46,13 @@ class ContainerManifest(ContainerConfig):
         # Done with guard clasues
         self.aptpkgs = aptpkgs
         self.scriptorder = manifest.get("scriptorder") or []
+        self.release = manifest.get("release") or "bullseye"
 
     def to_dict(self) -> Dict[str, Any]:
         manifest = super().to_dict()
         manifest["aptpkgs"] = self.aptpkgs
         manifest["scriptorder"] = self.scriptorder
+        manifest["release"] = self.release
         return manifest
 
     def config(self) -> ContainerConfig:

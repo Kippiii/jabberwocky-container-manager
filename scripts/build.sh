@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-if [ $# -lt 8 ]; then
+if [ $# -lt 9 ]; then
     echo "FATAL ERROR: Insufficient arguments."
     exit 1
 fi
@@ -14,6 +14,7 @@ aptpkgs=$5
 hostarch=$6
 guestarch=$7
 scriptfullorder=$8
+release=$9
 
 rootfs=$wd/build/temp/rootfs
 result=$wd/build/temp/hdd.qcow2
@@ -23,21 +24,26 @@ packagedir=$wd/packages
 resourcesdir=$wd/resources
 scriptdir=$wd/scripts
 
-if  [[ $hostarch != $guestarch ]]; then
-    foreign="--foreign"
+[[ $hostarch != $guestarch ]] && foreign="--foreign" || foreign=""
+
+if [[ $release == "bullseye" ]]; then
+    kernel_version="5.10.0-20"
+elif [[ $release == "bookworm" ]]; then
+    kernel_version="6.1.0-6"
 else
-    foreign=""
+    echo "FATAL ERROR: Unknown release: $release"
+    exit 1
 fi
 
 if [[ $guestarch == "amd64" ]]; then
     networkdevice="ens3"
-    kernel_suffix="5.10.0-20-amd64"
+    kernel_suffix="amd64"
 elif [[ $guestarch == "arm64" ]]; then
     networkdevice="enp0s1"
-    kernel_suffix="5.10.0-20-arm64"
+    kernel_suffix="arm64"
 elif [[ $guestarch == "mipsel" ]]; then
     networkdevice="enp0s11"
-    kernel_suffix="5.10.0-20-4kc-malta"
+    kernel_suffix="4kc-malta"
 # elif [[ $guestarch == "mips64el" ]]; then
 #     networkdevice="enp0s11"
 #     kernel_suffix="5.10.0-20-5kc-malta"
@@ -61,9 +67,9 @@ set -eux
 # Initial debootstrap
 sudo debootstrap \
     --arch=$guestarch $foreign \
-    --include=linux-image-$kernel_suffix,openssh-server \
+    --include=linux-image-$kernel_version-$kernel_suffix,openssh-server \
     --components=main,contrib,non-free \
-    bullseye \
+    $release \
     $rootfs \
     http://deb.debian.org/debian/;
 
@@ -79,7 +85,7 @@ fi
 # Set root password
 echo "root:$vpassword" | sudo chroot $rootfs chpasswd
 
-sudo chroot $rootfs mkdir /root/.ssh
+sudo chroot $rootfs mkdir -p /root/.ssh
 
 # System configuration
 cat << EOF | sudo tee $rootfs/etc/fstab
@@ -151,8 +157,8 @@ fi
 
 
 # Retrieve kernel image and initrd image
-sudo cp $rootfs/boot/vmlinuz-$kernel_suffix $vmlinuz
-sudo cp $rootfs/boot/initrd.img-$kernel_suffix $initrd
+sudo cp $rootfs/boot/vmlinuz-$kernel_version-$kernel_suffix $vmlinuz
+sudo cp $rootfs/boot/initrd.img-$kernel_version-$kernel_suffix $initrd
 
 
 # Generate virtual hard disk

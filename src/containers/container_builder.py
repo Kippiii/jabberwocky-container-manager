@@ -22,6 +22,7 @@ def generate_default_manifest():
         "memory": 500,
         "hddmaxsize": 10,
         "hostname": "debian",
+        "release": "bullseye",
         "portfwd": [],
         "aptpkgs": "",
         "scriptorder": [],
@@ -106,7 +107,8 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
         manifest.aptpkgs,
         _sys_arch_to_debian_arch(machine()),
         _sys_arch_to_debian_arch(manifest.arch),
-        " ".join(_full_script_order(wd, manifest))
+        " ".join(_full_script_order(wd, manifest)),
+        manifest.release
     ], stdin=stdin, stdout=stdout, stderr=stderr)
 
     if p.returncode != 0:
