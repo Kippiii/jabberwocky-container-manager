@@ -77,13 +77,12 @@ if [[ $hostarch != $guestarch ]]; then
     sudo chroot $rootfs /debootstrap/debootstrap --second-stage
 fi
 
-# Install aptpkgs
-if [[ -n $aptpkgs ]]; then
-    sudo chroot $rootfs apt -y install $aptpkgs
-fi
-
-# Set root password
-echo "root:$vpassword" | sudo chroot $rootfs chpasswd
+# Retrieve kernel image and initrd image
+sudo cp $rootfs/boot/vmlinuz-$kernel_version-$kernel_suffix $vmlinuz
+sudo cp $rootfs/boot/initrd.img-$kernel_version-$kernel_suffix $initrd
+sudo chown $(whoami) $vmlinuz $initrd
+sudo chgrp $(whoami) $vmlinuz $initrd
+sudo chroot $rootfs apt purge --autoremove -y linux-image-$kernel_version-$kernel_suffix
 
 sudo chroot $rootfs mkdir -p /root/.ssh
 
@@ -116,12 +115,15 @@ cat << EOF | sudo tee "$rootfs/etc/hostname"
 $vhostname
 EOF
 
+# Install aptpkgs
+if [[ -n $aptpkgs ]]; then
+    sudo chroot $rootfs apt -y install $aptpkgs
+fi
 
 # Copy resources into home
 if [[ -n $(ls $resourcesdir) ]]; then
     sudo cp -r $resourcesdir/* $rootfs/root/
 fi
-
 
 # Install provided .deb packages if applicable
 if [[ -n $(ls $packagedir/*.deb) ]]; then
@@ -136,7 +138,6 @@ EOF
     sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh 2> $wd/build/package_errors.txt || true
     sudo rm -r $rootfs/_packages
 fi
-
 
 # Run User Scripts
 if [[ -n $(ls $scriptdir) ]]; then
@@ -155,11 +156,8 @@ EOF
     sudo rm $rootfs/_runscript.sh
 fi
 
-
-# Retrieve kernel image and initrd image
-sudo cp $rootfs/boot/vmlinuz-$kernel_version-$kernel_suffix $vmlinuz
-sudo cp $rootfs/boot/initrd.img-$kernel_version-$kernel_suffix $initrd
-
+# Set root password
+echo "root:$vpassword" | sudo chroot $rootfs chpasswd
 
 # Generate virtual hard disk
 sudo virt-make-fs \
@@ -178,5 +176,5 @@ sudo rm -f $result.tmp
 sudo rm -rf $rootfs
 
 # Finalize
-sudo chown $(whoami) $result $vmlinuz $initrd
-sudo chgrp $(whoami) $result $vmlinuz $initrd
+sudo chown $(whoami) $result
+sudo chgrp $(whoami) $result
