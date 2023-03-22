@@ -67,7 +67,7 @@ def is_skeleton(wd: Path) -> bool:
 def missing_required_tools() -> List[str]:
     missing = []
 
-    if not which("sudo"):
+    if (os.geteuid() != 0) and (not which("sudo")):
         missing.append("sudo")
     if not which("bash"):
         missing.append("bash")

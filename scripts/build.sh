@@ -24,6 +24,7 @@ packagedir=$wd/packages
 resourcesdir=$wd/resources
 scriptdir=$wd/scripts
 
+[[ $EUID != 0 ]] && sudo="$(which sudo)" || sudo=""
 [[ $hostarch != $guestarch ]] && foreign="--foreign" || foreign=""
 
 if [[ $release == "bullseye" ]]; then
@@ -54,9 +55,11 @@ fi
 
 
 # Acquire root privileges & set up environment
-echo "Temporary superuser privileges are required to continue."
-echo "If you wish to review the contents of this script it is available in plain text at $0"
-sudo echo
+if [[ $EUID != 0 ]]; then
+    echo "Temporary superuser privileges are required to continue."
+    echo "If you wish to review the contents of this script it is available in plain text at $0"
+    sudo echo
+fi
 
 set -eux
 # -----------------
@@ -65,7 +68,7 @@ set -eux
 
 
 # Initial debootstrap
-sudo debootstrap \
+$sudo debootstrap \
     --arch=$guestarch $foreign \
     --include=linux-image-$kernel_version-$kernel_suffix,openssh-server \
     --components=main,contrib,non-free \
@@ -74,24 +77,24 @@ sudo debootstrap \
     http://deb.debian.org/debian/;
 
 if [[ $hostarch != $guestarch ]]; then
-    sudo chroot $rootfs /debootstrap/debootstrap --second-stage
+    $sudo chroot $rootfs /debootstrap/debootstrap --second-stage
 fi
 
 # Retrieve kernel image and initrd image
-sudo cp $rootfs/boot/vmlinuz-$kernel_version-$kernel_suffix $vmlinuz
-sudo cp $rootfs/boot/initrd.img-$kernel_version-$kernel_suffix $initrd
-sudo chown $(whoami) $vmlinuz $initrd
-sudo chgrp $(whoami) $vmlinuz $initrd
-sudo chroot $rootfs apt purge --autoremove -y linux-image-$kernel_version-$kernel_suffix
+$sudo cp $rootfs/boot/vmlinuz-$kernel_version-$kernel_suffix $vmlinuz
+$sudo cp $rootfs/boot/initrd.img-$kernel_version-$kernel_suffix $initrd
+$sudo chown $(whoami) $vmlinuz $initrd
+$sudo chgrp $(whoami) $vmlinuz $initrd
+$sudo chroot $rootfs apt purge --autoremove -y linux-image-$kernel_version-$kernel_suffix
 
-sudo chroot $rootfs mkdir -p /root/.ssh
+$sudo chroot $rootfs mkdir -p /root/.ssh
 
 # System configuration
-cat << EOF | sudo tee $rootfs/etc/fstab
+cat << EOF | $sudo tee $rootfs/etc/fstab
 /dev/sda1 / ext2 errors=remount-ro,noatime 0 1
 EOF
 
-cat << EOF | sudo tee "$rootfs/etc/network/interfaces"
+cat << EOF | $sudo tee "$rootfs/etc/network/interfaces"
 source /etc/network/interfaces.d/*
 
 # The loopback network interface
@@ -103,7 +106,7 @@ allow-hotplug $networkdevice
 iface $networkdevice inet dhcp
 EOF
 
-cat << EOF | sudo tee -a "$rootfs/etc/ssh/sshd_config"
+cat << EOF | $sudo tee -a "$rootfs/etc/ssh/sshd_config"
 
 # Added automatically by Jabberwocky
 PermitRootLogin yes
@@ -111,37 +114,37 @@ AllowUsers *@localhost
 AllowUsers *@10.0.2.2
 EOF
 
-cat << EOF | sudo tee "$rootfs/etc/hostname"
+cat << EOF | $sudo tee "$rootfs/etc/hostname"
 $vhostname
 EOF
 
 # Install aptpkgs
 if [[ -n $aptpkgs ]]; then
-    sudo chroot $rootfs apt -y install $aptpkgs
+    $sudo chroot $rootfs apt -y install $aptpkgs
 fi
 
 # Copy resources into home
 if [[ -n $(ls $resourcesdir) ]]; then
-    sudo cp -r $resourcesdir/* $rootfs/root/
+    $sudo cp -r $resourcesdir/* $rootfs/root/
 fi
 
 # Install provided .deb packages if applicable
 if [[ -n $(ls $packagedir/*.deb) ]]; then
-    sudo mkdir -p $rootfs/_packages
-    sudo cp $packagedir/*.deb $rootfs/_packages
+    $sudo mkdir -p $rootfs/_packages
+    $sudo cp $packagedir/*.deb $rootfs/_packages
 
-    cat << EOF | sudo tee $rootfs/_packages/_install_packages.sh
+    cat << EOF | $sudo tee $rootfs/_packages/_install_packages.sh
 #!/bin/bash
 apt install /_packages/*.deb -y
 EOF
 
-    sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh 2> $wd/build/package_errors.txt || true
-    sudo rm -r $rootfs/_packages
+    $sudo chroot $rootfs /bin/bash /_packages/_install_packages.sh 2> $wd/build/package_errors.txt || true
+    $sudo rm -r $rootfs/_packages
 fi
 
 # Run User Scripts
 if [[ -n $(ls $scriptdir) ]]; then
-    cat << EOF | sudo tee $rootfs/_runscript.sh
+    cat << EOF | $sudo tee $rootfs/_runscript.sh
 #!/bin/bash
 cd /root
 chmod +x /_script
@@ -149,32 +152,50 @@ chmod +x /_script
 EOF
 
     for sname in ${scriptfullorder[@]}; do
-        sudo cp $scriptdir/$sname $rootfs/_script
-        sudo chroot $rootfs /bin/bash /_runscript.sh || echo $sname > $wd/build/failed_scripts.txt
-        sudo rm $rootfs/_script
+        $sudo cp $scriptdir/$sname $rootfs/_script
+        $sudo chroot $rootfs /bin/bash /_runscript.sh || echo $sname > $wd/build/failed_scripts.txt
+        $sudo rm $rootfs/_script
     done
-    sudo rm $rootfs/_runscript.sh
+    $sudo rm $rootfs/_runscript.sh
 fi
 
 # Set root password
-echo "root:$vpassword" | sudo chroot $rootfs chpasswd
+echo "root:$vpassword" | $sudo chroot $rootfs chpasswd
 
 # Generate virtual hard disk
-sudo virt-make-fs \
-    --format=qcow2 \
-    --partition=mbr \
-    --size +100M \
-    --type ext2 \
-    $rootfs \
-    $result.tmp;
+if [[ -r /boot/vmlinuz-$(uname -r) ]]; then
+    $sudo chown -R $(whoami) $rootfs
+    $sudo chgrp -R $(whoami) $rootfs
+    virt-make-fs \
+            --format=qcow2 \
+            --partition=mbr \
+            --size +50M \
+            --type ext2 \
+            $rootfs \
+            $result.tmp;
 
-sudo qemu-img create -f qcow2 $result $vhddsize
-sudo virt-resize --expand /dev/sda1 $result.tmp $result
+    qemu-img create -f qcow2 $result $vhddsize
+    virt-resize --expand /dev/sda1 $result.tmp $result
 
-# Clean temporary files
-sudo rm -f $result.tmp
-sudo rm -rf $rootfs
+    rm -f $result.tmp
+    rm -rf $rootfs
+else
+    $sudo virt-make-fs \
+        --format=qcow2 \
+        --partition=mbr \
+        --size +50M \
+        --type ext2 \
+        $rootfs \
+        $result.tmp;
 
-# Finalize
-sudo chown $(whoami) $result
-sudo chgrp $(whoami) $result
+    $sudo qemu-img create -f qcow2 $result $vhddsize
+    $sudo virt-resize --expand /dev/sda1 $result.tmp $result
+
+    # Clean temporary files
+    $sudo rm -f $result.tmp
+    $sudo rm -rf $rootfs
+
+    # Finalize
+    $sudo chown $(whoami) $result
+    $sudo chgrp $(whoami) $result
+fi
