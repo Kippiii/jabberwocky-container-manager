@@ -11,6 +11,7 @@ from getpass import getpass
 from github.GithubException import RateLimitExceededException
 
 from src.containers.container_manager_client import ContainerManagerClient
+import src.containers.container_builder as builder
 from src.system.update import update, get_newest_supported_version
 from src.system.state import frozen
 from src.globals import VERSION
@@ -66,6 +67,11 @@ class JabberwockyCLI:
             "sftp": self.sftp,
             "panic": self.server_panic,
             "version": self.version,
+            "build-init": self.build_init,
+            "build": self.build,
+            "list": self.list,
+            "ls": self.list,
+            "clean": self.clean,
         }
 
         if len(cmd) == 0:
@@ -83,6 +89,26 @@ class JabberwockyCLI:
     def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         self.out_stream.write(f"{VERSION}\n")
 
+    def list(self, cmd: List[str]) -> None:
+        print("    ".join(self.container_manager.list()))
+
+    def build_init(self, cmd: List[str]) -> None:
+        builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
+
+    def clean(self, cmd: List[str]) -> None:
+        builder.clean(Path(cmd[0]) if cmd else Path.cwd())
+
+    def build(self, cmd: List[str]) -> None:
+        if "--uncompressed" in cmd:
+            cmd.remove("--uncompressed")
+            compress = False
+        else:
+            compress = True
+
+        wd = Path(cmd[0]) if cmd else Path.cwd()
+        builder.do_debootstrap(wd, self.in_stream, self.out_stream, self.out_stream)
+        SpinningTask(f"Exporting build to archive", builder.do_export, (wd, compress), self.out_stream).exec()
+
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Prints the basic help menu for the CLI
@@ -92,6 +118,7 @@ class JabberwockyCLI:
         help_str = """Usage: jabberwocky [subcommand] {args}
 
 Using your container:
+ls                     - List your installed containers
 start [container_name] - Power on the virtual environment
 shell [container_name] - Open the shell of the container
 sftp  [container_name] - Open an sftp shell
@@ -99,6 +126,11 @@ files [container_name] - View the virtual filesystem
 stop  [container_name] - Power off the virtual environment
 kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
+
+Container Building:
+build-init (directory)? - Prepare a directory for building.
+build      (directory)? - Build a container.
+clean      (directory)? - Delete temporary files.
 
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]

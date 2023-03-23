@@ -10,7 +10,7 @@ import time
 import json
 import os as pyos
 import requests
-from os import getcwd
+from os import getcwd, listdir
 from os.path import abspath, basename, join as joinpath, isfile, isdir
 from typing import List, Tuple, Union, Optional
 if sys.platform == "win32":
@@ -52,6 +52,12 @@ class ContainerManagerClient:
         sock.send(b"PING")
         sock.recv_expect(b"OK")
         return time.time() - t
+
+    def list(self) -> List[str]:
+        return list(filter(
+            lambda p: (get_container_home() / p).is_dir(),
+            listdir(get_container_home())
+        ))
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -152,14 +158,14 @@ class ContainerManagerClient:
         subprocess.run(
             [
                 "ssh" if sys.platform == "win32" else "/usr/bin/ssh",
+                "-oNoHostAuthenticationForLocalhost=yes",
                 "-oStrictHostKeyChecking=no",
                 "-oLogLevel=ERROR",
                 "-oPasswordAuthentication=no",
                 f"-i{get_container_id_rsa(container_name)}",
                 f"-p{port}",
                 f"{user}@{host}",
-            ],
-            shell=sys.platform == "win32",
+            ]
         )
 
     def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:

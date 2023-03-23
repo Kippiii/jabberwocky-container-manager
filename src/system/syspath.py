@@ -3,13 +3,22 @@ Manages the file system used by the container manager
 """
 
 import os
+import sys
 from pathlib import Path
 from shutil import which
 from os.path import abspath, expanduser
+from src.system.state import frozen
 
 
 def get_full_path(path: str):
     return abspath(expanduser(path))
+
+
+def get_scripts_path() -> Path:
+    if frozen():
+        return Path(sys.executable).parent.parent / "scripts"
+    else:
+        return Path(__file__).parent.parent.parent / "scripts"
 
 
 def get_qemu_bin() -> Path:
@@ -22,19 +31,6 @@ def get_qemu_bin() -> Path:
         return Path("C:\\Program Files\\qemu")
     if os.name == "posix":
         return Path(which("qemu-system-x86_64")).absolute().parent
-    raise OSError(f'Unsupported platform "{os.name}"')
-
-
-def get_dev_null() -> Path:
-    """
-    Returns the path to the null directory
-
-    :return: The path to null
-    """
-    if os.name == "nt":
-        return Path("NUL")
-    if os.name == "posix":
-        return Path("/dev/null")
     raise OSError(f'Unsupported platform "{os.name}"')
 
 

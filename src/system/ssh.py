@@ -3,8 +3,11 @@ Manages SSH connections (with containers)
 """
 
 import logging
+import time
+import psutil
 import shlex
 import os
+import signal
 from stat import S_ISDIR
 from posixpath import join as posixjoin, basename as posixbasename
 from os.path import basename, join as joindir, isdir
@@ -14,7 +17,7 @@ import paramiko
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from src.system import syspath
-from src.containers.exceptions import PoweroffBadExitError, FailedToAuthorizeKeyError
+from src.containers.exceptions import PoweroffTimeoutExceededError, FailedToAuthorizeKeyError
 
 
 class SSHInterface:
@@ -121,15 +124,25 @@ class SSHInterface:
         pid = int(stdout.readline())
         return stdin, stdout, stderr, pid
 
-    def send_poweroff(self) -> None:
+    def send_poweroff(self, pid: int) -> None:
         """
         Sends a poweroff signal through the SSH connection
         """
         self.logger.debug("Attempting to poweroff")
 
         _, stdout, _ = self.ssh_client.exec_command("poweroff")
-        if stdout.channel.recv_exit_status():
-            raise PoweroffBadExitError(stdout.channel.exit_status)
+        stdout.channel.recv_exit_status()
+
+        for _ in range(15): # Max timeout: 15 seconds
+            if psutil.pid_exists(pid):
+                if os.name != "nt" and psutil.Process(pid).status() == "zombie":
+                    os.kill(pid, signal.SIGKILL)
+                    break
+                time.sleep(1)
+            else:
+                break
+        else:
+            raise PoweroffTimeoutExceededError(f"PID={pid}")
 
     def close_all(self) -> None:
         """

@@ -3,21 +3,25 @@ Manages the individual container objects
 """
 
 import json
+import psutil
 import logging
+from os import cpu_count
+from math import floor
 from io import BytesIO
 from pathlib import Path
 from signal import SIGABRT
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from pexpect import ExceptionPexpect, popen_spawn
 
+from src.containers.container_config import ContainerConfig
 from src.containers.exceptions import PortAllocationError, gen_boot_exception
 from src.containers.port_allocation import allocate_port
 from src.system import ssh, syspath
 
 
-class Container:
+class Container(ContainerConfig):
     """
     Class for storing container objects
 
@@ -30,12 +34,8 @@ class Container:
     booter: Optional[popen_spawn.PopenSpawn] = None
     ex_port: int
     name: str
-    arch: str = "x86_64"
-    config: dict
     sshi: ssh.SSHInterface
-    username: str = "root"
-    password: str = "root"
-    timeout: int = 360
+    timeout: int = 180
     max_retries: int = 25
     logging_file_path: Path
     logging_file: BytesIO
@@ -47,14 +47,11 @@ class Container:
             raise FileNotFoundError(syspath.get_container_config(name))
 
         self.logging_file_path = syspath.get_container_dir(name) / "pexpect.log"
-
         self.name = name
-        with open(
-            syspath.get_container_config(name), "r", encoding="utf-8"
-        ) as config_file:
-            self.config = json.load(config_file)
-        self.arch = self.config["arch"]
         self.logger = logger
+
+        with open(syspath.get_container_config(name), "r", encoding="utf-8") as config_file:
+            super().__init__(json.load(config_file))
 
     def start(self) -> None:
         """
@@ -65,13 +62,13 @@ class Container:
         )
         for _ in range(self.max_retries):
             self.ex_port = allocate_port()
-            cmd = self.__generate_start_cmd__()
+            cmd = self._generate_start_cmd()
             self.logger.debug(f"Executing {cmd}")
             self.booter = popen_spawn.PopenSpawn(
                 cmd, logfile=self.logging_file, cwd=syspath.get_container_dir(self.name)
             )
             try:
-                self.booter.expect("debian login: ", timeout=360)
+                self.booter.expect(f"{self.hostname} login: ", timeout=self.timeout)
             except ExceptionPexpect as exc:
                 my_exc = gen_boot_exception(exc, self.logging_file_path)
                 if not isinstance(my_exc, PortAllocationError):
@@ -80,14 +77,6 @@ class Container:
                 break
         else:
             raise PortAllocationError
-        try:
-            self.booter.sendline(self.username)
-            self.booter.expect("Password: ")
-            self.booter.sendline(self.password)
-            self.booter.expect("debian:~#")
-        except ExceptionPexpect as exc:
-            my_exc = gen_boot_exception(exc, self.logging_file_path)
-            raise my_exc from exc
 
         self.sshi = ssh.SSHInterface(
             "127.0.0.1",
@@ -130,7 +119,7 @@ class Container:
         """
         Stops the container
         """
-        self.sshi.send_poweroff()
+        self.sshi.send_poweroff(self.booter.pid)
         self.sshi.close_all()
         self.logging_file.close()
 
@@ -143,33 +132,74 @@ class Container:
         self.sshi.close_all()
         self.logging_file.close()
 
-    def __generate_start_cmd__(self) -> str:
+    def _generate_start_cmd(self) -> List[Union[str, Path]]:
         """
-        Build command-line from JSON config file for QEMU system
+        Build command-line from ContainerConfig file for QEMU system
 
         :return: The cmd command to start qemu
         """
+        def max_smp(smp: int) -> int:
+            return min(smp, floor(0.75 * cpu_count()))
+        def max_mem(mem: int) -> int:
+            return min(1000000 * mem, 0.75 * psutil.virtual_memory().total) // 1000000
+
         qemu_system = Path.joinpath(
-            syspath.get_qemu_bin(), f'qemu-system-{self.config["arch"]}'
+            syspath.get_qemu_bin(), f'qemu-system-{self.arch}'
         )
 
-        cl_args = [
-            "-monitor null",
-            "-net nic",
-            f"-net user,hostfwd=tcp::{self.ex_port}-:22",
+        arch_specific_args = {
+            "x86_64": [
+                "-serial",
+                "mon:stdio",
+                "-smp",
+                str(max_smp(self.smp)),
+                "-m",
+                f"{max_mem(self.memory)}M",
+                *(["-append",
+                   "console=ttyS0 root=/dev/sda1"]
+                  if not self.legacy else []),
+            ],
+            "aarch64": [
+                "-M",
+                "virt",
+                "-cpu",
+                "cortex-a53",
+                "-smp",
+                str(max_smp(self.smp)),
+                "-m",
+                f"{max_mem(self.memory)}M",
+                "-append",
+                "console=ttyAMA0 root=/dev/vda1",
+            ],
+            "mipsel": [
+                "-M",
+                "malta",
+                "-smp",
+                "1",
+                "-m",
+                f"{min(self.memory, 2048)}M", # Max for mipsel
+                "-append",
+                "rootwait root=/dev/sda1"
+            ],
+        }[self.arch]
+
+        hostfwds = [f"hostfwd=tcp::{hport}-:{vport}" for vport, hport in self.portfwd]
+        hostfwds.append(f"hostfwd=tcp::{self.ex_port}-:22")
+        hostfwd = "user," + ",".join(hostfwds)
+
+        kernel = ["-kernel", "vmlinuz", "-initrd", "initrd.img"] if not self.legacy else []
+
+        return [
+            qemu_system,
+            *arch_specific_args,
+            *kernel,
+            "-monitor",
+            "null",
+            "-net",
+            "nic",
+            "-nographic",
+            "-drive",
+            "file=hdd.qcow2,format=qcow2",
+            "-net",
+            hostfwd,
         ]
-
-        if ("disableGraphics" not in self.config) or (
-            self.config["disableGraphics"] is True
-        ):
-            cl_args.append("-serial stdio")
-            cl_args.append("-nographic")
-
-        for flag, val in self.config["arguments"].items():
-            if not isinstance(val, list):
-                cl_args.append(f"-{flag} {val}")
-            else:
-                for _ in val:
-                    cl_args.append(f"-{flag} {val}")
-
-        return f'"{qemu_system}" {" ".join(cl_args)}'
