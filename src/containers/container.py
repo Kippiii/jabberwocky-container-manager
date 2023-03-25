@@ -138,8 +138,6 @@ class Container(ContainerConfig):
 
         :return: The cmd command to start qemu
         """
-        def max_smp(smp: int) -> int:
-            return min(smp, floor(0.75 * cpu_count()))
         def max_mem(mem: int) -> int:
             return min(1000000 * mem, 0.75 * psutil.virtual_memory().total) // 1000000
 
@@ -151,8 +149,6 @@ class Container(ContainerConfig):
             "x86_64": [
                 "-serial",
                 "mon:stdio",
-                "-smp",
-                str(max_smp(self.smp)),
                 "-m",
                 f"{max_mem(self.memory)}M",
                 *(["-append",
@@ -164,8 +160,6 @@ class Container(ContainerConfig):
                 "virt",
                 "-cpu",
                 "cortex-a53",
-                "-smp",
-                str(max_smp(self.smp)),
                 "-m",
                 f"{max_mem(self.memory)}M",
                 "-append",
@@ -174,8 +168,6 @@ class Container(ContainerConfig):
             "mipsel": [
                 "-M",
                 "malta",
-                "-smp",
-                "1",
                 "-m",
                 f"{min(self.memory, 2048)}M", # Max for mipsel
                 "-append",
@@ -193,6 +185,8 @@ class Container(ContainerConfig):
             qemu_system,
             *arch_specific_args,
             *kernel,
+            "-smp",
+            "1",
             "-monitor",
             "null",
             "-net",

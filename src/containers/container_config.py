@@ -14,7 +14,6 @@ _LEGACY_CT_CONFIG = {
 
 class ContainerConfig:
     arch: str
-    smp: int
     memory: int
     hddmaxsize: int
     hostname: str
@@ -35,11 +34,6 @@ class ContainerConfig:
             config_errors.append("'arch' is not an optional field.")
         elif (arch := manifest["arch"]) not in SUPPORTED_ARCHS:
             config_errors.append(f"'{arch}' is not a valid architecture.")
-
-        if "smp" not in manifest:
-            pass
-        elif type(manifest["smp"]) is not int:
-            config_errors.append(f"'smp' field must be an int.")
 
         if "hostname" not in manifest:
             pass
@@ -90,7 +84,6 @@ class ContainerConfig:
 
         # Done with guard clasues
         self.arch = manifest["arch"]
-        self.smp = manifest.get("smp") or 4
         self.memory = manifest["memory"]
         self.hddmaxsize = manifest["hddmaxsize"]
         self.hostname = manifest.get("hostname") or "debian"
@@ -104,7 +97,6 @@ class ContainerConfig:
             return {
                 "manifest": 0,
                 "arch": "x86_64",
-                "smp": 4,
                 "memory": 2500,
                 "hddmaxsize": 25,
                 "hostname": "debian",
@@ -121,7 +113,6 @@ class ContainerConfig:
         return {
             "manifest": MANIFEST_VERSION,
             "arch": self.arch,
-            "smp": self.smp,
             "memory": self.memory,
             "hddmaxsize": self.hddmaxsize,
             "hostname": self.hostname,
