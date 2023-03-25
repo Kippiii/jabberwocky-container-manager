@@ -1,5 +1,6 @@
 import logging
-from sys import stdin, stdout, argv
+import traceback
+from sys import stdin, stdout, argv, exit
 from pathlib import Path
 import subprocess
 import time
@@ -59,4 +60,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as ex:
+        if frozen():
+            traceback.print_exception(type(ex), ex, None)
+            exit(1)
+        else:
+            raise ex
