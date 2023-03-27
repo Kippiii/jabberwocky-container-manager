@@ -36,10 +36,11 @@ class ContainerManagerClient:
 
     server_address: Tuple[str, int]
 
-    def __init__(self, out_stream=sys.stdout):
+    def __init__(self, in_stream=sys.stdin, out_stream=sys.stdout):
         with open(get_server_info_file(), "r", encoding="utf-8") as f:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
+        self.in_stream = in_stream
         self.out_stream = out_stream
 
     def ping(self) -> float:
@@ -238,7 +239,7 @@ class ContainerManagerClient:
             sock.send(bytes(arg, "utf-8"))
 
         sock.recv_expect(b"BEGIN")
-        _RunCommandClient(sock, self.out_stream)
+        _RunCommandClient(sock, self.in_stream, self.out_stream)
 
     def install(self, archive_path_str: str, container_name: str) -> None:
         """
@@ -351,10 +352,11 @@ class _RunCommandClient:
     sock: ClientServerSocket
     recv_closed: bool
 
-    def __init__(self, sock: socket.socket, stream = sys.stdout):
+    def __init__(self, sock: socket.socket, in_stream = sys.stdin, out_stream = sys.stdout):
         self.sock = sock
         self.recv_closed = False
-        self.stream = stream
+        self.in_stream = in_stream
+        self.out_stream = out_stream
 
         t_recv = threading.Thread(target=self._recv)
         t_send = threading.Thread(
@@ -372,8 +374,8 @@ class _RunCommandClient:
         try:
             last_send = time.time()
             while not self.recv_closed:
-                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                    buffer = bytes(sys.stdin.readline(), "utf-8")
+                if select.select([self.in_stream], [], [], 0) == ([self.in_stream], [], []):
+                    buffer = bytes(self.in_stream.readline(), "utf-8")
                     while buffer:
                         msg = buffer[:255]
                         self.sock.send(bytes([len(msg)]) + msg)
@@ -433,11 +435,11 @@ class _RunCommandClient:
                     if stream == 0:
                         pass
                     elif stream == 1:
-                        self.stream.write(bytes((mybyte, )).decode('utf-8'))
-                        self.stream.flush()
+                        self.out_stream.write(bytes((mybyte, )).decode('utf-8'))
+                        self.out_stream.flush()
                     elif stream == 2:
-                        self.stream.write(bytes((mybyte, )).decode('utf-8'))
-                        self.stream.flush()
+                        self.out_stream.write(bytes((mybyte, )).decode('utf-8'))
+                        self.out_stream.flush()
                     else:
                         raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):

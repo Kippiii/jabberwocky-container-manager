@@ -279,7 +279,7 @@ class _SocketConnection:
             stdout=stdout,
             stderr=stderr,
             pid=pid,
-            container=self.manager.containers[container_name]
+            container=self.manager.containers[container_name],
         ).send_and_recv()
 
     def _start(self) -> None:

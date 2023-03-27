@@ -34,7 +34,7 @@ class JabberwockyCLI:
         self.in_stream = in_stream
         self.out_stream = out_stream
         self.repo_manager = RepoManager(in_stream=in_stream, out_stream=out_stream)
-        self.container_manager = ContainerManagerClient(out_stream)
+        self.container_manager = ContainerManagerClient(in_stream, out_stream)
 
     def parse_cmd(self, cmd: List[str]) -> None:
         """
@@ -436,9 +436,9 @@ update-repo [URL]
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
 
-        stdout.write("Username: ")
-        stdout.flush()
-        username: str = self.out_stream.readline()
+        self.out_stream.write("Username: ")
+        self.out_stream.flush()
+        username: str = self.in_stream.readline()
         password: str = getpass("Password: ", stream=self.in_stream)
 
         save_path: Path = Path(f"{container_name}.tar.gz")
