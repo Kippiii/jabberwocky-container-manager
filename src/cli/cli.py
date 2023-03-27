@@ -69,8 +69,8 @@ class JabberwockyCLI:
             "version": self.version,
             "build-init": self.build_init,
             "build": self.build,
-            "list": self.list,
-            "ls": self.list,
+            "list": self.ls,
+            "ls": self.ls,
             "clean": self.clean,
         }
 
@@ -89,8 +89,8 @@ class JabberwockyCLI:
     def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         self.out_stream.write(f"{VERSION}\n")
 
-    def list(self, cmd: List[str]) -> None:
-        print("    ".join(self.container_manager.list()))
+    def ls(self, cmd: List[str]) -> None:
+        print("    ".join(self.container_manager.ls()))
 
     def build_init(self, cmd: List[str]) -> None:
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())

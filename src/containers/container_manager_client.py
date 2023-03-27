@@ -53,7 +53,7 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         return time.time() - t
 
-    def list(self) -> List[str]:
+    def ls(self) -> List[str]:
         return list(filter(
             lambda p: (get_container_home() / p).is_dir(),
             listdir(get_container_home())
