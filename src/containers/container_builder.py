@@ -96,9 +96,16 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
             raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
                                f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
 
+    username = subprocess.check_output("whoami", shell=True).strip().decode("utf-8")
+    usergroup = subprocess.check_output(f"id -gn {username}", shell=True).strip().decode("utf-8")
+    assert not (" " in username or " " in usergroup)
+
     p = subprocess.run([
+        which("sudo"),
         which("bash"),
         get_scripts_path() / "build.sh",
+        username,
+        usergroup,
         wd,
         manifest.password,
         manifest.hostname,
@@ -108,10 +115,7 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
         _sys_arch_to_debian_arch(manifest.arch),
         " ".join(_full_script_order(wd, manifest)),
         manifest.release
-    ], stdin=stdin, stdout=stdout, stderr=stderr)
-
-    if p.returncode != 0:
-        sys.exit(p.returncode)
+    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
 
 
 def do_export(wd: Path, compress=True) -> None:
