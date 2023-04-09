@@ -41,36 +41,36 @@ class JabberwockyCLI:
         Parses the cmd sent from script
         """
         subcmd_dict = {
-            "help": self.help,
-            "files": self.view_files,
-            "interact": self.interact,
+            "help": self.help, #
+            "files": self.view_files, #
+            "interact": self.interact, #
             "shell": self.interact,
-            "start": self.start,
-            "stop": self.stop,
-            "kill": self.kill,
-            "run": self.run,
-            "send-file": self.send_file,
-            "get-file": self.get_file,
-            "install": self.install,
-            "delete": self.delete,
-            "rename": self.rename,
-            "download": self.download,
-            "archive": self.archive,
+            "start": self.start, #
+            "stop": self.stop, #
+            "kill": self.kill, #
+            "run": self.run, #
+            "send-file": self.send_file, #
+            "get-file": self.get_file, #
+            "install": self.install, #
+            "delete": self.delete, #
+            "rename": self.rename, #
+            "download": self.download, #
+            "archive": self.archive, #
             "export": self.archive,
-            "upload": self.upload,
-            "add-repo": self.add_repo,
-            "update-repo": self.update_repo,
+            "upload": self.upload, #
+            "add-repo": self.add_repo, #
+            "update-repo": self.update_repo, #
             "create": self.create,
-            "server-halt": self.server_halt,
-            "ping": self.ping,
-            "ssh-address": self.ssh_address,
-            "update": self.update,
-            "sftp": self.sftp,
-            "panic": self.server_panic,
-            "version": self.version,
+            "server-halt": self.server_halt, #
+            "ping": self.ping, #
+            "ssh-address": self.ssh_address, #
+            "update": self.update, #
+            "sftp": self.sftp, #
+            "panic": self.server_panic, #
+            "version": self.version, #
             "build-init": self.build_init,
             "build": self.build,
-            "list": self.list,
+            "list": self.list, #
             "ls": self.list,
             "clean": self.clean,
         }
@@ -439,7 +439,10 @@ update-repo [URL]
         self.out_stream.write("Username: ")
         self.out_stream.flush()
         username: str = self.in_stream.readline()
-        password: str = getpass("Password: ", stream=self.in_stream)
+        if self.in_stream != stdin:
+            password: str = self.in_stream.readline()
+        else:
+            password: str = getpass("Password: ")
 
         save_path: Path = Path(f"{container_name}.tar.gz")
         self.container_manager.archive(container_name, str(save_path))

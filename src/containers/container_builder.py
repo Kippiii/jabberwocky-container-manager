@@ -91,10 +91,10 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
     with open(wd / "manifest.json", "r") as jfp:
         manifest = ContainerManifest(json.load(jfp))
 
-    if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
-        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
-            raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
-                               f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
+    # if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
+    #     if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
+    #         raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
+    #                            f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
 
     p = subprocess.run([
         which("bash"),
@@ -108,11 +108,7 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
         _sys_arch_to_debian_arch(manifest.arch),
         " ".join(_full_script_order(wd, manifest)),
         manifest.release
-    ], stdin=stdin, stdout=stdout, stderr=stderr)
-
-    if p.returncode != 0:
-        sys.exit(p.returncode)
-
+    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
 
 def do_export(wd: Path, compress=True) -> None:
     with open(wd / "manifest.json", "r") as jfp:

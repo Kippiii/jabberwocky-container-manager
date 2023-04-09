@@ -163,6 +163,6 @@ class RepoManager:
         }
 
         try:
-            r = requests.post(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", json=data, files=files)
+            r = requests.post(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", data=data, files=files)
         except requests.exceptions.RequestException as exc:
             raise ValueError(f"Could not connect to server {repo.url}") from exc
