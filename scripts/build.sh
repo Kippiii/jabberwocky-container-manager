@@ -157,37 +157,43 @@ fi
 echo "root:$vpassword" | chroot $rootfs chpasswd
 
 # Generate virtual hard disk
+du_output=$(du -sh $rootfs | awk '{print $1}')
+unit=$(echo "$du_output" | sed 's/[0-9.]//g')
+size=$(echo "$du_output" | sed 's/[A-Za-z]//g')
+size=$(printf "%0.f" "$size")
+
 if [[ -r /boot/vmlinuz-$(uname -r) ]]; then
     chown -R $username $rootfs
     chgrp -R $usergroup $rootfs
+
     sudo -u $username virt-make-fs \
             --format=qcow2 \
             --partition=mbr \
-            --size +50M \
+            --size +$size$unit \
             --type ext2 \
             $rootfs \
             $result.tmp;
+    rm -rf $rootfs
 
     sudo -u $username qemu-img create -f qcow2 $result $vhddsize
     sudo -u $username virt-resize --expand /dev/sda1 $result.tmp $result
 
     rm -f $result.tmp
-    rm -rf $rootfs
 else
     virt-make-fs \
         --format=qcow2 \
         --partition=mbr \
-        --size +50M \
+        --size +$size$unit \
         --type ext2 \
         $rootfs \
         $result.tmp;
+    rm -rf $rootfs
 
     qemu-img create -f qcow2 $result $vhddsize
     virt-resize --expand /dev/sda1 $result.tmp $result
 
     # Clean temporary files
     rm -f $result.tmp
-    rm -rf $rootfs
 
     # Finalize
     chown $username $result
