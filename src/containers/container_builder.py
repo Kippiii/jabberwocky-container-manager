@@ -76,6 +76,10 @@ def missing_required_tools() -> List[str]:
         missing.append("chroot")
     if not which("virt-resize") or not which("virt-make-fs"):
         missing.append("guestfs-tools")
+    if not which("awk"):
+        missing.append("awk")
+    if not which("sed"):
+        missing.append("sed")
 
     return missing
 
