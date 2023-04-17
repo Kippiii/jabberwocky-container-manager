@@ -71,7 +71,7 @@ class JabberwockyCLI:
             "build": self.build,
             "list": self.ls,
             "ls": self.ls,
-            "clean": self.clean,
+            "build-clean": self.clean,
         }
 
         if len(cmd) == 0:
@@ -96,7 +96,7 @@ class JabberwockyCLI:
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
 
     def clean(self, cmd: List[str]) -> None:
-        builder.clean(Path(cmd[0]) if cmd else Path.cwd())
+        builder.clean(Path(cmd[0]) if cmd else Path.cwd(), self.in_stream, self.out_stream, self.out_stream)
 
     def build(self, cmd: List[str]) -> None:
         if "--uncompressed" in cmd:
@@ -128,9 +128,9 @@ kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
 
 Container Building:
-build-init (directory)? - Prepare a directory for building.
-build      (directory)? - Build a container.
-clean      (directory)? - Delete temporary files.
+build-init  (directory)? - Prepare a directory for building.
+build       (directory)? - Build a container.
+build-clean (directory)? - Delete temporary files.
 
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]

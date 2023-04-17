@@ -42,11 +42,19 @@ def make_skeleton(wd: Path) -> None:
         json.dump(generate_default_manifest(), f, indent=4)
 
 
-def clean(wd: Path) -> None:
+def clean(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> None:
+    if not is_supported_platform():
+        raise OSError(f"{sys.platform} does not support building.")
     if not is_skeleton(wd):
         raise RuntimeError(f"Provided path '{wd}' is not an init'd directory.")
-    shutil.rmtree(wd / "build" / "temp")
-    os.mkdir(wd / "build" / "temp")
+
+    subprocess.run([
+        *([] if os.geteuid() == 0 else [which("sudo")]),
+        which("bash"),
+        get_scripts_path() / "clean.sh",
+        wd,
+    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
+
 
 def is_supported_platform() -> bool:
     return sys.platform == "linux"
@@ -105,7 +113,7 @@ def do_debootstrap(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
     assert not (" " in username or " " in usergroup)
 
     p = subprocess.run([
-        which("sudo"),
+        *([] if os.geteuid() == 0 else [which("sudo")]),
         which("bash"),
         get_scripts_path() / "build.sh",
         username,
