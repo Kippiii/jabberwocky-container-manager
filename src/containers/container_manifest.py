@@ -1,7 +1,8 @@
 import re
-from typing import Dict, List, Any, Union
-from src.containers.exceptions import InvalidManifestError
+from typing import Any, Dict, List, Union
+
 from src.containers.container_config import ContainerConfig
+from src.containers.exceptions import InvalidManifestError
 
 
 class ContainerManifest(ContainerConfig):

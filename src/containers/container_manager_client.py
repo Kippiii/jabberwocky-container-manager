@@ -2,29 +2,31 @@
 The client version of the container manager
 """
 
-import subprocess
+import json
+import os as pyos
 import socket
+import subprocess
 import sys
 import threading
 import time
-import json
-import os as pyos
-import requests
 from os import getcwd, listdir
-from os.path import abspath, basename, join as joinpath, isfile, isdir
-from typing import List, Tuple, Union, Optional
+from os.path import abspath, basename, isdir, isfile
+from os.path import join as joinpath
+from typing import List, Optional, Tuple, Union
+
+import requests
+
 if sys.platform == "win32":
-    import msvcrt
+    import msvcrt  # pylint: disable=import-error
 else:
     import select
-from src.system.syspath import get_full_path
 
-from src.system.syspath import *
 from src.globals import VERSION
-from src.system.os import get_os, OS
-from src.containers.exceptions import *
-from src.system.socket import ClientServerSocket
 from src.system.filezilla import filezilla, sftp
+from src.system.os import OS, get_os
+from src.system.socket import ClientServerSocket
+from src.system.syspath import *
+from src.system.syspath import get_full_path
 
 
 class ContainerManagerClient:
@@ -36,10 +38,12 @@ class ContainerManagerClient:
 
     server_address: Tuple[str, int]
 
-    def __init__(self):
+    def __init__(self, in_stream=sys.stdin, out_stream=sys.stdout):
         with open(get_server_info_file(), "r", encoding="utf-8") as f:
             info = json.load(f)
             self.server_address = (info["addr"], info["port"])
+        self.in_stream = in_stream
+        self.out_stream = out_stream
 
     def ping(self) -> float:
         """
@@ -54,10 +58,12 @@ class ContainerManagerClient:
         return time.time() - t
 
     def list(self) -> List[str]:
-        return list(filter(
-            lambda p: (get_container_home() / p).is_dir(),
-            listdir(get_container_home())
-        ))
+        return list(
+            filter(
+                lambda p: (get_container_home() / p).is_dir(),
+                listdir(get_container_home()),
+            )
+        )
 
     def started(self, container_name: str) -> bool:
         sock = self._make_connection()
@@ -74,14 +80,14 @@ class ContainerManagerClient:
     def view_files(self, container_name: str) -> None:
         filezilla(*self.ssh_address(container_name))
 
-
     def sftp(self, container_name: str) -> None:
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
     def ssh_address(self, container_name: str) -> Tuple[str, str, str, str]:
         """
-        Return the address (user, passwd, host, port) needed to connect to a container's ssh
+        Return the address (user, passwd, host, port) needed to connect
+        to a container's ssh
 
         :param container_name: The container whose shell is being used
         :return: The address
@@ -168,8 +174,9 @@ class ContainerManagerClient:
             ]
         )
 
-    def get_file(self, container_name: str, remote_file: str, local_file: Optional[str] = None) -> None:
-
+    def get_file(
+        self, container_name: str, remote_file: str, local_file: Optional[str] = None
+    ) -> None:
 
         """
         Gets a file from a container
@@ -194,7 +201,9 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         sock.close()
 
-    def put_file(self, container_name: str, local_file: str, remote_file: Optional[str] = None) -> None:
+    def put_file(
+        self, container_name: str, local_file: str, remote_file: Optional[str] = None
+    ) -> None:
         """
         Puts a file into a container
 
@@ -237,7 +246,7 @@ class ContainerManagerClient:
             sock.send(bytes(arg, "utf-8"))
 
         sock.recv_expect(b"BEGIN")
-        _RunCommandClient(sock)
+        _RunCommandClient(sock, self.in_stream, self.out_stream)
 
     def install(self, archive_path_str: str, container_name: str) -> None:
         """
@@ -275,9 +284,9 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"ARCHIVE")
         sock.recv_expect(b"CONT")
-        sock.send(bytes(container_name, 'utf-8'))
+        sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"CONT")
-        sock.send(bytes(absolute_path, 'utf-8'))
+        sock.send(bytes(absolute_path, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
 
@@ -290,7 +299,7 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"DELETE")
         sock.recv_expect(b"CONT")
-        sock.send(bytes(container_name, 'utf-8'))
+        sock.send(bytes(container_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
 
@@ -304,9 +313,9 @@ class ContainerManagerClient:
         sock = self._make_connection()
         sock.send(b"RENAME")
         sock.recv_expect(b"CONT")
-        sock.send(bytes(old_name, 'utf-8'))
+        sock.send(bytes(old_name, "utf-8"))
         sock.recv_expect(b"CONT")
-        sock.send(bytes(new_name, 'utf-8'))
+        sock.send(bytes(new_name, "utf-8"))
         sock.recv_expect(b"OK")
         sock.close()
 
@@ -350,9 +359,11 @@ class _RunCommandClient:
     sock: ClientServerSocket
     recv_closed: bool
 
-    def __init__(self, sock: socket.socket):
+    def __init__(self, sock: socket.socket, in_stream=sys.stdin, out_stream=sys.stdout):
         self.sock = sock
         self.recv_closed = False
+        self.in_stream = in_stream
+        self.out_stream = out_stream
 
         t_recv = threading.Thread(target=self._recv)
         t_send = threading.Thread(
@@ -370,8 +381,12 @@ class _RunCommandClient:
         try:
             last_send = time.time()
             while not self.recv_closed:
-                if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-                    buffer = bytes(sys.stdin.readline(), "utf-8")
+                if select.select([self.in_stream], [], [], 0) == (
+                    [self.in_stream],
+                    [],
+                    [],
+                ):
+                    buffer = bytes(self.in_stream.readline(), "utf-8")
                     while buffer:
                         msg = buffer[:255]
                         self.sock.send(bytes([len(msg)]) + msg)
@@ -431,11 +446,11 @@ class _RunCommandClient:
                     if stream == 0:
                         pass
                     elif stream == 1:
-                        sys.stdout.buffer.write(bytes((mybyte, )))
-                        sys.stdout.buffer.flush()
+                        self.out_stream.write(bytes((mybyte,)).decode("utf-8"))
+                        self.out_stream.flush()
                     elif stream == 2:
-                        sys.stderr.buffer.write(bytes((mybyte, )))
-                        sys.stderr.buffer.flush()
+                        self.out_stream.write(bytes((mybyte,)).decode("utf-8"))
+                        self.out_stream.flush()
                     else:
                         raise RuntimeError("recv'd bad data")
         except (ConnectionError, OSError):

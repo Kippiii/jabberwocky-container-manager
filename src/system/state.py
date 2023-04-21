@@ -1,4 +1,5 @@
 import sys
 
+
 def frozen():
-    return getattr(sys, 'frozen', False)
+    return getattr(sys, "frozen", False)

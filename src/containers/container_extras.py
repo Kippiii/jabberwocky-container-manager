@@ -1,8 +1,14 @@
+"""
+Various extra tools used by containers
+"""
+
 import tarfile
+from os.path import isdir, isfile
 from shutil import rmtree
-from os.path import isfile, isdir, join
 from typing import Union
-from src.system.syspath import *
+from pathlib import Path
+
+from src.system.syspath import get_container_dir
 
 
 def install_container(archive_path: Path, container_name: str) -> None:
@@ -31,7 +37,9 @@ def delete_container(container_name: Path) -> None:
     rmtree(str(container_path))
 
 
-def archive_container(container_name: str, path_to_destination: Union[str, Path]) -> None:
+def archive_container(
+    container_name: str, path_to_destination: Union[str, Path]
+) -> None:
     """
     Saves a container as an archive
 

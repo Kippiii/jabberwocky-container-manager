@@ -3,15 +3,15 @@ Manages the individual container objects
 """
 
 import json
-import psutil
 import logging
-from os import cpu_count
-from math import floor
 from io import BytesIO
+from math import floor
+from os import cpu_count
 from pathlib import Path
 from signal import SIGABRT
-from typing import Optional, Tuple, List, Union
+from typing import List, Optional, Tuple, Union
 
+import psutil
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 from pexpect import ExceptionPexpect, popen_spawn
 
@@ -50,7 +50,9 @@ class Container(ContainerConfig):
         self.name = name
         self.logger = logger
 
-        with open(syspath.get_container_config(name), "r", encoding="utf-8") as config_file:
+        with open(
+            syspath.get_container_config(name), "r", encoding="utf-8"
+        ) as config_file:
             super().__init__(json.load(config_file))
 
     def start(self) -> None:
@@ -89,7 +91,9 @@ class Container(ContainerConfig):
         self.sshi.open_all()
         self.sshi.update_hostkey()
 
-    def run(self, cmd: List[str]) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile, int]:
+    def run(
+        self, cmd: List[str]
+    ) -> Tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile, int]:
         """
         Runs a command in the container
 
@@ -138,12 +142,11 @@ class Container(ContainerConfig):
 
         :return: The cmd command to start qemu
         """
+
         def max_mem(mem: int) -> int:
             return min(1000000 * mem, 0.75 * psutil.virtual_memory().total) // 1000000
 
-        qemu_system = Path.joinpath(
-            syspath.get_qemu_bin(), f'qemu-system-{self.arch}'
-        )
+        qemu_system = Path.joinpath(syspath.get_qemu_bin(), f"qemu-system-{self.arch}")
 
         arch_specific_args = {
             "x86_64": [
@@ -151,9 +154,11 @@ class Container(ContainerConfig):
                 "mon:stdio",
                 "-m",
                 f"{max_mem(self.memory)}M",
-                *(["-append",
-                   "console=ttyS0 root=/dev/sda1"]
-                  if not self.legacy else []),
+                *(
+                    ["-append", "console=ttyS0 root=/dev/sda1"]
+                    if not self.legacy
+                    else []
+                ),
             ],
             "aarch64": [
                 "-M",
@@ -169,9 +174,9 @@ class Container(ContainerConfig):
                 "-M",
                 "malta",
                 "-m",
-                f"{min(self.memory, 2048)}M", # Max for mipsel
+                f"{min(self.memory, 2048)}M",  # Max for mipsel
                 "-append",
-                "rootwait root=/dev/sda1"
+                "rootwait root=/dev/sda1",
             ],
         }[self.arch]
 
@@ -179,7 +184,9 @@ class Container(ContainerConfig):
         hostfwds.append(f"hostfwd=tcp::{self.ex_port}-:22")
         hostfwd = "user," + ",".join(hostfwds)
 
-        kernel = ["-kernel", "vmlinuz", "-initrd", "initrd.img"] if not self.legacy else []
+        kernel = (
+            ["-kernel", "vmlinuz", "-initrd", "initrd.img"] if not self.legacy else []
+        )
 
         return [
             qemu_system,

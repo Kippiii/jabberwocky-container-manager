@@ -54,7 +54,6 @@ def main():
 
 
     cli = JabberwockyCLI(stdin, stdout)
-    cli.container_manager = ContainerManagerClient()
     inp = argv[1:]
     cli.parse_cmd(inp)
 

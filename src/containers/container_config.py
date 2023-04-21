@@ -1,18 +1,33 @@
+"""
+Manages the configuration of the container manager
+"""
+
 import re
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+from src.containers.exceptions import (InvalidConfigError,
+                                       UnsupportedLegacyConfigError)
 from src.globals import MANIFEST_VERSION, SUPPORTED_ARCHS
-from src.containers.exceptions import UnsupportedLegacyConfigError, InvalidConfigError
 
 _LEGACY_CT_CONFIG = {
     "arch": "x86_64",
-    "arguments": {
-        "m": "500M",
-        "drive": "file=hdd.qcow2,format=qcow2"
-    }
+    "arguments": {"m": "500M", "drive": "file=hdd.qcow2,format=qcow2"},
 }
 
 
 class ContainerConfig:
+    """
+    Class for managing the config file of the container
+    
+    :param arch: The architecture of a container
+    :param memory: The memory allocated to the container
+    :param hddmaxsize: The size of the hard-disk image
+    :param hostname: ?
+    :param username: The username of root on the container
+    :param password: The password of root on the container
+    :param portfwd: ?
+    :param legacy: ?
+    """
     arch: str
     memory: int
     hddmaxsize: int
@@ -22,7 +37,7 @@ class ContainerConfig:
     portfwd: List[List[int]]
     legacy: bool
 
-    def __init__(self, manifest: dict):
+    def __init__(self, manifest: dict):  # pylint: disable=too-many-branches,too-many-statements
         if (version := manifest.get("manifest")) is None:
             manifest = ContainerConfig._convert_legacy(manifest)
         elif version not in range(0, MANIFEST_VERSION + 1):
@@ -37,24 +52,28 @@ class ContainerConfig:
 
         if "hostname" not in manifest:
             pass
-        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9]{2,}", (hname := manifest["hostname"])):
+        if not re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9]{2,}", (hname := manifest["hostname"])
+        ):
             config_errors.append(f"Invalid hostname {hname.__repr__()}")
 
         if "memory" not in manifest:
             config_errors.append("'memory' is not an optional field.")
-        elif type(manifest["memory"]) is not int:
-            config_errors.append(f"'memory' must be an integer.")
+        elif not isinstance(manifest['memory'], int):
+            config_errors.append("'memory' must be an integer.")
 
         if "hddmaxsize" not in manifest:
             config_errors.append("'hddmaxsize' is not an optional field.")
-        elif type(manifest["hddmaxsize"]) is not int:
-            config_errors.append(f"'hddmaxsize' must be an integer.")
+        elif not isinstance(manifest['hddmaxsize'], int):
+            config_errors.append("'hddmaxsize' must be an integer.")
 
         if "portfwd" not in manifest:
             pass
-        elif type(portfwd := manifest["portfwd"]) is not list:
+        elif not isinstance(portfwd := manifest['portfwd'], list):
             config_errors.append("'portfwd' must be an array.")
-        elif not all(len(l) == 2 and all(type(i) is int for i in l) for l in portfwd):
+        elif not all(
+            len(l) == 2 and all(isinstance(i, int) for i in l) for l in portfwd
+        ):
             config_errors.append("The 'portfwd' argument is malformed.")
         else:
             vtaken = {22}
@@ -75,7 +94,7 @@ class ContainerConfig:
 
         if (pswd := manifest.get("password")) is None:
             config_errors.append("'password' is not an optional field.")
-        elif type(pswd) is not str:
+        elif not isinstance(pswd, str):
             config_errors.append("'password' must be a string.")
 
         # Raise errors if applicable
@@ -89,9 +108,13 @@ class ContainerConfig:
         self.hostname = manifest.get("hostname") or "debian"
         self.portfwd = manifest.get("portfwd") or []
         self.password = manifest["password"]
-        self.legacy = manifest.get("__legacy") if type(manifest.get("__legacy")) is bool else False
+        self.legacy = (
+            manifest.get("__legacy")
+            if isinstance(manifest.get("__legacy"), bool)
+            else False
+        )
 
-
+    @staticmethod
     def _convert_legacy(manifest: dict) -> dict:
         if manifest == _LEGACY_CT_CONFIG:
             return {
@@ -108,8 +131,10 @@ class ContainerConfig:
 
         raise UnsupportedLegacyConfigError()
 
-
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts config file to a dictionary
+        """
         return {
             "manifest": MANIFEST_VERSION,
             "arch": self.arch,
@@ -122,5 +147,11 @@ class ContainerConfig:
             **({"__legacy": True} if self.legacy else {}),
         }
 
+    @staticmethod
     def load_legacy_config(config: Dict[str, Any]) -> "ContainerConfig":
+        """
+        Loads a config from an older version
+
+        :param config: The config as a dictionary
+        """
         raise NotImplementedError()
