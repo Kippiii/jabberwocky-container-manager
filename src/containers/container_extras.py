@@ -4,11 +4,11 @@ Various extra tools used by containers
 
 import tarfile
 from os.path import isdir, isfile
+from pathlib import Path
 from shutil import rmtree
 from typing import Union
-from pathlib import Path
 
-from src.system.syspath import get_container_dir
+from src.system.syspath import get_container_config, get_container_dir
 
 
 def install_container(archive_path: Path, container_name: str) -> None:

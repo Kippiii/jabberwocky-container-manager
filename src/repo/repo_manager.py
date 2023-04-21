@@ -1,3 +1,6 @@
+"""
+Manages repositories from the container manager
+"""
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,8 +9,7 @@ from typing import List, Optional
 
 import requests
 
-from src.system.syspath import (get_container_dir, get_container_home,
-                                get_repo_file)
+from src.system.syspath import get_container_home, get_repo_file
 
 
 class RepoManager:
@@ -17,10 +19,20 @@ class RepoManager:
 
     @dataclass
     class _Repo:
+        """
+        Represents an instance of a repository
+
+        :param url: The URL to the repo
+        :param archives: A list of archives in the repo
+        """
+
         url: str
         archives: List[str]
 
         def to_dict(self) -> dict:
+            """
+            Converts the reo to a dictionary
+            """
             return {
                 "url": self.url,
                 "archives": self.archives,
@@ -31,28 +43,34 @@ class RepoManager:
             Saves all of the archives listed into the object
             """
             try:
-                resp = requests.get(self.url)
+                resp = requests.get(self.url, timeout=360 * 20)
             except requests.exceptions.RequestException as exc:
                 raise ValueError(f"Could not connect to {self.url}") from exc
 
             if not resp.ok:
-                raise Exception(f"Got status code {resp.status_code} from {self.url}")
+                raise ValueError(f"Got status code {resp.status_code} from {self.url}")
             try:
                 data = resp.json()
             except json.JSONDecodeError as exc:
-                raise ValueError("Web server gave invalid response")
+                raise ValueError("Web server gave invalid response") from exc
             if "archives" not in data or not isinstance(data["archives"], list):
                 raise ValueError("Got invalid data from server")
             self.archives = [str(x) for x in data["archives"]]
 
     def __init__(self, out_stream=stdout, in_stream=stdin) -> None:
+        """
+        Initializes a repository
+
+        :param out_stream: The output stream
+        :param in_stream: The input stream
+        """
         repo_json_path: Path = get_repo_file()
         self.repos: List[RepoManager._Repo] = []
         self.out_stream = out_stream
         self.in_stream = in_stream
 
         if not repo_json_path.exists():
-            with open(str(repo_json_path), "w") as file:
+            with open(str(repo_json_path), "w", encoding="utf-8") as file:
                 json.dump({"repos": []}, file)
         self.open()
 
@@ -61,7 +79,7 @@ class RepoManager:
         Loads information from repo json into memory
         """
         repo_json_path: Path = get_repo_file()
-        with open(str(repo_json_path)) as file:
+        with open(str(repo_json_path), encoding="utf-8") as file:
             config = json.load(file)
             if "repos" not in config or not isinstance(config["repos"], list):
                 raise ValueError("'repos' list not in repo config")
@@ -72,7 +90,8 @@ class RepoManager:
                     repo_dict["archives"], list
                 ):
                     raise ValueError(
-                        f"'archives' list missing from repo with url: {repo_dict['url']}"
+                        "'archives' list missing from repo with url: "
+                        f"{repo_dict['url']}"
                     )
                 self.repos.append(
                     RepoManager._Repo(
@@ -85,7 +104,7 @@ class RepoManager:
         Saves the information from memory into the repo json
         """
         repo_json_path: Path = get_repo_file()
-        with open(str(repo_json_path), "w") as file:
+        with open(str(repo_json_path), "w", encoding="utf-8") as file:
             json.dump(
                 {
                     "repos": [repo.to_dict() for repo in self.repos],
@@ -150,16 +169,17 @@ class RepoManager:
                 with requests.get(
                     f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}",
                     stream=True,
-                ) as r:
-                    p: Path = get_container_home() / archive_str
-                    with open(p, "wb") as f:
-                        for chunk in r.iter_content(chunk_size=32 * 1024 * 1024):
+                    timeout=360 * 20,
+                ) as resp:
+                    path: Path = get_container_home() / archive_str
+                    with open(path, "wb") as f:
+                        for chunk in resp.iter_content(chunk_size=32 * 1024 * 1024):
                             f.write(chunk)
             except requests.exceptions.RequestException as exc:
                 raise ValueError(f"Could not connect to server {repo.url}") from exc
 
             self.out_stream.write("Successfully downloaded archive\n")
-            return p
+            return path
 
         self.out_stream.write("Could not find archive from repos\n")
         return None
@@ -178,14 +198,15 @@ class RepoManager:
             "password": password,
         }
         files: dict = {
-            "file": open(str(save_path), "rb"),
+            "file": open(str(save_path), "rb"),  # pylint: disable=consider-using-with
         }
 
         try:
-            r = requests.post(
+            requests.post(
                 f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put",
                 data=data,
                 files=files,
+                timeout=360 * 20,
             )
         except requests.exceptions.RequestException as exc:
-            raise ValueError(f"Could not connect to server {repo.url}") from exc
+            raise ValueError(f"Could not connect to server {repo_url}") from exc

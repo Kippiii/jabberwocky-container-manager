@@ -171,7 +171,10 @@ class ContainerStartedCannotModify(ServerError):
         self.container_name: str = self.sock.recv().decode("utf-8")
 
     def __str__(self):
-        return f"Cannot modify {self.container_name} while it is running. Stop it before attempting this action again."
+        return (
+            f"Cannot modify {self.container_name} while it is running. Stop it "
+            "before attempting this action again."
+        )
 
 
 class UnknownContainerError(ServerError):

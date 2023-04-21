@@ -54,11 +54,16 @@ class ContainerManagerServer:
         Listens for incoming connections. Blocking function.
         """
 
-        self.address = (socket.gethostbyname("127.0.0.1"), allocate_port(22300))
+        self.address = (
+            socket.gethostbyname("127.0.0.1"),  # pylint: disable=no-member
+            allocate_port(22300),
+        )
         self.logger.debug(
             "MAIN THREAD: Starting Container Manager Server @ %s", self.address
         )
-        self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_sock = socket.socket(  # pylint: disable=not-callable
+            socket.AF_INET, socket.SOCK_STREAM  # pylint: disable=no-member
+        )
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
 
@@ -111,7 +116,8 @@ class ContainerManagerServer:
             except (PoweroffTimeoutExceededError, SSHException, AttributeError):
                 try:
                     self.logger.error(
-                        f"STOP: POWEROFF FAILED. Killing {name} (PID={container.booter.pid})."
+                        f"STOP: POWEROFF FAILED. Killing {name} (PID="
+                        f"{container.booter.pid})."
                     )
                     container.kill()
                 except (PermissionError, AttributeError) as exc:
@@ -131,10 +137,10 @@ class ContainerManagerServer:
         Kills indiscriminately all QEMU processes on the system, then calls stop()
         """
         self.logger.error(f"PANICKING!!! Reason given: {reason}")
-        for p in psutil.process_iter():
-            if "qemu-system-" in p.name().lower():
-                p.kill()
-                self.logger.error(f"PANIC: KILLED {p.pid}!")
+        for proc in psutil.process_iter():
+            if "qemu-system-" in proc.name().lower():
+                proc.kill()
+                self.logger.error(f"PANIC: KILLED {proc.pid}!")
         os.remove(get_server_info_file())
         self.logger.debug("PANIC: Server will ABORT now.")
         os.kill(os.getpid(), SIGABRT)
@@ -280,7 +286,7 @@ class _SocketConnection:
             cli.append(self.sock.recv().decode("utf-8"))
 
         if container_name not in self.manager.containers:
-            self.sock.raise_container_not_started()
+            self.sock.raise_container_not_started(container_name)
             return
 
         self.manager.logger.debug(
@@ -339,8 +345,7 @@ class _SocketConnection:
         except Exception as exc:  # pylint: disable=broad-except
             self.manager.startup_mutex.release()
             raise exc
-        else:
-            self.manager.startup_mutex.release()
+        self.manager.startup_mutex.release()
 
     def _stop(self) -> None:
         """
@@ -383,7 +388,8 @@ class _SocketConnection:
             self.manager.containers[container_name].kill()
         except OSError:
             self.manager.logger.debug(
-                "Attempted to kill %s (PID=%d), but the process is no longer accessible.",
+                "Attempted to kill %s (PID=%d), but the process is no longer "
+                "accessible.",
                 container_name,
                 self.manager.containers[container_name].booter.pid,
             )
@@ -631,30 +637,30 @@ class _RunCommandHandler:
     def _send_stdout(self):
         try:
             while my_byte := self.stdout.read(1):
-                self.mutex.acquire()
+                self.mutex.acquire()  # pylint: disable=consider-using-with
                 self.client_sock.send(b"\x01" + my_byte)
                 self.mutex.release()
-        except (ConnectionError, OSError) as ex:
+        except (ConnectionError, OSError):
             if self.mutex.locked():
                 self.mutex.release()
 
     def _send_stderr(self):
         try:
             while my_byte := self.stderr.read(1):
-                self.mutex.acquire()
+                self.mutex.acquire()  # pylint: disable=consider-using-with
                 self.client_sock.send(b"\x02" + my_byte)
                 self.mutex.release()
-        except (ConnectionError, OSError) as ex:
+        except (ConnectionError, OSError):
             if self.mutex.locked():
                 self.mutex.release()
 
     def _send_null(self):
         try:
             while True:
-                self.mutex.acquire()
+                self.mutex.acquire()  # pylint: disable=consider-using-with
                 self.client_sock.send(b"\x00\x00")
                 self.mutex.release()
                 time.sleep(1)
-        except (ConnectionError, OSError) as ex:
+        except (ConnectionError, OSError):
             if self.mutex.locked():
                 self.mutex.release()

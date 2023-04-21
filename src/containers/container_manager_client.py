@@ -3,30 +3,25 @@ The client version of the container manager
 """
 
 import json
-import os as pyos
 import socket
 import subprocess
 import sys
 import threading
 import time
 from os import getcwd, listdir
-from os.path import abspath, basename, isdir, isfile
+from os.path import basename, isdir, isfile
 from os.path import join as joinpath
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-import requests
+from src.system.filezilla import filezilla, sftp
+from src.system.socket import ClientServerSocket
+from src.system.syspath import (get_container_home, get_container_id_rsa,
+                                get_full_path, get_server_info_file)
 
 if sys.platform == "win32":
     import msvcrt  # pylint: disable=import-error
 else:
     import select
-
-from src.globals import VERSION
-from src.system.filezilla import filezilla, sftp
-from src.system.os import OS, get_os
-from src.system.socket import ClientServerSocket
-from src.system.syspath import *
-from src.system.syspath import get_full_path
 
 
 class ContainerManagerClient:
@@ -51,13 +46,16 @@ class ContainerManagerClient:
 
         :return: The time it took to send PING and get OK back
         """
-        t = time.time()
+        tim = time.time()
         sock = self._make_connection()
         sock.send(b"PING")
         sock.recv_expect(b"OK")
-        return time.time() - t
+        return time.time() - tim
 
     def list(self) -> List[str]:
+        """
+        Lists all of the containers installed on the system
+        """
         return list(
             filter(
                 lambda p: (get_container_home() / p).is_dir(),
@@ -66,6 +64,11 @@ class ContainerManagerClient:
         )
 
     def started(self, container_name: str) -> bool:
+        """
+        Determines if a container has been started
+
+        :param container_name: The name of the container being checked
+        """
         sock = self._make_connection()
         sock.send(b"STARTED")
         sock.recv_expect(b"CONT")
@@ -76,11 +79,22 @@ class ContainerManagerClient:
             return True
         if response == b"NO":
             return False
+        raise RuntimeError(f"Invalid server response: {response}")
 
     def view_files(self, container_name: str) -> None:
+        """
+        Opens light-weight filezilla for the file system of the container
+
+        :param container_name: The name of the container being inspected
+        """
         filezilla(*self.ssh_address(container_name))
 
     def sftp(self, container_name: str) -> None:
+        """
+        Opens sftp on a container
+
+        :param container_name: The container being inspected
+        """
         user, pswd, host, port = self.ssh_address(container_name)
         sftp(user, pswd, host, port, container_name)
 
@@ -171,7 +185,8 @@ class ContainerManagerClient:
                 f"-i{get_container_id_rsa(container_name)}",
                 f"-p{port}",
                 f"{user}@{host}",
-            ]
+            ],
+            check=False,
         )
 
     def get_file(
@@ -341,7 +356,9 @@ class ContainerManagerClient:
 
         :return: The socket connection to the server.
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(  # pylint: disable=not-callable
+            socket.AF_INET, socket.SOCK_STREAM  # pylint: disable=no-member
+        )
         sock.connect(self.server_address)
         my_sock = ClientServerSocket(sock)
         my_sock.recv_expect(b"READY")
@@ -404,7 +421,7 @@ class _RunCommandClient:
         """
         Sends data read from stdin to the sever. Windows only.
         """
-        try:
+        try:  # pylint: disable=too-many-nested-blocks
             msg = ""
             while not self.recv_closed:
                 while msvcrt.kbhit():

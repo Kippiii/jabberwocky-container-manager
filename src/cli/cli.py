@@ -87,7 +87,7 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
         if command not in subcmd_dict:
             self.out_stream.write(
                 f"Command of '{command}' is not valid\nUse 'jab help' to see"
-                 " a list of commands\n"
+                " a list of commands\n"
             )
             return
         subcmd_dict[command.lower()](rest)

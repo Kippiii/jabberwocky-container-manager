@@ -20,6 +20,9 @@ from src.system.syspath import get_scripts_path
 
 
 def generate_default_manifest():
+    """
+    Generates the default manifest file for a new container to be built
+    """
     return {
         "manifest": MANIFEST_VERSION,
         "arch": "x86_64",
@@ -35,6 +38,11 @@ def generate_default_manifest():
 
 
 def make_skeleton(work_dir: Path) -> None:
+    """
+    Creates the skeleton for a build generator
+
+    :param work_dir: The directory to generate the build setup
+    """
     if work_dir.exists() and not (work_dir.is_dir() and not os.listdir(work_dir)):
         raise FileExistsError(f"{work_dir} is a file or non-empty directory.")
 
@@ -48,6 +56,11 @@ def make_skeleton(work_dir: Path) -> None:
 
 
 def clean(work_dir: Path) -> None:
+    """
+    Deletes the build init directory
+
+    :param work_dir: The build init directory to delete
+    """
     if not is_skeleton(work_dir):
         raise RuntimeError(f"Provided path '{work_dir}' is not an init'd directory.")
     shutil.rmtree(work_dir / "build" / "temp")
@@ -55,10 +68,16 @@ def clean(work_dir: Path) -> None:
 
 
 def is_supported_platform() -> bool:
+    """
+    Checks if platform supports debootstrap
+    """
     return sys.platform == "linux"
 
 
 def is_skeleton(work_dir: Path) -> bool:
+    """
+    Checks if a directory is a skeleton for build init
+    """
     return all(
         [
             (work_dir.is_dir()),
@@ -72,6 +91,9 @@ def is_skeleton(work_dir: Path) -> bool:
 
 
 def missing_required_tools() -> List[str]:
+    """
+    Checks if any tools are missing that need to be installed to build
+    """
     missing = []
 
     if (os.geteuid() != 0) and (not which("sudo")):
@@ -91,6 +113,14 @@ def missing_required_tools() -> List[str]:
 def do_debootstrap(
     work_dir: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO
 ) -> None:
+    """
+    Starts the build process
+
+    :param work_dir: The directory to build from
+    :param stdin: The standard in stream
+    :param stdout: The standard out stream
+    :param stderr: The standard error stream
+    """
     if not is_supported_platform():
         raise OSError(f"{sys.platform} does not support building.")
     if not is_skeleton(work_dir):
@@ -126,6 +156,12 @@ def do_debootstrap(
 
 
 def do_export(work_dir: Path, compress=True) -> None:
+    """
+    Exports the result of the build to an archive
+
+    :param work_dir: The directory where the build occured
+    :param compress: Whether or not to output to a compressed tar
+    """
     with open(work_dir / "manifest.json", "r", encoding="utf-8") as jfp:
         manifest = ContainerManifest(json.load(jfp))
 
@@ -146,6 +182,11 @@ def do_export(work_dir: Path, compress=True) -> None:
 
 
 def _sys_arch_to_debian_arch(arch: str):
+    """
+    Converts the arch of the system to a debian-based arch
+
+    :param arch: The arch string of the system
+    """
     arch = arch.lower()
 
     if arch in ("amd64", "x86_64"):
@@ -161,6 +202,12 @@ def _sys_arch_to_debian_arch(arch: str):
 
 
 def _full_script_order(work_dir: Path, manifest: ContainerManifest) -> List[str]:
+    """
+    Generates order of scripts to be executed
+
+    :param work_dir: The directory of building
+    :param manifest: The manifest object for
+    """
     allscripts = os.listdir(work_dir / "scripts")
 
     if any(" " in x for x in allscripts):

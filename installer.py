@@ -1,20 +1,23 @@
+import hashlib
+import shutil
 import subprocess
+import sys
+import tempfile
 import threading
 import traceback
-import shutil
-import hashlib
-import tempfile
-import sys
-from pathlib import Path
-from sys import platform, exit
-from time import sleep
-from urllib import request
-from typing import Callable, Iterable, Optional, List
 from getpass import getpass
-from os import makedirs, chdir, environ, pathsep
+from os import chdir, environ, makedirs, pathsep
+from pathlib import Path
+from sys import exit, platform
+from time import sleep
+from typing import Callable, Iterable, List, Optional
+from urllib import request
+
 from server import server_is_running
+
 if platform == "win32":
     import winreg
+
 from src.system.multithreading import SpinningTask
 from src.system.state import frozen
 
@@ -27,7 +30,9 @@ def abort() -> None:
     """
     print()
     print("The installation has been aborted.")
-    print("If this is an error, please report an issue at https://github.com/Kippiii/jabberwocky")
+    print(
+        "If this is an error, please report an issue at https://github.com/Kippiii/jabberwocky"
+    )
     getpass("Press Enter to exit. ")
     exit(1)
 
@@ -41,21 +46,33 @@ def install_qemu() -> None:
         qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
         if not qemu_system_x86_64.exists():
             print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
-            inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
+            inp = input(
+                f"QEMU is required to continue, would you like to install it now? [y/N] "
+            )
             if inp.lower() not in ("y", "yes"):
                 abort()
 
-            installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
-            checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
+            installer_url = (
+                "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
+            )
+            checksum_url = (
+                "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
+            )
             installer_file = Path(tempfile.gettempdir()) / "qemu-setup.exe"
             checksum_file = Path(tempfile.gettempdir()) / "qemu-setup.sha512"
 
-            t = SpinningTask("Downloading QEMU installer", request.urlretrieve, (installer_url, installer_file))
+            t = SpinningTask(
+                "Downloading QEMU installer",
+                request.urlretrieve,
+                (installer_url, installer_file),
+            )
             t.exec()
 
             def verify():
                 request.urlretrieve(checksum_url, checksum_file)
-                with open(installer_file, "rb") as inst, open(checksum_file, "r") as chksm:
+                with open(installer_file, "rb") as inst, open(
+                    checksum_file, "r"
+                ) as chksm:
                     bytes = inst.read()
                     hash = hashlib.sha512(bytes).hexdigest()
                     assert hash.upper() == chksm.read().split()[0].upper()
@@ -69,23 +86,30 @@ def install_qemu() -> None:
     elif platform == "darwin":
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
-            print("For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos")
+            print(
+                "For information on how to install QEMU on macOS, see https://www.qemu.org/download/#macos"
+            )
             abort()
-
 
     elif shutil.which("apt-get"):
         if not shutil.which("qemu-system-x86_64"):
-            inp = input("qemu-system is required to continue, would you like to install it now? [y/N] ")
+            inp = input(
+                "qemu-system is required to continue, would you like to install it now? [y/N] "
+            )
             if inp.lower() not in ("y", "yes"):
                 abort()
 
             subprocess.run(["sudo", "apt-get", "update"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "qemu-system" ,"-y"], check=True)
+            subprocess.run(
+                ["sudo", "apt-get", "install", "qemu-system", "-y"], check=True
+            )
 
     else:
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
-            print("For information on how to install QEMU on Linux, see https://www.qemu.org/download/#linux")
+            print(
+                "For information on how to install QEMU on Linux, see https://www.qemu.org/download/#linux"
+            )
             abort()
 
 
@@ -114,7 +138,9 @@ def copy_files() -> Path:
         "darwin": Path.home() / ".local/share/Jabberwocky",
     }[platform]
 
-    inp = input(f"The software will be installed to \"{install_dir}\". Is this OK? [y/N] ")
+    inp = input(
+        f'The software will be installed to "{install_dir}". Is this OK? [y/N] '
+    )
     if inp.lower() not in ("y", "yes"):
         abort()
 
@@ -132,8 +158,12 @@ def copy_files() -> Path:
 
         # Copy files
         shutil.unpack_archive(PYINSTALLER_DATA_PATH / "dist.tar", install_dir)
-        shutil.unpack_archive(PYINSTALLER_DATA_PATH / "contrib.tar", install_dir / "contrib")
-        shutil.unpack_archive(PYINSTALLER_DATA_PATH / "scripts.tar", install_dir / "scripts")
+        shutil.unpack_archive(
+            PYINSTALLER_DATA_PATH / "contrib.tar", install_dir / "contrib"
+        )
+        shutil.unpack_archive(
+            PYINSTALLER_DATA_PATH / "scripts.tar", install_dir / "scripts"
+        )
 
     t = SpinningTask("Copying files", do_copy)
     t.exec()
@@ -148,7 +178,9 @@ def update_PATH(install_dir: Path) -> None:
     bin = str(install_dir / "jab")
 
     if platform == "win32":
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", access=winreg.KEY_ALL_ACCESS)
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, "Environment", access=winreg.KEY_ALL_ACCESS
+        )
         path: List[str] = winreg.QueryValueEx(key, "Path")[0].split(pathsep)
 
         if bin.upper() not in map(lambda s: s.upper(), path):
@@ -162,7 +194,7 @@ def update_PATH(install_dir: Path) -> None:
             with open(Path.home() / ".bash_profile", "a") as bashrc:
                 bashrc.write(f"\n")
                 bashrc.write(f"# Added by Jabberwocky Installer\n")
-                bashrc.write(f"export PATH=\"$PATH{pathsep}{bin}\"")
+                bashrc.write(f'export PATH="$PATH{pathsep}{bin}"')
 
     else:
         path = environ["PATH"].split(pathsep)
@@ -170,7 +202,7 @@ def update_PATH(install_dir: Path) -> None:
             with open(Path.home() / ".bashrc", "a") as bashrc:
                 bashrc.write(f"\n")
                 bashrc.write(f"# Added by Jabberwocky Installer\n")
-                bashrc.write(f"PATH=\"$PATH{pathsep}{bin}\"")
+                bashrc.write(f'PATH="$PATH{pathsep}{bin}"')
 
 
 if __name__ == "__main__":
@@ -198,5 +230,7 @@ if __name__ == "__main__":
         abort()
     else:
         print("The installation completed successfully!")
-        print("You may need to restart your computer for the changes to take full effect.")
+        print(
+            "You may need to restart your computer for the changes to take full effect."
+        )
         getpass("Press Enter to exit. ")
