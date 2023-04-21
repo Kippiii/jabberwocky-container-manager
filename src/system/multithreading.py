@@ -1,7 +1,7 @@
 import sys
 import threading
 from time import sleep
-from typing import Optional, Callable, Iterable, TextIO
+from typing import Callable, Iterable, Optional, TextIO
 
 
 class InterruptibleTask:
@@ -28,13 +28,20 @@ class SpinningTask:
     :param target: The function to be executed.
     :param args: Arguments to the function.
     """
+
     out_stream: TextIO
     exception: Optional[Exception] = None
-    prompt : str
+    prompt: str
     target: Callable[[], None]
     args: Iterable
 
-    def __init__(self, prompt: str, target: Callable[[], None], args: Iterable = (), out_stream: Optional[TextIO] = sys.stdout):
+    def __init__(
+        self,
+        prompt: str,
+        target: Callable[[], None],
+        args: Iterable = (),
+        out_stream: Optional[TextIO] = sys.stdout,
+    ):
         self.prompt = prompt
         self.target = target
         self.args = args

@@ -2,25 +2,27 @@
 Defines the CLI that takes user input and dispatches the container manager
 """
 
-import re
 import os
+import re
+from getpass import getpass
+from pathlib import Path
 from sys import stdin, stdout
 from typing import List
-from pathlib import Path
-from getpass import getpass
+
 from github.GithubException import RateLimitExceededException
 
-from src.containers.container_manager_client import ContainerManagerClient
 import src.containers.container_builder as builder
-from src.system.update import update, get_newest_supported_version
-from src.system.state import frozen
+from src.containers.container_manager_client import ContainerManagerClient
 from src.globals import VERSION
 from src.repo.repo_manager import RepoManager
-from src.system.multithreading import SpinningTask, InterruptibleTask
+from src.system.multithreading import InterruptibleTask, SpinningTask
+from src.system.state import frozen
+from src.system.update import get_newest_supported_version, update
 
 CONTAINER_NAME_REGEX = r"""\w+"""
 
-class JabberwockyCLI:
+
+class JabberwockyCLI:  # pylint: disable=too-many-public-methods
     """
     Represents an instance of the command-line interface
     """
@@ -41,36 +43,36 @@ class JabberwockyCLI:
         Parses the cmd sent from script
         """
         subcmd_dict = {
-            "help": self.help, #
-            "files": self.view_files, #
-            "interact": self.interact, #
+            "help": self.help,  #
+            "files": self.view_files,  #
+            "interact": self.interact,  #
             "shell": self.interact,
-            "start": self.start, #
-            "stop": self.stop, #
-            "kill": self.kill, #
-            "run": self.run, #
-            "send-file": self.send_file, #
-            "get-file": self.get_file, #
-            "install": self.install, #
-            "delete": self.delete, #
-            "rename": self.rename, #
-            "download": self.download, #
-            "archive": self.archive, #
+            "start": self.start,  #
+            "stop": self.stop,  #
+            "kill": self.kill,  #
+            "run": self.run,  #
+            "send-file": self.send_file,  #
+            "get-file": self.get_file,  #
+            "install": self.install,  #
+            "delete": self.delete,  #
+            "rename": self.rename,  #
+            "download": self.download,  #
+            "archive": self.archive,  #
             "export": self.archive,
-            "upload": self.upload, #
-            "add-repo": self.add_repo, #
-            "update-repo": self.update_repo, #
+            "upload": self.upload,  #
+            "add-repo": self.add_repo,  #
+            "update-repo": self.update_repo,  #
             "create": self.create,
-            "server-halt": self.server_halt, #
-            "ping": self.ping, #
-            "ssh-address": self.ssh_address, #
-            "update": self.update, #
-            "sftp": self.sftp, #
-            "panic": self.server_panic, #
-            "version": self.version, #
+            "server-halt": self.server_halt,  #
+            "ping": self.ping,  #
+            "ssh-address": self.ssh_address,  #
+            "update": self.update,  #
+            "sftp": self.sftp,  #
+            "panic": self.server_panic,  #
+            "version": self.version,  #
             "build-init": self.build_init,
             "build": self.build,
-            "list": self.list, #
+            "list": self.list,  #
             "ls": self.list,
             "clean": self.clean,
         }
@@ -83,32 +85,67 @@ class JabberwockyCLI:
             rest = cmd[1:]
 
         if command not in subcmd_dict:
-            self.out_stream.write(f"Command of '{command}' is not valid\nUse 'jab help' to see a list of commands\n")
+            self.out_stream.write(
+                f"Command of '{command}' is not valid\nUse 'jab help' to see"
+                 " a list of commands\n"
+            )
             return
         subcmd_dict[command.lower()](rest)
 
     def version(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        """
+        Gets the version of the container manager
+
+        :param cmd: The command-line args sent
+        """
         self.out_stream.write(f"{VERSION}\n")
 
-    def list(self, cmd: List[str]) -> None:
+    def list(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+        """
+        Sends a list of all the containers installed on the system
+
+        :param cmd: The command-line args sent
+        """
         print("    ".join(self.container_manager.list()))
 
     def build_init(self, cmd: List[str]) -> None:
+        """
+        Initializes the directories for building
+
+        :param cmd: The command-line args sent
+        """
         builder.make_skeleton(Path(cmd[0]) if cmd else Path.cwd())
 
     def clean(self, cmd: List[str]) -> None:
+        """
+        Cleans up a build directory
+
+        :param cmd: The command-line args sent
+        """
         builder.clean(Path(cmd[0]) if cmd else Path.cwd())
 
     def build(self, cmd: List[str]) -> None:
+        """
+        Starts a build of a new container
+
+        :param cmd: The command-line args sent
+        """
         if "--uncompressed" in cmd:
             cmd.remove("--uncompressed")
             compress = False
         else:
             compress = True
 
-        wd = Path(cmd[0]) if cmd else Path.cwd()
-        builder.do_debootstrap(wd, self.in_stream, self.out_stream, self.out_stream)
-        SpinningTask(f"Exporting build to archive", builder.do_export, (wd, compress), self.out_stream).exec()
+        work_dir = Path(cmd[0]) if cmd else Path.cwd()
+        builder.do_debootstrap(
+            work_dir, self.in_stream, self.out_stream, self.out_stream
+        )
+        SpinningTask(
+            "Exporting build to archive",
+            builder.do_export,
+            (work_dir, compress),
+            self.out_stream,
+        ).exec()
 
     def help(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -156,6 +193,11 @@ update-repo [URL]
         self.out_stream.write(help_str)
 
     def sftp(self, cmd: List[str]) -> None:
+        """
+        Opens up an sftp session with a running container
+
+        :param cmd: The command-line args
+        """
         name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(name):
@@ -166,6 +208,11 @@ update-repo [URL]
         self.container_manager.sftp(name)
 
     def view_files(self, cmd: List[str]) -> None:
+        """
+        Opens a FileZilla session with the container
+
+        :param cmd: The command-line args
+        """
         name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(name):
@@ -181,7 +228,9 @@ update-repo [URL]
                 self.out_stream.write("Your platform may not support this command.\n")
             else:
                 self.out_stream.write("Could not find a local FileZilla instance.\n")
-                self.out_stream.write("You may want to run download_prerequisites.py.\n")
+                self.out_stream.write(
+                    "You may want to run download_prerequisites.py.\n"
+                )
 
     def interact(self, cmd: List[str]) -> None:
         """
@@ -210,8 +259,10 @@ update-repo [URL]
             self.out_stream.write(f"'{name}' is not a valid container name.\n")
             return
 
-        t = SpinningTask(f"Starting {name}", self.container_manager.start, (name, ), self.out_stream)
-        t.exec()
+        task = SpinningTask(
+            f"Starting {name}", self.container_manager.start, (name,), self.out_stream
+        )
+        task.exec()
 
     def stop(self, cmd: List[str]) -> None:
         """
@@ -259,11 +310,15 @@ update-repo [URL]
         container_name, command = cmd[0], cmd[1:]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
         if not self.container_manager.started(container_name):
             self.start([container_name])
-        InterruptibleTask(self.container_manager.run_command, (container_name, command)).exec()
+        InterruptibleTask(
+            self.container_manager.run_command, (container_name, command)
+        ).exec()
 
     def send_file(self, cmd: List[str]) -> None:
         """
@@ -281,14 +336,20 @@ update-repo [URL]
 
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
         if not self.container_manager.started(container_name):
             self.start([container_name])
 
-        p = f"Copying '{local_file}' -> '{remote_file if remote_file else '~'}'"
-        t = SpinningTask(p, self.container_manager.put_file, (container_name, local_file, remote_file))
-        t.exec()
+        string = f"Copying '{local_file}' -> '{remote_file if remote_file else '~'}'"
+        task = SpinningTask(
+            string,
+            self.container_manager.put_file,
+            (container_name, local_file, remote_file),
+        )
+        task.exec()
 
     def get_file(self, cmd: List[str]) -> None:
         """
@@ -306,14 +367,20 @@ update-repo [URL]
 
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
         if not self.container_manager.started(container_name):
             self.start([container_name])
 
-        p = f"Copying '{remote_file}' -> '{local_file if local_file else '.'}'"
-        t = SpinningTask(p, self.container_manager.get_file, (container_name, remote_file, local_file))
-        t.exec()
+        string = f"Copying '{remote_file}' -> '{local_file if local_file else '.'}'"
+        task = SpinningTask(
+            string,
+            self.container_manager.get_file,
+            (container_name, remote_file, local_file),
+        )
+        task.exec()
 
     def install(self, cmd: List[str]) -> None:
         """
@@ -327,10 +394,16 @@ update-repo [URL]
         archive_path_str, container_name = cmd[0], cmd[1]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
-        t = SpinningTask(f"Installing {container_name}. This may take several minutes", self.container_manager.install, (archive_path_str, container_name))
-        t.exec()
+        task = SpinningTask(
+            f"Installing {container_name}. This may take several minutes",
+            self.container_manager.install,
+            (archive_path_str, container_name),
+        )
+        task.exec()
 
     def delete(self, cmd: List[str]) -> None:
         """
@@ -342,11 +415,15 @@ update-repo [URL]
 
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
 
         if self.container_manager.started(container_name):
-            self.out_stream.write(f"Please stop {container_name} before trying to delete it.")
+            self.out_stream.write(
+                f"Please stop {container_name} before trying to delete it."
+            )
         else:
             self.container_manager.delete(container_name)
 
@@ -359,7 +436,7 @@ update-repo [URL]
         if len(cmd) != 2:
             self.out_stream.write("Command requires two arguments\n")
             return
-        
+
         old_name, new_name = cmd[0], cmd[1]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(old_name):
@@ -370,7 +447,9 @@ update-repo [URL]
             return
 
         if self.container_manager.started(old_name):
-            self.out_stream.write(f"Please stop '{old_name}' before trying to rename it.\n")
+            self.out_stream.write(
+                f"Please stop '{old_name}' before trying to rename it.\n"
+            )
             return
 
         self.container_manager.rename(old_name, new_name)
@@ -390,7 +469,7 @@ update-repo [URL]
         if not comp.match(container_name):
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
-        
+
         download_path: Path = self.repo_manager.download(archive_name)
         if download_path is not None:
             self.container_manager.install(str(download_path), container_name)
@@ -414,10 +493,12 @@ update-repo [URL]
             self.out_stream.write(f"'{container_name}' is not a valid container name\n")
             return
 
-        t = SpinningTask(
+        task = SpinningTask(
             f"Exporting {container_name}. This will take a long time",
-            self.container_manager.archive, (container_name, path_to_destination))
-        t.exec()
+            self.container_manager.archive,
+            (container_name, path_to_destination),
+        )
+        task.exec()
 
     def upload(self, cmd: List[str]) -> None:
         """
@@ -506,8 +587,8 @@ update-repo [URL]
 
         :param cmd: The rest of the command sent
         """
-        t = self.container_manager.ping()
-        self.out_stream.write(f"Got OK in {t:.5f} seconds.\n")
+        time = self.container_manager.ping()
+        self.out_stream.write(f"Got OK in {time:.5f} seconds.\n")
 
     def ssh_address(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
@@ -518,13 +599,15 @@ update-repo [URL]
         container_name = cmd[0]
         comp = re.compile(CONTAINER_NAME_REGEX)
         if not comp.match(container_name):
-            self.out_stream.write(f"'{container_name}' is not a valid container name.\n")
+            self.out_stream.write(
+                f"'{container_name}' is not a valid container name.\n"
+            )
             return
         if not self.container_manager.started(container_name):
             self.out_stream.write(f"{container_name} is not started.\n")
         self.out_stream.write(str(self.container_manager.ssh_address(container_name)))
 
-    def update(self, cmd: List[str]) -> None:
+    def update(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Checks for updates of the tool and installs them if needed
 
@@ -533,7 +616,9 @@ update-repo [URL]
         try:
             release, asset = get_newest_supported_version()
         except RateLimitExceededException:
-            self.out_stream.write("Cannot fetch updates right now. Try again later or update manually.\n")
+            self.out_stream.write(
+                "Cannot fetch updates right now. Try again later or update manually.\n"
+            )
             return
 
         if not release:
@@ -541,7 +626,9 @@ update-repo [URL]
 
         else:
             self.out_stream.write("\033[93m========\nWARNING!\n========\n")
-            self.out_stream.write("UPDATING WILL HALT ALL OF YOUR CURRENTLY OPEN CONTAINERS.\n")
+            self.out_stream.write(
+                "UPDATING WILL HALT ALL OF YOUR CURRENTLY OPEN CONTAINERS.\n"
+            )
             self.out_stream.write("ALL RUNNING PROCESSES WILL BE TERMINATED.\n")
             self.out_stream.write("ALL UNSAVED DATA WILL BE LOST.\033[0m\n")
             inp = input("Are you sure you want to continue? [y/N] ")

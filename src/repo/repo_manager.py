@@ -1,11 +1,14 @@
 import json
-import requests
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from sys import stdin, stdout
 from typing import List, Optional
-from sys import stdout, stdin
 
-from src.system.syspath import get_repo_file, get_container_dir, get_container_home
+import requests
+
+from src.system.syspath import (get_container_dir, get_container_home,
+                                get_repo_file)
+
 
 class RepoManager:
     """
@@ -19,8 +22,8 @@ class RepoManager:
 
         def to_dict(self) -> dict:
             return {
-                'url': self.url,
-                'archives': self.archives,
+                "url": self.url,
+                "archives": self.archives,
             }
 
         def save_archives(self) -> None:
@@ -38,9 +41,9 @@ class RepoManager:
                 data = resp.json()
             except json.JSONDecodeError as exc:
                 raise ValueError("Web server gave invalid response")
-            if "archives" not in data or not isinstance(data['archives'], list):
+            if "archives" not in data or not isinstance(data["archives"], list):
                 raise ValueError("Got invalid data from server")
-            self.archives = [str(x) for x in data['archives']]
+            self.archives = [str(x) for x in data["archives"]]
 
     def __init__(self, out_stream=stdout, in_stream=stdin) -> None:
         repo_json_path: Path = get_repo_file()
@@ -49,7 +52,7 @@ class RepoManager:
         self.in_stream = in_stream
 
         if not repo_json_path.exists():
-            with open(str(repo_json_path), 'w') as file:
+            with open(str(repo_json_path), "w") as file:
                 json.dump({"repos": []}, file)
         self.open()
 
@@ -60,24 +63,35 @@ class RepoManager:
         repo_json_path: Path = get_repo_file()
         with open(str(repo_json_path)) as file:
             config = json.load(file)
-            if "repos" not in config or not isinstance(config['repos'], list):
+            if "repos" not in config or not isinstance(config["repos"], list):
                 raise ValueError("'repos' list not in repo config")
-            for repo_dict in config['repos']:
-                if "url" not in repo_dict or not isinstance(repo_dict['url'], str):
+            for repo_dict in config["repos"]:
+                if "url" not in repo_dict or not isinstance(repo_dict["url"], str):
                     raise ValueError("'url' string missing from a repo in list")
-                if "archives" not in repo_dict or not isinstance(repo_dict['archives'], list):
-                    raise ValueError(f"'archives' list missing from repo with url: {repo_dict['url']}")
-                self.repos.append(RepoManager._Repo(repo_dict['url'], [str(x) for x in repo_dict['archives']]))
+                if "archives" not in repo_dict or not isinstance(
+                    repo_dict["archives"], list
+                ):
+                    raise ValueError(
+                        f"'archives' list missing from repo with url: {repo_dict['url']}"
+                    )
+                self.repos.append(
+                    RepoManager._Repo(
+                        repo_dict["url"], [str(x) for x in repo_dict["archives"]]
+                    )
+                )
 
     def save(self) -> None:
         """
         Saves the information from memory into the repo json
         """
         repo_json_path: Path = get_repo_file()
-        with open(str(repo_json_path), 'w') as file:
-            json.dump({
-                "repos": [repo.to_dict() for repo in self.repos],
-            }, file)
+        with open(str(repo_json_path), "w") as file:
+            json.dump(
+                {
+                    "repos": [repo.to_dict() for repo in self.repos],
+                },
+                file,
+            )
 
     def update_repo(self, repo_url: str) -> None:
         """
@@ -123,31 +137,36 @@ class RepoManager:
                 self.out_stream.write("Archive not found in repo\n")
                 continue
             value: str = ""
-            while len(value) == 0 or value[0] not in ['y', 'Y', 'n', 'N']:
+            while len(value) == 0 or value[0] not in ["y", "Y", "n", "N"]:
                 print(value)
                 self.out_stream.write("Archive found, should we download: [y, n]: ")
                 self.out_stream.flush()
                 value = self.in_stream.readline()
-            if value[0] in ['n', 'N']:
+            if value[0] in ["n", "N"]:
                 self.out_stream.write("Skipping...\n")
                 continue
             self.out_stream.write("Downloading...\n")
             try:
-                with requests.get(f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}", stream=True) as r:
+                with requests.get(
+                    f"{repo.url}{'' if repo.url[-1] == '/' else '/'}get/{archive_str}",
+                    stream=True,
+                ) as r:
                     p: Path = get_container_home() / archive_str
                     with open(p, "wb") as f:
-                        for chunk in r.iter_content(chunk_size=32*1024*1024):
+                        for chunk in r.iter_content(chunk_size=32 * 1024 * 1024):
                             f.write(chunk)
             except requests.exceptions.RequestException as exc:
                 raise ValueError(f"Could not connect to server {repo.url}") from exc
-            
+
             self.out_stream.write("Successfully downloaded archive\n")
             return p
 
         self.out_stream.write("Could not find archive from repos\n")
         return None
 
-    def upload(self, save_path: Path, repo_url: str, username: str, password: str) -> None:
+    def upload(
+        self, save_path: Path, repo_url: str, username: str, password: str
+    ) -> None:
         """
         Uploads an archive to a repo
 
@@ -159,10 +178,14 @@ class RepoManager:
             "password": password,
         }
         files: dict = {
-            "file": open(str(save_path), 'rb'),
+            "file": open(str(save_path), "rb"),
         }
 
         try:
-            r = requests.post(f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put", data=data, files=files)
+            r = requests.post(
+                f"{repo_url}{'' if repo_url[-1] == '/' else '/'}put",
+                data=data,
+                files=files,
+            )
         except requests.exceptions.RequestException as exc:
             raise ValueError(f"Could not connect to server {repo.url}") from exc

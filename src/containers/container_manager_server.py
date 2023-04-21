@@ -2,28 +2,29 @@
 The server version of the container manager
 """
 
-import logging
-import psutil
-import os
-import sys
-import time
 import json
+import logging
+import os
 import shutil
 import socket
+import sys
 import threading
-from typing import Dict, Optional, Tuple
-from signal import SIGABRT
+import time
 from pathlib import Path
+from signal import SIGABRT
+from typing import Dict, Optional, Tuple
 
-from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
+import psutil
 from paramiko import SSHException
+from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from src.containers.container import Container
-from src.containers.port_allocation import allocate_port
+from src.containers.container_extras import (archive_container,
+                                             install_container)
 from src.containers.exceptions import BootFailure, PoweroffTimeoutExceededError
-from src.containers.container_extras import install_container, archive_container
-from src.system.syspath import get_container_dir, get_server_info_file
+from src.containers.port_allocation import allocate_port
 from src.system.socket import ClientServerSocket
+from src.system.syspath import get_container_dir, get_server_info_file
 
 
 class ContainerManagerServer:
@@ -54,7 +55,9 @@ class ContainerManagerServer:
         """
 
         self.address = (socket.gethostbyname("127.0.0.1"), allocate_port(22300))
-        self.logger.debug("MAIN THREAD: Starting Container Manager Server @ %s", self.address)
+        self.logger.debug(
+            "MAIN THREAD: Starting Container Manager Server @ %s", self.address
+        )
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.bind(self.address)
         self.server_sock.listen(self.backlog)
@@ -62,7 +65,7 @@ class ContainerManagerServer:
         server_info = {
             "addr": self.address[0],
             "port": self.address[1],
-            "pid":  os.getpid(),
+            "pid": os.getpid(),
             "boot": time.time(),
         }
 
@@ -81,11 +84,14 @@ class ContainerManagerServer:
         try:
             while True:
                 client_sock, client_addr = self.server_sock.accept()
-                self.logger.debug("MAIN THREAD: Accepted connection from %s", client_addr)
+                self.logger.debug(
+                    "MAIN THREAD: Accepted connection from %s", client_addr
+                )
                 threading.Thread(
                     target=_SocketConnection(
                         client_sock, client_addr, self
-                    ).start_connection, daemon=True
+                    ).start_connection,
+                    daemon=True,
                 ).start()
         except Exception as ex:  # pylint: disable=broad-except
             self.logger.exception(ex)
@@ -99,14 +105,20 @@ class ContainerManagerServer:
             self.logger.debug("STOP: Closing %s", name)
             try:
                 container.stop()
-                self.logger.debug(f"STOP: Poweroff'd {name} (PID={container.booter.pid}).")
+                self.logger.debug(
+                    f"STOP: Poweroff'd {name} (PID={container.booter.pid})."
+                )
             except (PoweroffTimeoutExceededError, SSHException, AttributeError):
                 try:
-                    self.logger.error(f"STOP: POWEROFF FAILED. Killing {name} (PID={container.booter.pid}).")
+                    self.logger.error(
+                        f"STOP: POWEROFF FAILED. Killing {name} (PID={container.booter.pid})."
+                    )
                     container.kill()
                 except (PermissionError, AttributeError) as exc:
-                    msg = f"STOP: COULD NOT KILL {name} (PID={container.booter.pid}). " \
-                          f"Reason: {type(exc).__name__}. (The process is probably dead.)"
+                    msg = (
+                        f"STOP: COULD NOT KILL {name} (PID={container.booter.pid}). "
+                        f"Reason: {type(exc).__name__}. (The process is probably dead.)"
+                    )
                     self.logger.error(msg)
                 else:
                     self.logger.info(f"STOP: Killed {name}@{container.booter.pid}.")
@@ -224,14 +236,19 @@ class _SocketConnection:
         container_name = self.sock.recv().decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.manager.logger.debug("Attempt to get SSH info for container %s, but it was not started", container_name)
+            self.manager.logger.debug(
+                "Attempt to get SSH info for container %s, but it was not started",
+                container_name,
+            )
             self.sock.raise_container_not_started(container_name)
         else:
             host = "127.0.0.1"
             pswd = self.manager.containers[container_name].password
             port = self.manager.containers[container_name].ex_port
             user = self.manager.containers[container_name].username
-            self.manager.logger.debug(f"Container {container_name} SSH info: ({user}:{pswd}@{host}:{port})")
+            self.manager.logger.debug(
+                f"Container {container_name} SSH info: ({user}:{pswd}@{host}:{port})"
+            )
             self.sock.send(f"{user}:{pswd}:{host}:{port}".encode("utf-8"))
 
     def _update_hostkey(self) -> None:
@@ -266,7 +283,9 @@ class _SocketConnection:
             self.sock.raise_container_not_started()
             return
 
-        self.manager.logger.debug("On container %s, running %s", container_name, ' '.join(cli))
+        self.manager.logger.debug(
+            "On container %s, running %s", container_name, " ".join(cli)
+        )
 
         self.sock.send(b"BEGIN")
 
@@ -303,9 +322,13 @@ class _SocketConnection:
                         container_name, logger=self.manager.logger
                     )
                     self.manager.containers[container_name].start()
-                    self.manager.logger.debug("Container %s has been started", container_name)
+                    self.manager.logger.debug(
+                        "Container %s has been started", container_name
+                    )
                 except BootFailure as exc:
-                    self.manager.logger.debug("Container %s failed to boot: %s", container_name, repr(exc))
+                    self.manager.logger.debug(
+                        "Container %s failed to boot: %s", container_name, repr(exc)
+                    )
                     self.manager.containers[container_name].kill()
                     del self.manager.containers[container_name]
                     self.sock.raise_boot_error()
@@ -327,7 +350,9 @@ class _SocketConnection:
         container_name = self.sock.recv().decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.manager.logger.debug("Attempt to stop nonexistent container %s", container_name)
+            self.manager.logger.debug(
+                "Attempt to stop nonexistent container %s", container_name
+            )
             self.sock.raise_container_not_started(container_name)
             return
 
@@ -346,7 +371,9 @@ class _SocketConnection:
         container_name = self.sock.recv().decode("utf-8")
 
         if container_name not in self.manager.containers:
-            self.manager.logger.debug("Attempt to kill nonexistent container %s", container_name)
+            self.manager.logger.debug(
+                "Attempt to kill nonexistent container %s", container_name
+            )
             self.sock.raise_container_not_started(container_name)
             return
 
@@ -355,14 +382,18 @@ class _SocketConnection:
         try:
             self.manager.containers[container_name].kill()
         except OSError:
-            self.manager.logger.debug("Attempted to kill %s (PID=%d), but the process is no longer accessible.",
-                                      container_name, self.manager.containers[container_name].booter.pid)
+            self.manager.logger.debug(
+                "Attempted to kill %s (PID=%d), but the process is no longer accessible.",
+                container_name,
+                self.manager.containers[container_name].booter.pid,
+            )
         else:
-            self.manager.logger.debug("Container %s successfully killed", container_name)
+            self.manager.logger.debug(
+                "Container %s successfully killed", container_name
+            )
         finally:
             del self.manager.containers[container_name]
             self.sock.ok()
-
 
     def _get(self) -> None:
         """
@@ -380,7 +411,9 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.manager.logger.debug("Attempt to get file from nonexistent container %s", container_name)
+            self.manager.logger.debug(
+                "Attempt to get file from nonexistent container %s", container_name
+            )
             self.sock.raise_container_not_started(container_name)
             return
 
@@ -409,7 +442,9 @@ class _SocketConnection:
         )
 
         if container_name not in self.manager.containers:
-            self.manager.logger.debug("Attempt to put file into nonexistent container %s", container_name)
+            self.manager.logger.debug(
+                "Attempt to put file into nonexistent container %s", container_name
+            )
             self.sock.raise_container_not_started(container_name)
             return
         try:
@@ -449,9 +484,9 @@ class _SocketConnection:
         Archives a container onto the disk
         """
         self.sock.cont()
-        container_name = self.sock.recv().decode('utf-8')
+        container_name = self.sock.recv().decode("utf-8")
         self.sock.cont()
-        path_to_destination: str = self.sock.recv().decode('utf-8')
+        path_to_destination: str = self.sock.recv().decode("utf-8")
 
         if not get_container_dir(container_name).is_dir():
             self.manager.logger.debug("Container %s does not exist", container_name)
@@ -474,7 +509,7 @@ class _SocketConnection:
         Deletes a container from the file system
         """
         self.sock.cont()
-        container_name: str = self.sock.recv().decode('utf-8')
+        container_name: str = self.sock.recv().decode("utf-8")
 
         self.manager.logger.debug("Deleting container %s", container_name)
 
@@ -497,9 +532,9 @@ class _SocketConnection:
         Renames a container on the file system
         """
         self.sock.cont()
-        old_name: str = self.sock.recv().decode('utf-8')
+        old_name: str = self.sock.recv().decode("utf-8")
         self.sock.cont()
-        new_name: str = self.sock.recv().decode('utf-8')
+        new_name: str = self.sock.recv().decode("utf-8")
 
         self.manager.logger.debug("Renaming container '%s' to '%s'", old_name, new_name)
 
@@ -511,7 +546,6 @@ class _SocketConnection:
             self.manager.logger.debug("Attempt to rename started container")
             self.sock.raise_container_started_cannot_modify(old_name)
             return
-
 
         os.rename(str(get_container_dir(old_name)), str(get_container_dir(new_name)))
 
@@ -589,8 +623,8 @@ class _RunCommandHandler:
             while msg := self.client_sock.recv(1 << 16):
                 while msg:
                     size = msg[0]
-                    self.stdin.write(msg[1:size + 1])
-                    msg = msg[size + 1:]
+                    self.stdin.write(msg[1 : size + 1])
+                    msg = msg[size + 1 :]
         except (ConnectionError, OSError):
             pass
 
