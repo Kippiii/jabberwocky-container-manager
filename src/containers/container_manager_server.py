@@ -23,7 +23,7 @@ from src.containers.container_extras import (archive_container,
                                              install_container)
 from src.containers.exceptions import BootFailure, PoweroffTimeoutExceededError
 from src.containers.port_allocation import allocate_port
-from src.system.socket import ClientServerSocket
+from src.system.my_socket import ClientServerSocket
 from src.system.syspath import get_container_dir, get_server_info_file
 
 

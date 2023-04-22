@@ -12,14 +12,19 @@ from src.system.state import frozen
 
 
 def get_full_path(path: str):
+    """
+    Converts a path to its absolute equivalent
+    """
     return abspath(expanduser(path))
 
 
 def get_scripts_path() -> Path:
+    """
+    Gets the path to scripts
+    """
     if frozen():
         return Path(sys.executable).parent.parent / "scripts"
-    else:
-        return Path(__file__).parent.parent.parent / "scripts"
+    return Path(__file__).parent.parent.parent / "scripts"
 
 
 def get_qemu_bin() -> Path:

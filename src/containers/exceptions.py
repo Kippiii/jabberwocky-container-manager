@@ -9,7 +9,7 @@ from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
 
-from src.system.socket import ClientServerSocket
+from src.system.my_socket import ClientServerSocket
 from src.system.syspath import get_server_log_file
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""

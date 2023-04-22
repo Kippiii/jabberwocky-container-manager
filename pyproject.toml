@@ -68,6 +68,3 @@ max-bool-expr = 999
 min-public-methods = -1
 [tool.pylint.format]
 max-line-length = 88
-[tool.pylint.variables]
-allow-global-unused-variables = false
-

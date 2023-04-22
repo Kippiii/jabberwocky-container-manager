@@ -1,3 +1,6 @@
+"""
+Manages multithreading for the project
+"""
 import sys
 import threading
 from time import sleep
@@ -5,6 +8,13 @@ from typing import Callable, Iterable, Optional, TextIO
 
 
 class InterruptibleTask:
+    """
+    Represents a task that is ready for user interaction
+
+    :param target: The function being called with the task
+    :param args: The args to pass to the function
+    """
+
     target: Callable[[], None]
     args: Iterable
 
@@ -13,6 +23,9 @@ class InterruptibleTask:
         self.args = args
 
     def exec(self) -> None:
+        """
+        Executes the task
+        """
         thread = threading.Thread(target=self.target, args=self.args, daemon=True)
         thread.start()
         while thread.is_alive():
@@ -67,8 +80,7 @@ class SpinningTask:
         if self.exception is not None:
             self.out_stream.write("\r\n")
             raise self.exception
-        else:
-            self.out_stream.write(f"\r{self.prompt}... Done!\r\n")
+        self.out_stream.write(f"\r{self.prompt}... Done!\r\n")
 
     def _task(self) -> None:
         """

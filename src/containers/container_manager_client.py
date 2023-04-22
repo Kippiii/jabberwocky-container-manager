@@ -14,7 +14,7 @@ from os.path import join as joinpath
 from typing import List, Optional, Tuple
 
 from src.system.filezilla import filezilla, sftp
-from src.system.socket import ClientServerSocket
+from src.system.my_socket import ClientServerSocket
 from src.system.syspath import (get_container_home, get_container_id_rsa,
                                 get_full_path, get_server_info_file)
 

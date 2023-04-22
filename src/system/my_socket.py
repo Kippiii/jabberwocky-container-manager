@@ -47,7 +47,7 @@ class ClientServerSocket:
         """
         msg = self.recv(bufsize)
 
-        if type(expected) is bytes:
+        if isinstance(expected, bytes):
             match = msg == expected
         else:
             match = msg in expected
@@ -76,7 +76,7 @@ class ClientServerSocket:
         """
         self.send(b"YES")
 
-    def no(self) -> None:
+    def no(self) -> None:  # pylint: disable=invalid-name
         """
         Sends NO over the socket
         """
@@ -88,7 +88,7 @@ class ClientServerSocket:
         """
         self.send(b"BEGIN")
 
-    def ok(self) -> None:
+    def ok(self) -> None:  # pylint: disable=invalid-name
         """
         Sends OK over the socket
         """
@@ -131,6 +131,11 @@ class ClientServerSocket:
         self.send(container_name)
 
     def raise_container_started_cannot_modify(self, container_name: str) -> None:
+        """
+        Notifies the client that a container has been started (so cannot be modified)
+
+        :param container_name: The name of the container
+        """
         self.send(b"CONTAINER_STARTED_CANNOT_MODIFY")
         self.recv()
         self.send(container_name)
@@ -152,6 +157,11 @@ class ClientServerSocket:
         self.send(path)
 
     def raise_is_a_directory(self, path: str):
+        """
+        Notifies a client that a directory was provided
+
+        :path: The path provided
+        """
         self.send(b"IS_A_DIRECTORY")
         self.recv()
         self.send(path)
