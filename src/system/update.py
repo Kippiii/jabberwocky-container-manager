@@ -1,30 +1,38 @@
+import hashlib
+import os
+import re
 import subprocess
 import sys
-import re
-import os
 import tempfile
-import requests
-import hashlib
 from distutils.version import StrictVersion
+from pathlib import Path
+from platform import machine
+from sys import platform
+from typing import Tuple
+
+import requests
 from github import Github
 from github.GitRelease import GitRelease
 from github.GitReleaseAsset import GitReleaseAsset
-from src.globals import VERSION
-from sys import platform
-from platform import machine
-from src.globals import VERSION
-from typing import Tuple
-from pathlib import Path
+
 from src.containers.container_manager_client import ContainerManagerClient
+from src.globals import VERSION
 
 EXE_FILE_EXTEN = ".exe" if platform == "win32" else ""
 
 
-def get_newest_supported_version() -> Tuple[GitRelease, GitReleaseAsset] | Tuple[None, None]:
+def get_newest_supported_version() -> Tuple[
+    GitRelease, GitReleaseAsset
+] | Tuple[None, None]:
     g = Github()
     repo = g.get_repo("Kippiii/jabberwocky-container-manager")
 
-    releases = [r for r in repo.get_releases() if r.title.startswith("v") and StrictVersion(VERSION[1:]) < StrictVersion(r.title[1:])]
+    releases = [
+        r
+        for r in repo.get_releases()
+        if r.title.startswith("v")
+        and StrictVersion(VERSION[1:]) < StrictVersion(r.title[1:])
+    ]
     releases.sort(key=lambda r: StrictVersion(r.title[1:]), reverse=True)
 
     for release in releases:
@@ -42,7 +50,11 @@ def update(release: GitRelease, asset: GitReleaseAsset):
     # Search for latest release
     ContainerManagerClient().server_halt()
 
-    sha_regex = r"installer-%s-%s%s\s+SHA256: ([a-zA-Z0-9]{64})" % (platform, machine(), EXE_FILE_EXTEN)
+    sha_regex = r"installer-%s-%s%s\s+SHA256: ([a-zA-Z0-9]{64})" % (
+        platform,
+        machine(),
+        EXE_FILE_EXTEN,
+    )
     sha = re.search(sha_regex, release.body, re.MULTILINE).group(1)
 
     r = requests.get(asset.browser_download_url)

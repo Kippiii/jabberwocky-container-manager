@@ -3,21 +3,24 @@ Manages SSH connections (with containers)
 """
 
 import logging
-import time
-import psutil
-import shlex
 import os
+import shlex
 import signal
+import time
+from os.path import basename, isdir
+from os.path import join as joindir
+from posixpath import basename as posixbasename
+from posixpath import join as posixjoin
 from stat import S_ISDIR
-from posixpath import join as posixjoin, basename as posixbasename
-from os.path import basename, join as joindir, isdir
 from typing import Optional, Tuple
 
 import paramiko
+import psutil
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
+from src.containers.exceptions import (FailedToAuthorizeKeyError,
+                                       PoweroffTimeoutExceededError)
 from src.system import syspath
-from src.containers.exceptions import PoweroffTimeoutExceededError, FailedToAuthorizeKeyError
 
 
 class SSHInterface:
@@ -84,7 +87,9 @@ class SSHInterface:
         # If destination is a directory, put file with basename(local) in said directory
         try:
             if S_ISDIR(self.ftp_client.lstat(remote_file_path).st_mode):
-                remote_file_path = posixjoin(remote_file_path, basename(local_file_path))
+                remote_file_path = posixjoin(
+                    remote_file_path, basename(local_file_path)
+                )
         except FileNotFoundError:
             pass
 
@@ -119,7 +124,7 @@ class SSHInterface:
         :param cli: The command run in the SSH as an array
         """
         command = "echo $$ && exec " + " ".join(map(shlex.quote, cli))
-        self.logger.debug(f"Exec \"{command}\" -> {self.container_name}")
+        self.logger.debug(f'Exec "{command}" -> {self.container_name}')
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
         pid = int(stdout.readline())
         return stdin, stdout, stderr, pid
@@ -133,7 +138,7 @@ class SSHInterface:
         _, stdout, _ = self.ssh_client.exec_command("poweroff")
         stdout.channel.recv_exit_status()
 
-        for _ in range(15): # Max timeout: 15 seconds
+        for _ in range(15):  # Max timeout: 15 seconds
             if psutil.pid_exists(pid):
                 if os.name != "nt" and psutil.Process(pid).status() == "zombie":
                     os.kill(pid, signal.SIGKILL)

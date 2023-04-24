@@ -3,14 +3,14 @@ Manages the exceptions related to the containers
 """
 
 import re
-
 from pathlib import Path
+
 from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
 
-from src.system.syspath import get_server_log_file
 from src.system.socket import ClientServerSocket
+from src.system.syspath import get_server_log_file
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
 LOGIN_FAILURE_RE = r"""Login incorrect"""
@@ -165,6 +165,7 @@ class ContainerStartedCannotModify(ServerError):
 
     :param container_name: The name of the container
     """
+
     def _recv(self):
         self.sock.cont()
         self.container_name: str = self.sock.recv().decode("utf-8")

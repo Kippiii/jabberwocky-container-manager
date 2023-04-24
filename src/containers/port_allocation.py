@@ -1,7 +1,10 @@
-import psutil
-from src.containers.exceptions import PortAllocationError
-from sys import platform
 from os import popen
+from sys import platform
+
+import psutil
+
+from src.containers.exceptions import PortAllocationError
+
 
 def allocate_port(lo: int = 12300, hi: int = 65535) -> int:
     """
@@ -28,4 +31,4 @@ def allocate_port(lo: int = 12300, hi: int = 65535) -> int:
             else:
                 port += 1
 
-    PortAllocationError(f'All ports in range [{lo}, {hi}] are unusable.')
+    PortAllocationError(f"All ports in range [{lo}, {hi}] are unusable.")

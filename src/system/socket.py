@@ -3,9 +3,10 @@ Deals with client/server socket objects
 """
 
 import socket
-from typing import Union, List
+from typing import List, Union
 
 import src.containers.exceptions as exc
+
 
 class ClientServerSocket:
     """

@@ -4,9 +4,10 @@ Manages the file system used by the container manager
 
 import os
 import sys
+from os.path import abspath, expanduser
 from pathlib import Path
 from shutil import which
-from os.path import abspath, expanduser
+
 from src.system.state import frozen
 
 
@@ -51,6 +52,7 @@ def get_server_info_file() -> Path:
     """
     return get_container_home() / "server_info.json"
 
+
 def get_server_log_file() -> Path:
     """
     Returns the path to the server log file
@@ -59,6 +61,7 @@ def get_server_log_file() -> Path:
     """
     return get_container_home() / "server.log"
 
+
 def get_repo_file() -> Path:
     """
     Returns the path to the repo json file
@@ -66,6 +69,7 @@ def get_repo_file() -> Path:
     :return: The path to the repo json file
     """
     return get_container_home() / "repo.json"
+
 
 def get_container_dir(container_name: str) -> Path:
     """
