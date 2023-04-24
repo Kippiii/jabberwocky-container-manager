@@ -9,7 +9,6 @@ from pexpect import EOF as PexpectEOFException
 from pexpect import TIMEOUT as PexpectTimeoutException
 from pexpect import ExceptionPexpect
 
-from src.system.socket import ClientServerSocket
 from src.system.syspath import get_server_log_file
 
 PORT_FAILURE_RE = r"""Could not set up host forwarding rule"""
@@ -114,7 +113,7 @@ class ServerError(RuntimeError):
     :param sock: The socket connection being used
     """
 
-    def __init__(self, sock: ClientServerSocket):
+    def __init__(self, sock: "ClientServerSocket"):
         self.sock = sock
         self._recv()
         self.sock.close()
