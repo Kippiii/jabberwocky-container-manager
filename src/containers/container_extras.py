@@ -57,3 +57,8 @@ def archive_container(
     with tarfile.open(path_to_destination, "w:gz") as tar:
         tar.add(get_container_config(container_name), arcname="config.json")
         tar.add(get_container_dir(container_name) / "hdd.qcow2", arcname="hdd.qcow2")
+
+        if (get_container_dir(container_name) / "vmlinuz").exists():
+            tar.add(get_container_dir(container_name) / "vmlinuz", arcname="vmlinuz")
+        if (get_container_dir(container_name) / "initrd.img").exists():
+            tar.add(get_container_dir(container_name) / "initrd.img", arcname="initrd.img")
