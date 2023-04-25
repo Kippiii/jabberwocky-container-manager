@@ -52,14 +52,14 @@ class ContainerManagerClient:
         sock.recv_expect(b"OK")
         return time.time() - tim
 
-    def list(self) -> List[str]:
+    def ls(self) -> List[str]:
         """
         Lists all of the containers installed on the system
         """
         return list(
             filter(
                 lambda p: (get_container_home() / p).is_dir(),
-                listdir(get_container_home()),
+                listdir(get_container_home())
             )
         )
 

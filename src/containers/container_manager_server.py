@@ -423,12 +423,16 @@ class _SocketConnection:
             self.sock.raise_container_not_started(container_name)
             return
 
+        p = Path(local_file)
+        if not p.parent.exists():
+            os.makedirs(p.parent)
+
         try:
             self.manager.containers[container_name].get(remote_file, local_file)
-        except FileNotFoundError:
-            self.sock.raise_invalid_path(remote_file)
-        except IsADirectoryError:
-            self.sock.raise_is_a_directory(remote_file)
+        except FileNotFoundError as ex:
+            self.sock.raise_invalid_path(ex.filename)
+        except IsADirectoryError as ex:
+            self.sock.raise_is_a_directory(ex.filename)
         else:
             self.sock.ok()
 
@@ -455,10 +459,10 @@ class _SocketConnection:
             return
         try:
             self.manager.containers[container_name].put(local_file, remote_file)
-        except FileNotFoundError:
-            self.sock.raise_invalid_path(local_file)
-        except IsADirectoryError:
-            self.sock.raise_is_a_directory(local_file)
+        except FileNotFoundError as ex:
+            self.sock.raise_invalid_path(ex.filename)
+        except IsADirectoryError as ex:
+            self.sock.raise_is_a_directory(ex.filename)
         else:
             self.sock.ok()
 

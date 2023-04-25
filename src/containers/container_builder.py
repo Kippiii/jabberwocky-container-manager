@@ -55,16 +55,23 @@ def make_skeleton(work_dir: Path) -> None:
         json.dump(generate_default_manifest(), f, indent=4)
 
 
-def clean(work_dir: Path) -> None:
+def clean(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> None:
     """
     Deletes the build init directory
 
     :param work_dir: The build init directory to delete
     """
-    if not is_skeleton(work_dir):
-        raise RuntimeError(f"Provided path '{work_dir}' is not an init'd directory.")
-    shutil.rmtree(work_dir / "build" / "temp")
-    os.mkdir(work_dir / "build" / "temp")
+    if not is_supported_platform():
+        raise OSError(f"{sys.platform} does not support building.")
+    if not is_skeleton(wd):
+        raise RuntimeError(f"Provided path '{wd}' is not an init'd directory.")
+
+    subprocess.run([
+        *([] if os.geteuid() == 0 else [which("sudo")]),
+        which("bash"),
+        get_scripts_path() / "clean.sh",
+        wd,
+    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
 
 
 def is_supported_platform() -> bool:
@@ -106,6 +113,10 @@ def missing_required_tools() -> List[str]:
         missing.append("chroot")
     if not which("virt-resize") or not which("virt-make-fs"):
         missing.append("guestfs-tools")
+    if not which("awk"):
+        missing.append("awk")
+    if not which("sed"):
+        missing.append("sed")
 
     return missing
 
@@ -134,24 +145,36 @@ def do_debootstrap(
     with open(work_dir / "manifest.json", "r", encoding="utf-8") as jfp:
         manifest = ContainerManifest(json.load(jfp))
 
+    if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
+        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
+            raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
+                               f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
+
+    username = subprocess.check_output("whoami", shell=True).strip().decode("utf-8")
+    usergroup = subprocess.check_output(f"id -gn {username}", shell=True).strip().decode("utf-8")
+    assert not (" " in username or " " in usergroup)
+
     subprocess.run(
         [
+            *([] if os.geteuid() == 0 else [which("sudo")]),
             which("bash"),
             get_scripts_path() / "build.sh",
-            work_dir,
+            username,
+            usergroup,
+            wd,
             manifest.password,
             manifest.hostname,
             f"{manifest.hddmaxsize}G",
             manifest.aptpkgs,
             _sys_arch_to_debian_arch(machine()),
             _sys_arch_to_debian_arch(manifest.arch),
-            " ".join(_full_script_order(work_dir, manifest)),
+            " ".join(_full_script_order(wd, manifest)),
             manifest.release,
         ],
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
-        check=True,
+        check=True
     )
 
 

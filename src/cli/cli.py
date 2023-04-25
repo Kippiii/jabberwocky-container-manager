@@ -72,9 +72,10 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
             "version": self.version,  #
             "build-init": self.build_init,
             "build": self.build,
-            "list": self.list,  #
-            "ls": self.list,
+            "list": self.ls,
+            "ls": self.ls,
             "clean": self.clean,
+            "build-clean": self.clean,
         }
 
         if len(cmd) == 0:
@@ -100,7 +101,7 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
         """
         self.out_stream.write(f"{VERSION}\n")
 
-    def list(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+    def ls(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
         """
         Sends a list of all the containers installed on the system
 
@@ -122,7 +123,7 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
 
         :param cmd: The command-line args sent
         """
-        builder.clean(Path(cmd[0]) if cmd else Path.cwd())
+        builder.clean(Path(cmd[0]) if cmd else Path.cwd(), self.in_stream, self.out_stream, self.out_stream)
 
     def build(self, cmd: List[str]) -> None:
         """
@@ -166,9 +167,9 @@ kill  [container_name] - Kill the virtual environment in the event of a crash
 run   [container_name] - Execute a single command in the shell.
 
 Container Building:
-build-init (directory)? - Prepare a directory for building.
-build      (directory)? - Build a container.
-clean      (directory)? - Delete temporary files.
+build-init  (directory)? - Prepare a directory for building.
+build       (directory)? - Build a container.
+build-clean (directory)? - Delete temporary files.
 
 File Transfer:
 send-file [container_name] [path_to_source] [path_to_destination]
