@@ -11,7 +11,7 @@ from time import sleep
 from urllib import request
 from typing import Callable, Iterable, Optional, List
 from getpass import getpass
-from os import makedirs, chdir, environ, pathsep
+from os import makedirs, listdir, remove, rmdir, environ, pathsep
 from server import server_is_running
 if platform == "win32":
     import winreg
@@ -32,6 +32,12 @@ def abort() -> None:
     exit(1)
 
 
+def ask_permission(msg: str) -> None:
+    inp = input(f"{msg} [y/N] ")
+    if inp.lower() not in ("y", "yes"):
+        abort()
+
+
 def install_qemu() -> None:
     """
     Checks is QEMU is already installed. If it isn't, install it.
@@ -41,9 +47,7 @@ def install_qemu() -> None:
         qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
         if not qemu_system_x86_64.exists():
             print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
-            inp = input(f"QEMU is required to continue, would you like to install it now? [y/N] ")
-            if inp.lower() not in ("y", "yes"):
-                abort()
+            ask_permission(f"QEMU is required to continue, would you like to install it now?")
 
             installer_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
             checksum_url = "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.sha512"
@@ -75,10 +79,7 @@ def install_qemu() -> None:
 
     elif shutil.which("apt-get"):
         if not shutil.which("qemu-system-x86_64"):
-            inp = input("qemu-system is required to continue, would you like to install it now? [y/N] ")
-            if inp.lower() not in ("y", "yes"):
-                abort()
-
+            ask_permission("qemu-system is required to continue, would you like to install it now?")
             subprocess.run(["sudo", "apt-get", "update"], check=True)
             subprocess.run(["sudo", "apt-get", "install", "qemu-system" ,"-y"], check=True)
 
@@ -97,35 +98,62 @@ def license_agreement() -> None:
         print("Please review the following license agreement carefully.")
         print("========================================================")
         print(f.read())
-        inp = input("Do you accept these terms? [y/N] ")
-        if inp.lower() not in ("y", "yes"):
-            abort()
+        ask_permission("Do you accept these terms?")
 
 
-def copy_files() -> Path:
-    """
-    Write the program files in the install directory.
-    """
-
-    # Get the installation directory
-    install_dir = {
+def get_install_dir() -> Path:
+    return {
         "win32": Path.home() / "AppData\\Local\\Programs\\Jabberwocky",
         "linux": Path.home() / ".local/share/Jabberwocky",
         "darwin": Path.home() / ".local/share/Jabberwocky",
     }[platform]
 
-    inp = input(f"The software will be installed to \"{install_dir}\". Is this OK? [y/N] ")
-    if inp.lower() not in ("y", "yes"):
-        abort()
 
+def delete_previous_installation(install_dir: Path) -> None:
+    if not install_dir.exists():
+        return
+
+    def do_delete_previous_installation():
+        # Delete previous installation, keep track of deleted files.
+        files_deleted: List[Path] = []
+        def do_delete(cur: Path = Path()) -> None:
+            if (install_dir / cur).is_file():
+                remove(install_dir / cur)
+                files_deleted.append(cur)
+            elif (install_dir / cur).is_dir():
+                for child in listdir(install_dir / cur):
+                    do_delete(cur / child)
+                rmdir(install_dir / cur)
+
+        # Back up previous installation
+        prev_install_backup = Path(tempfile.mkdtemp()) / "Jabberwocky"
+        shutil.copytree(install_dir, prev_install_backup)
+
+        try:
+            do_delete()
+        except (OSError, PermissionError):
+            # Deletion failed, restore previous installation.
+            for file in files_deleted:
+                makedirs(install_dir / file.parent, exist_ok=True)
+                shutil.copy(prev_install_backup / file, install_dir / file)
+            raise PermissionError("Could not remove previous installation")
+        else:
+            shutil.rmtree(prev_install_backup)
+
+    t = SpinningTask("Deleting previous installation", do_delete_previous_installation)
+    t.exec()
+
+
+def copy_files(install_dir: Path) -> Path:
+    """
+    Write the program files in the install directory.
+    """
     def do_copy():
         # Create .containers if not exists
         if not (Path.home() / ".containers").exists():
             makedirs(Path.home() / ".containers/")
 
         # Prepare install directory
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
         makedirs(install_dir)
         makedirs(install_dir / "contrib")
         makedirs(install_dir / "scripts")
@@ -137,8 +165,6 @@ def copy_files() -> Path:
 
     t = SpinningTask("Copying files", do_copy)
     t.exec()
-
-    return install_dir
 
 
 def update_PATH(install_dir: Path) -> None:
@@ -191,10 +217,15 @@ if __name__ == "__main__":
     try:
         install_qemu()
         license_agreement()
-        install_dir = copy_files()
+
+        install_dir = get_install_dir()
+        ask_permission(f"The software will be installed to \"{install_dir}\". Is this OK?")
+
+        delete_previous_installation(install_dir)
+        copy_files(install_dir)
         update_PATH(install_dir)
     except Exception:
-        traceback.print_exc()
+        traceback.print_exc(limit=0)
         abort()
     else:
         print("The installation completed successfully!")
