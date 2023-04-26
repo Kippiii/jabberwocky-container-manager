@@ -5,17 +5,19 @@ Must be built with build.py in order to function.
 import hashlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import traceback
-import sys
 from getpass import getpass
+from os import environ, listdir, makedirs, pathsep, remove, rmdir
 from pathlib import Path
 from typing import List
 from urllib import request
-from os import makedirs, listdir, remove, rmdir, environ, pathsep
+
 from server import server_is_running
 from src.system.multithreading import SpinningTask
 from src.system.state import frozen
+
 if sys.platform == "win32":
     import winreg
 
@@ -28,9 +30,9 @@ def abort() -> None:
     """
     print()
     print(
-        "The installation has been aborted.\n" \
-        "If this is an error, please report an issue at" \
-        "https://github.com/Kippiii/jabberwocky\n" \
+        "The installation has been aborted.\n"
+        "If this is an error, please report an issue at"
+        "https://github.com/Kippiii/jabberwocky\n"
         "Press Enter to exit. "
     )
     sys.exit(1)
@@ -51,13 +53,12 @@ def install_qemu() -> None:
     If the user refuses the install, abort the installation.
     """
     if sys.platform == "win32":
-        qemu_system_x86_64 = Path(
-            "C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
+        qemu_system_x86_64 = Path("C:\\Program Files\\qemu\\qemu-system-x86_64.exe")
         if not qemu_system_x86_64.exists():
-            print(
-                f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
+            print(f"Could not find QEMU installed at {qemu_system_x86_64.parent}.")
             ask_permission(
-                "QEMU is required to continue, would you like to install it now?")
+                "QEMU is required to continue, would you like to install it now?"
+            )
 
             installer_url = (
                 "https://qemu.weilnetz.de/w64/2022/qemu-w64-setup-20221117.exe"
@@ -77,8 +78,9 @@ def install_qemu() -> None:
 
             def verify():
                 request.urlretrieve(checksum_url, checksum_file)
-                with open(installer_file, "rb", encoding="utf-8") as inst, \
-                     open(checksum_file, "r", encoding="utf-8") as chksm:
+                with open(installer_file, "rb", encoding="utf-8") as inst, open(
+                    checksum_file, "r", encoding="utf-8"
+                ) as chksm:
                     bytes_read = inst.read()
                     hash_read = hashlib.sha512(bytes_read).hexdigest()
                     assert hash_read.upper() == chksm.read().split()[0].upper()
@@ -93,7 +95,7 @@ def install_qemu() -> None:
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
             print(
-                "For information on how to install QEMU on macOS," \
+                "For information on how to install QEMU on macOS,"
                 "see https://www.qemu.org/download/#macos"
             )
             abort()
@@ -101,7 +103,7 @@ def install_qemu() -> None:
     elif shutil.which("apt-get"):
         if not shutil.which("qemu-system-x86_64"):
             ask_permission(
-                "qemu-system is required to continue," \
+                "qemu-system is required to continue,"
                 "would you like to install it now?"
             )
             subprocess.run(["sudo", "apt-get", "update"], check=True)
@@ -113,7 +115,7 @@ def install_qemu() -> None:
         if not shutil.which("qemu-system-x86_64"):
             print("QEMU is not installed. The installation cannot continue.")
             print(
-                "For information on how to install QEMU on Linux," \
+                "For information on how to install QEMU on Linux,"
                 "see https://www.qemu.org/download/#linux"
             )
             abort()
@@ -177,8 +179,9 @@ def delete_previous_installation(install_dir: Path) -> None:
         else:
             shutil.rmtree(prev_install_backup)
 
-    task = SpinningTask("Deleting previous installation",
-                     do_delete_previous_installation)
+    task = SpinningTask(
+        "Deleting previous installation", do_delete_previous_installation
+    )
     task.exec()
 
 
@@ -186,6 +189,7 @@ def copy_files(install_dir: Path) -> Path:
     """
     Write the program files in the install directory.
     """
+
     def do_copy():
         # Create .containers if not exists
         if not (Path.home() / ".containers").exists():
@@ -267,7 +271,8 @@ def main():
 
         install_dir = get_install_dir()
         ask_permission(
-            f"The software will be installed to \"{install_dir}\". Is this OK?")
+            f'The software will be installed to "{install_dir}". Is this OK?'
+        )
 
         delete_previous_installation(install_dir)
         copy_files(install_dir)
