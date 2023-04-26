@@ -61,4 +61,6 @@ def archive_container(
         if (get_container_dir(container_name) / "vmlinuz").exists():
             tar.add(get_container_dir(container_name) / "vmlinuz", arcname="vmlinuz")
         if (get_container_dir(container_name) / "initrd.img").exists():
-            tar.add(get_container_dir(container_name) / "initrd.img", arcname="initrd.img")
+            tar.add(
+                get_container_dir(container_name) / "initrd.img", arcname="initrd.img"
+            )

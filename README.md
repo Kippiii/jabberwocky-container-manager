@@ -1,11 +1,10 @@
 # Jabberwocky Container Manager
 
-Used for managing containers used with the Jabberwocky project.
+Used for managing containers used with the [Jabberwocky project](https://github.com/Kippiii/Jabberwocky).
 
-Here are some premade containers created for some Florida Tech classes:
-https://drive.google.com/drive/folders/1xRxzqJvm2w27yZCNgnlD7_iKxYhAQ6qB?usp=sharing
+Here are some premade containers created for some Florida Tech classes [here](https://drive.google.com/drive/folders/1xRxzqJvm2w27yZCNgnlD7_iKxYhAQ6qB?usp=sharing)
 
-## How to Build the Executable Files and Installer
+## How to Build the Executable Files and Installer From Source
 
 ```sh
 poetry install # Only do on first time
@@ -20,7 +19,7 @@ The installer file for the host platform will be stored at `build/dist/installer
 
 There is no support for cross-compiling at this time.
 
-## How to Run the Tool
+## How to Run the Tool (For Developers)
 
 ```sh
 poetry install # Only do first time

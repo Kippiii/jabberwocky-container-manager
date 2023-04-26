@@ -123,7 +123,12 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
 
         :param cmd: The command-line args sent
         """
-        builder.clean(Path(cmd[0]) if cmd else Path.cwd(), self.in_stream, self.out_stream, self.out_stream)
+        builder.clean(
+            Path(cmd[0]) if cmd else Path.cwd(),
+            self.in_stream,
+            self.out_stream,
+            self.out_stream,
+        )
 
     def build(self, cmd: List[str]) -> None:
         """

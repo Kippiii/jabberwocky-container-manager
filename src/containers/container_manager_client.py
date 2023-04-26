@@ -59,7 +59,7 @@ class ContainerManagerClient:
         return list(
             filter(
                 lambda p: (get_container_home() / p).is_dir(),
-                listdir(get_container_home())
+                listdir(get_container_home()),
             )
         )
 

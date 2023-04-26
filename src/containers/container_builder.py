@@ -66,12 +66,18 @@ def clean(wd: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> None:
     if not is_skeleton(wd):
         raise RuntimeError(f"Provided path '{wd}' is not an init'd directory.")
 
-    subprocess.run([
-        *([] if os.geteuid() == 0 else [which("sudo")]),
-        which("bash"),
-        get_scripts_path() / "clean.sh",
-        wd,
-    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
+    subprocess.run(
+        [
+            *([] if os.geteuid() == 0 else [which("sudo")]),
+            which("bash"),
+            get_scripts_path() / "clean.sh",
+            wd,
+        ],
+        stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
+        check=True,
+    )
 
 
 def is_supported_platform() -> bool:
@@ -146,12 +152,20 @@ def do_debootstrap(
         manifest = ContainerManifest(json.load(jfp))
 
     if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
-        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(machine()):
-            raise RuntimeError(f"qemu-{manifest.arch} is not registered in binfmt_misc."
-                               f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`")
+        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(
+            machine()
+        ):
+            raise RuntimeError(
+                f"qemu-{manifest.arch} is not registered in binfmt_misc."
+                f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`"
+            )
 
     username = subprocess.check_output("whoami", shell=True).strip().decode("utf-8")
-    usergroup = subprocess.check_output(f"id -gn {username}", shell=True).strip().decode("utf-8")
+    usergroup = (
+        subprocess.check_output(f"id -gn {username}", shell=True)
+        .strip()
+        .decode("utf-8")
+    )
     assert not (" " in username or " " in usergroup)
 
     subprocess.run(
@@ -174,7 +188,7 @@ def do_debootstrap(
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
-        check=True
+        check=True,
     )
 
 
