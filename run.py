@@ -1,17 +1,17 @@
 import logging
-import traceback
-from sys import stdin, stdout, argv, exit
-from pathlib import Path
-import subprocess
-import time
 import os
+import subprocess
 import sys
+import time
+import traceback
+from pathlib import Path
+from sys import argv, exit, stdin, stdout
 
-from src.containers.container_manager_client import ContainerManagerClient
-from src.system.syspath import get_server_info_file
 from server import server_is_running
 from src.cli.cli import JabberwockyCLI
+from src.containers.container_manager_client import ContainerManagerClient
 from src.system.state import frozen
+from src.system.syspath import get_server_info_file
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
         if frozen():
             target = Path(sys.executable).parent.parent / "server" / "server"
         else:
-            target = f"\"{sys.executable}\" server.py"
+            target = f'"{sys.executable}" server.py'
 
         if os.name == "nt":
             subprocess.Popen(
@@ -51,7 +51,6 @@ def main():
                 raise TimeoutError("Server took too long to start.")
             else:
                 time.sleep(0.5)
-
 
     cli = JabberwockyCLI(stdin, stdout)
     inp = argv[1:]

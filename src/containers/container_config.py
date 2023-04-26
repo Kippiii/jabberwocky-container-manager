@@ -18,7 +18,7 @@ _LEGACY_CT_CONFIG = {
 class ContainerConfig:
     """
     Class for managing the config file of the container
-    
+
     :param arch: The architecture of a container
     :param memory: The memory allocated to the container
     :param hddmaxsize: The size of the hard-disk image
@@ -28,6 +28,7 @@ class ContainerConfig:
     :param portfwd: ?
     :param legacy: ?
     """
+
     arch: str
     memory: int
     hddmaxsize: int
@@ -37,7 +38,9 @@ class ContainerConfig:
     portfwd: List[List[int]]
     legacy: bool
 
-    def __init__(self, manifest: dict):  # pylint: disable=too-many-branches,too-many-statements
+    def __init__(
+        self, manifest: dict
+    ):  # pylint: disable=too-many-branches,too-many-statements
         if (version := manifest.get("manifest")) is None:
             manifest = ContainerConfig._convert_legacy(manifest)
         elif version not in range(0, MANIFEST_VERSION + 1):
@@ -59,17 +62,17 @@ class ContainerConfig:
 
         if "memory" not in manifest:
             config_errors.append("'memory' is not an optional field.")
-        elif not isinstance(manifest['memory'], int):
+        elif not isinstance(manifest["memory"], int):
             config_errors.append("'memory' must be an integer.")
 
         if "hddmaxsize" not in manifest:
             config_errors.append("'hddmaxsize' is not an optional field.")
-        elif not isinstance(manifest['hddmaxsize'], int):
+        elif not isinstance(manifest["hddmaxsize"], int):
             config_errors.append("'hddmaxsize' must be an integer.")
 
         if "portfwd" not in manifest:
             pass
-        elif not isinstance(portfwd := manifest['portfwd'], list):
+        elif not isinstance(portfwd := manifest["portfwd"], list):
             config_errors.append("'portfwd' must be an array.")
         elif not all(
             len(l) == 2 and all(isinstance(i, int) for i in l) for l in portfwd

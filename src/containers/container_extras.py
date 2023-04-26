@@ -4,11 +4,11 @@ Various extra tools used by containers
 
 import tarfile
 from os.path import isdir, isfile
+from pathlib import Path
 from shutil import rmtree
 from typing import Union
-from pathlib import Path
 
-from src.system.syspath import get_container_dir
+from src.system.syspath import get_container_config, get_container_dir
 
 
 def install_container(archive_path: Path, container_name: str) -> None:
@@ -21,7 +21,6 @@ def install_container(archive_path: Path, container_name: str) -> None:
         raise TypeError(f"'{archive_path}' is not a tar archive")
     with tarfile.open(archive_path) as tar:
         tar.extractall(path=get_container_dir(container_name))
-        # TODO Sanity check this extraction
 
 
 def delete_container(container_name: Path) -> None:
@@ -61,4 +60,6 @@ def archive_container(
         if (get_container_dir(container_name) / "vmlinuz").exists():
             tar.add(get_container_dir(container_name) / "vmlinuz", arcname="vmlinuz")
         if (get_container_dir(container_name) / "initrd.img").exists():
-            tar.add(get_container_dir(container_name) / "initrd.img", arcname="initrd.img")
+            tar.add(
+                get_container_dir(container_name) / "initrd.img", arcname="initrd.img"
+            )

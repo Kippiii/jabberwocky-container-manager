@@ -5,8 +5,6 @@ Manages the individual container objects
 import json
 import logging
 from io import BytesIO
-from math import floor
-from os import cpu_count
 from pathlib import Path
 from signal import SIGABRT
 from typing import List, Optional, Tuple, Union
@@ -21,7 +19,7 @@ from src.containers.port_allocation import allocate_port
 from src.system import ssh, syspath
 
 
-class Container(ContainerConfig):
+class Container(ContainerConfig):  # pylint: disable=abstract-method
     """
     Class for storing container objects
 
@@ -35,7 +33,7 @@ class Container(ContainerConfig):
     ex_port: int
     name: str
     sshi: ssh.SSHInterface
-    timeout: int = 180
+    timeout: int = 60 * 5
     max_retries: int = 25
     logging_file_path: Path
     logging_file: BytesIO

@@ -1,8 +1,8 @@
 import shutil
+from os import listdir, makedirs, remove, rmdir
 from pathlib import Path
-from urllib.request import urlretrieve
 from sys import platform
-from os import listdir, rmdir, remove, makedirs
+from urllib.request import urlretrieve
 
 CONTRIB_PATH = Path(__file__).parent / "contrib"
 

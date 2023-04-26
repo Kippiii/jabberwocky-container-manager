@@ -54,7 +54,7 @@ class-const-naming-style = "UPPER_CASE"
 class-naming-style = "PascalCase"
 const-naming-style = "UPPER_CASE"
 function-naming-style = "snake_case"
-good-names = ["i", "j", "k", "ex", "Run", "_", "f"]
+good-names = ["i", "j", "k", "ex", "Run", "_", "f", "p"]
 method-naming-style = "snake_case"
 module-naming-style = "snake_case"
 variable-naming-style = "snake_case"
@@ -68,6 +68,3 @@ max-bool-expr = 999
 min-public-methods = -1
 [tool.pylint.format]
 max-line-length = 88
-[tool.pylint.variables]
-allow-global-unused-variables = false
-

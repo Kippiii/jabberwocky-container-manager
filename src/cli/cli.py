@@ -72,8 +72,8 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
             "version": self.version,  #
             "build-init": self.build_init,
             "build": self.build,
-            "list": self.ls,
-            "ls": self.ls,
+            "list": self.list_containers,
+            "ls": self.list_containers,
             "clean": self.clean,
             "build-clean": self.clean,
         }
@@ -88,7 +88,7 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
         if command not in subcmd_dict:
             self.out_stream.write(
                 f"Command of '{command}' is not valid\nUse 'jab help' to see"
-                 " a list of commands\n"
+                " a list of commands\n"
             )
             return
         subcmd_dict[command.lower()](rest)
@@ -101,13 +101,15 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
         """
         self.out_stream.write(f"{VERSION}\n")
 
-    def ls(self, cmd: List[str]) -> None:  # pylint: disable=unused-argument
+    def list_containers(
+        self, cmd: List[str]  # pylint: disable=unused-argument
+    ) -> None:
         """
         Sends a list of all the containers installed on the system
 
         :param cmd: The command-line args sent
         """
-        print("    ".join(self.container_manager.list()))
+        print("    ".join(self.container_manager.list_containers()))
 
     def build_init(self, cmd: List[str]) -> None:
         """
@@ -123,7 +125,12 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
 
         :param cmd: The command-line args sent
         """
-        builder.clean(Path(cmd[0]) if cmd else Path.cwd(), self.in_stream, self.out_stream, self.out_stream)
+        builder.clean(
+            Path(cmd[0]) if cmd else Path.cwd(),
+            self.in_stream,
+            self.out_stream,
+            self.out_stream,
+        )
 
     def build(self, cmd: List[str]) -> None:
         """

@@ -1,10 +1,14 @@
+"""
+Used for updating the Jabberwocky tool
+"""
 import hashlib
 import os
 import re
 import subprocess
 import sys
 import tempfile
-from distutils.version import StrictVersion
+from distutils.version import \
+    StrictVersion  # pylint: disable=deprecated-module
 from pathlib import Path
 from platform import machine
 from sys import platform
@@ -24,8 +28,13 @@ EXE_FILE_EXTEN = ".exe" if platform == "win32" else ""
 def get_newest_supported_version() -> Tuple[
     GitRelease, GitReleaseAsset
 ] | Tuple[None, None]:
-    g = Github()
-    repo = g.get_repo("Kippiii/jabberwocky-container-manager")
+    """
+    Gets the newest release from Github
+
+    :return: A tuple of the release object and the asset object
+    """
+    git = Github()
+    repo = git.get_repo("Kippiii/jabberwocky-container-manager")
 
     releases = [
         r
@@ -50,28 +59,33 @@ def update(release: GitRelease, asset: GitReleaseAsset):
     # Search for latest release
     ContainerManagerClient().server_halt()
 
-    sha_regex = r"installer-%s-%s%s\s+SHA256: ([a-zA-Z0-9]{64})" % (
-        platform,
-        machine(),
-        EXE_FILE_EXTEN,
+    sha_regex = (
+        r"installer-%s-%s%s\s+SHA256: ([a-zA-Z0-9]{64})"  # pylint: disable=consider-using-f-string
+        % (
+            platform,
+            machine(),
+            EXE_FILE_EXTEN,
+        )
     )
     sha = re.search(sha_regex, release.body, re.MULTILINE).group(1)
 
-    r = requests.get(asset.browser_download_url)
-    p = Path(tempfile.gettempdir()) / asset.name
+    req = requests.get(asset.browser_download_url, timeout=360 * 20)
+    path = Path(tempfile.gettempdir()) / asset.name
 
     # Verify Installer
-    if hashlib.sha256(r.content).hexdigest().upper() != sha.upper():
+    if hashlib.sha256(req.content).hexdigest().upper() != sha.upper():
         raise RuntimeError("Bad Checksum!!! Try updating again later.")
 
-    with open(p, "wb") as f:
-        f.write(r.content)
+    with open(path, "wb") as f:
+        f.write(req.content)
 
     if platform == "win32":
-        subprocess.Popen([p], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        subprocess.Popen(  # pylint: disable=consider-using-with
+            [path], creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
         sys.exit(0)
     else:
-        subprocess.run(["chmod", "+x", p], shell=False)
-        os.execl(p, p)
+        subprocess.run(["chmod", "+x", path], shell=False, check=False)
+        os.execl(path, path)
 
     raise RuntimeError("This state should not be possible.")
