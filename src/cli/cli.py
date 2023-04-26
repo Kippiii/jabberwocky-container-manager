@@ -43,33 +43,33 @@ class JabberwockyCLI:  # pylint: disable=too-many-public-methods
         Parses the cmd sent from script
         """
         subcmd_dict = {
-            "help": self.help,  #
-            "files": self.view_files,  #
-            "interact": self.interact,  #
+            "help": self.help,
+            "files": self.view_files,
+            "interact": self.interact,
             "shell": self.interact,
-            "start": self.start,  #
-            "stop": self.stop,  #
-            "kill": self.kill,  #
-            "run": self.run,  #
-            "send-file": self.send_file,  #
-            "get-file": self.get_file,  #
-            "install": self.install,  #
-            "delete": self.delete,  #
-            "rename": self.rename,  #
-            "download": self.download,  #
-            "archive": self.archive,  #
+            "start": self.start,
+            "stop": self.stop,
+            "kill": self.kill,
+            "run": self.run,
+            "send-file": self.send_file,
+            "get-file": self.get_file,
+            "install": self.install,
+            "delete": self.delete,
+            "rename": self.rename,
+            "download": self.download,
+            "archive": self.archive,
             "export": self.archive,
-            "upload": self.upload,  #
-            "add-repo": self.add_repo,  #
-            "update-repo": self.update_repo,  #
+            "upload": self.upload,
+            "add-repo": self.add_repo,
+            "update-repo": self.update_repo,
             "create": self.create,
-            "server-halt": self.server_halt,  #
-            "ping": self.ping,  #
-            "ssh-address": self.ssh_address,  #
-            "update": self.update,  #
-            "sftp": self.sftp,  #
-            "panic": self.server_panic,  #
-            "version": self.version,  #
+            "server-halt": self.server_halt,
+            "ping": self.ping,
+            "ssh-address": self.ssh_address,
+            "update": self.update,
+            "sftp": self.sftp,
+            "panic": self.server_panic,
+            "version": self.version,
             "build-init": self.build_init,
             "build": self.build,
             "list": self.list_containers,
@@ -191,12 +191,22 @@ delete [container_name]
     - Delete a container from your system. (~/.containers)
 create
     - Start the container creation process.
+rename [old_container_name] [new_container_name]
+    - Rename a container in your file system
+update
+    - Downloads and installs the newest version of the container manager tool
+version
+    - Gets the currently running version of the container manager tool
 
 Managing your repositories:
-download [container_name] [name]
-add-repo [URL]
-remove-repo [URL]
-update-repo [URL]
+download [container_name] [name] - Download a container from your list of repos
+add-repo [URL]                   - Adds a repo to the repo list
+remove-repo [URL]                - Removes a repo from the repo list
+update-repo [URL]?               - Gets what archives are in a repo (or all of them)
+
+Local server:
+server-halt   - Gracefully halts the local server
+panic         - Ungracefully stops the local server
 """
         self.out_stream.write(help_str)
 
