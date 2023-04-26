@@ -67,18 +67,12 @@ def clean(working_dir: Path, stdin: TextIO, stdout: TextIO, stderr: TextIO) -> N
     if not is_skeleton(working_dir):
         raise RuntimeError(f"Provided path '{working_dir}' is not an init'd directory.")
 
-    subprocess.run(
-        [
-            *([] if os.geteuid() == 0 else [which("sudo")]),
-            which("bash"),
-            get_scripts_path() / "clean.sh",
-            working_dir,
-        ],
-        stdin=stdin,
-        stdout=stdout,
-        stderr=stderr,
-        check=True,
-    )
+    subprocess.run([
+        *([] if os.geteuid() == 0 else [which("sudo")]),
+        which("bash"),
+        get_scripts_path() / "clean.sh",
+        working_dir,
+    ], stdin=stdin, stdout=stdout, stderr=stderr, check=True)
 
 
 def is_supported_platform() -> bool:

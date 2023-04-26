@@ -33,7 +33,7 @@ class Container(ContainerConfig):  # pylint: disable=abstract-method
     ex_port: int
     name: str
     sshi: ssh.SSHInterface
-    timeout: int = 180
+    timeout: int = 60 * 5
     max_retries: int = 25
     logging_file_path: Path
     logging_file: BytesIO
