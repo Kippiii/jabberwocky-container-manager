@@ -36,11 +36,11 @@ class ContainerManifest(ContainerConfig):  # pylint: disable=abstract-method
 
         if "scriptorder" not in manifest:
             pass
-        elif isinstance(sorder := manifest["scriptorder"], list):
+        elif not isinstance(sorder := manifest["scriptorder"], list):
             manifest_errors.append("'scriptorder' must be an array.")
         else:
             for fname in sorder:
-                if isinstance(fname, str):
+                if not isinstance(fname, str):
                     manifest_errors.append(f"Invalid file name '{fname}'.")
 
         if manifest.get("release") not in (None, "bullseye", "bookworm"):
