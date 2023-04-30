@@ -152,14 +152,14 @@ def do_debootstrap(
     with open(working_dir / "manifest.json", "r", encoding="utf-8") as jfp:
         manifest = ContainerManifest(json.load(jfp))
 
-    if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
-        if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(
-            machine()
-        ):
-            raise RuntimeError(
-                f"qemu-{manifest.arch} is not registered in binfmt_misc."
-                f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`"
-            )
+    # if not Path(f"/proc/sys/fs/binfmt_misc/qemu-{manifest.arch}").is_file():
+    #     if _sys_arch_to_debian_arch(manifest.arch) != _sys_arch_to_debian_arch(
+    #         machine()
+    #     ):
+    #         raise RuntimeError(
+    #             f"qemu-{manifest.arch} is not registered in binfmt_misc."
+    #             f" Try `sudo update-binfmts --enable qemu-{manifest.arch}`"
+    #         )
 
     username = subprocess.check_output("whoami", shell=True).strip().decode("utf-8")
     usergroup = (
