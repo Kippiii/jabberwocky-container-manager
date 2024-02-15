@@ -78,8 +78,8 @@ def install_qemu() -> None:
 
             def verify():
                 request.urlretrieve(checksum_url, checksum_file)
-                with open(installer_file, "rb", encoding="utf-8") as inst, open(
-                    checksum_file, "r", encoding="utf-8"
+                with open(installer_file, "rb") as inst, open(
+                    checksum_file, "r"
                 ) as chksm:
                     bytes_read = inst.read()
                     hash_read = hashlib.sha512(bytes_read).hexdigest()
